@@ -145,6 +145,13 @@ main{max-width:1480px;margin:0 auto;padding:16px 14px 24px}
 .tk-row.atrasada .inj-nome button{color:var(--late)}
 .tk-txt{color:var(--deep)!important;font-weight:600}
 @media(max-width:700px){.tk-row{grid-template-columns:1fr}}
+.fchip{border:1px solid transparent;cursor:pointer;font-family:inherit}
+.fchip.on{border-color:currentColor;box-shadow:0 0 0 2px currentColor inset}
+.fl:not(.late):not(.warn):not(.ok):not(.blue){background:#eceff3;color:var(--soft)}
+.fl.blue{background:#e3edf9;color:var(--accent)}
+.pos-st{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
+.pos-box{border-left-color:var(--sage);margin-top:14px}
+.sheet select,.form select{width:100%}
 /* Painel por fases */
 .trilha-t{font-weight:700;font-size:.9rem;color:var(--soft);margin:14px 0 8px}
 .fases{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
@@ -202,9 +209,9 @@ main{max-width:1480px;margin:0 auto;padding:16px 14px 24px}
 .footnote{font-size:.78rem;color:var(--soft);text-align:center;margin-top:24px}
 
 /* ===== v3: indicações, interesse, aplicações ===== */
-.tabs{grid-template-columns:repeat(5,1fr)}
-.tabs button{font-size:.7rem}
-@media(min-width:900px){.tabs{grid-template-columns:repeat(5,max-content)}.tabs button{font-size:.9rem}}
+.tabs{grid-template-columns:repeat(6,1fr)}
+.tabs button{font-size:.66rem}
+@media(min-width:900px){.tabs{grid-template-columns:repeat(6,max-content)}.tabs button{font-size:.9rem}}
 .sec-head .btn{white-space:nowrap}
 .chip.conv{background:#efe6fb;color:#5b3a99}
 .chip.part{background:#e6f3ee;color:#2f6b52}
@@ -298,7 +305,8 @@ legend{font-size:.86rem;font-weight:700;color:var(--soft);padding:0;margin-botto
     <button class="out" id="bOut">Sair</button>
   </header>
   <nav class="tabs" aria-label="Seções">
-    <button data-tab="painel" aria-current="page"><svg viewBox="0 0 24 24"><rect x="3.5" y="4" width="7" height="7" rx="2"/><rect x="13.5" y="4" width="7" height="4" rx="2"/><rect x="13.5" y="11" width="7" height="9" rx="2"/><rect x="3.5" y="14" width="7" height="6" rx="2"/></svg>Semana</button>
+    <button data-tab="painel" aria-current="page"><svg viewBox="0 0 24 24"><rect x="3.5" y="4" width="7" height="7" rx="2"/><rect x="13.5" y="4" width="7" height="4" rx="2"/><rect x="13.5" y="11" width="7" height="9" rx="2"/><rect x="3.5" y="14" width="7" height="6" rx="2"/></svg>Painel</button>
+    <button data-tab="semana"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Semana</button>
     <button data-tab="ind"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="10" y="4" width="5" height="11" rx="1.5"/><rect x="17" y="4" width="4" height="7" rx="1.5"/></svg>Indicações</button>
     <button data-tab="cir"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M6 12c2-2.5 10-2.5 12 0"/></svg>Cirurgias</button>
     <button data-tab="trat"><svg viewBox="0 0 24 24"><path d="M14 4l6 6M17 7l-9 9-3 1 1-3 9-9M11 8l5 5M4 20l2-2"/></svg>Injeções</button>
@@ -343,7 +351,7 @@ const PRAZO_CONVENIO = 15, PRAZO_PARTICULAR = 7;
 // Injeções/laser: lembrete D+20, vencimento D+30
 const LEMBRAR_DIAS = 14, VENCE_DIAS = 30, PAUSA_DIAS = 60;
 
-const S = { tab:"painel", pacientes:[], casos:[], sessoes:[], user:null, fInd:"todos", fTrat:"ativos", busca:"" };
+const S = { tab:"painel", pacientes:[], casos:[], sessoes:[], pos:[], modelos:[], user:null, fInd:"todos", fTrat:"ativos", busca:"" };
 
 /* ================= Utilidades ================= */
 const $ = (s, el=document) => el.querySelector(s);
@@ -418,6 +426,8 @@ async function carregar(){
     sb.from("casos").select("*").order("criado_em"),
     sb.from("sessoes").select("*").order("numero"),
   ]);
+  const [ps,md] = await Promise.all([sb.from("pos_contatos").select("*"), sb.from("modelos").select("*").order("tipo").order("nome")]);
+  S.pos=ps.data||[]; S.modelos=md.data||[];
   const err = p.error||c.error||s.error; if (err) { toast("Erro ao carregar: "+err.message); return; }
   S.pacientes=p.data; S.casos=c.data; S.sessoes=s.data;
 }
@@ -483,7 +493,7 @@ function cardTrat(c){
 function render(){
   document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-current", b.dataset.tab===S.tab?"page":"false"));
   const m=$("#main");
-  m.innerHTML = ({painel:telaPainel, ind:telaInd, cir:telaCir, trat:telaTrat, pac:telaPac}[S.tab])();
+  m.innerHTML = ({painel:telaPainel, semana:telaSemana, ind:telaInd, cir:telaCir, trat:telaTrat, pac:telaPac}[S.tab])();
   m.insertAdjacentHTML("beforeend", `<p class="footnote">Dados protegidos · acesso restrito à equipe · ${S.pacientes.length} pacientes cadastrados</p>`);
 }
 
@@ -504,36 +514,44 @@ function fasesPainel(){
     {id:"i1", trilha:"inj", nome:"Indicado", sub:"enviar orçamento/guia", casos:inj.filter(c=>c.etapa==="indicado"), al:alInd, card:cardInd},
     {id:"i2", trilha:"inj", nome:"Aguardando", sub:"resposta / autorização", casos:inj.filter(c=>["orcamento","aguardando"].includes(c.etapa)), al:alInd, card:cardInd},
     {id:"i3", trilha:"inj", nome:"1ª aplicação", sub:"fechado · agendar", casos:inj.filter(c=>!ABERTAS.includes(c.etapa)&&estTrat(c)==="primeira"), al:alTrat, card:cardTrat},
-    {id:"i4", trilha:"inj", nome:"Em ciclo", sub:"D+20 lembrar · D+30 vence", casos:inj.filter(c=>!ABERTAS.includes(c.etapa)&&["ok","lembrar","late","agendado"].includes(estTrat(c))), al:alTrat, card:cardTrat},
+    {id:"i4", trilha:"inj", nome:"Em ciclo", sub:"D+14 agendar · D+30 vence", casos:inj.filter(c=>!ABERTAS.includes(c.etapa)&&["ok","lembrar","late","agendado"].includes(estTrat(c))), al:alTrat, card:cardTrat},
     {id:"i5", trilha:"inj", nome:"Ciclo concluído", sub:"reavaliar novo ciclo", casos:inj.filter(c=>!ABERTAS.includes(c.etapa)&&estTrat(c)==="avaliar"), al:()=>0, card:cardTrat},
   ].map(f=>{ const ord=f.casos.map(c=>[c,f.al(c)]).sort((a,b)=>b[1]-a[1]); return {...f, ord, red:ord.filter(x=>x[1]===2).length, amb:ord.filter(x=>x[1]===1).length}; });
 }
 function noLocal(c){ return !S.fLocal || (S.fLocal==="sem" ? !c.local : c.local===S.fLocal); }
 function blocoInjecoes(){
   const lista = S.casos.filter(c=>c.tipo!=="cirurgia" && noLocal(c) && !ABERTAS.includes(c.etapa) && !["finalizado","desistiu"].includes(c.etapa))
-    .map(c=>[c,statusTrat(c)]).filter(([,s])=>!["fim","avaliar"].includes(s.estado));
-  const ordem={late:0,lembrar:1,primeira:2,agendado:3,ok:4};
-  const urg = lista.filter(([,s])=>s.estado!=="ok" || (s.vence && diff(s.vence,hoje())<=10));
-  const emdia = lista.length-urg.length;
-  urg.sort((a,b)=>ordem[a[1].estado]-ordem[b[1].estado] || (a[1].vence||0)-(b[1].vence||0));
+    .map(c=>[c,statusTrat(c)]).filter(([,s])=>s.estado!=="fim");
+  const ordem={late:0,lembrar:1,primeira:2,agendado:3,ok:4,avaliar:5,pausa:6};
+  const f=S.fInj||null;
+  let vis = f ? lista.filter(([,s])=>s.estado===f) : lista.filter(([,s])=>["late","lembrar","primeira"].includes(s.estado));
+  vis.sort((a,b)=>ordem[a[1].estado]-ordem[b[1].estado] || (a[1].vence||0)-(b[1].vence||0));
   const n=e=>lista.filter(([,s])=>s.estado===e).length;
   const sit=(c,s)=>{
     if(s.estado==="late") return `<span class="fl late">Vencida há ${s.dU-(c.intervalo_dias||VENCE_DIAS)} d</span>`;
-    if(s.estado==="lembrar") return `<span class="fl warn">Vence ${dm(iso(s.vence))} · em ${diff(s.vence,hoje())} d</span>`;
+    if(s.estado==="lembrar") return `<span class="fl warn">Agendar · vence ${dm(iso(s.vence))}</span>`;
     if(s.estado==="primeira") return `<span class="fl warn">1ª a agendar</span>`;
     if(s.estado==="agendado") return `<span class="fl ok">Agendada ${dm(s.agendada.data_prevista)}</span>`;
-    return `<span class="fl ok">Vence ${dm(iso(s.vence))}</span>`;
+    if(s.estado==="pausa") return `<span class="fl">Em pausa · ${s.dU} d</span>`;
+    if(s.estado==="avaliar") return `<span class="fl blue">Ciclo completo</span>`;
+    return `<span class="fl ok">Em dia · vence ${dm(iso(s.vence))}</span>`;
   };
-  const tel=p=>{ const f=fones(p.telefone)[0]; if(!f) return ""; const i=f.length<=11?"55"+f:f; return `<a class="btn small ghost wa" href="https://wa.me/${i}" target="_blank" rel="noopener">WhatsApp</a>`; };
-  const linhas = urg.map(([c,s])=>{ const p=pacOf(c); return `<div class="inj-row ${s.estado}">
+  const tel=p=>{ const fo=fones(p.telefone)[0]; if(!fo) return ""; const i=fo.length<=11?"55"+fo:fo; return `<a class="btn small ghost wa" href="https://wa.me/${i}" target="_blank" rel="noopener">WhatsApp</a>`; };
+  const acts=(c,s)=> s.estado==="pausa" ? `<button class="btn small" data-act="agendar" data-id="${c.id}">Retomar</button><button class="btn small ghost" data-act="finalizar" data-id="${c.id}">Encerrar</button>`
+    : s.estado==="avaliar" ? `<button class="btn small" data-act="ciclo" data-id="${c.id}">Novo ciclo</button><button class="btn small ghost" data-act="finalizar" data-id="${c.id}">Alta</button>`
+    : `${s.estado==="agendado"?"":`<button class="btn small ghost" data-act="agendar" data-id="${c.id}">Agendar</button>`}<button class="btn small okb" data-act="aplicar" data-id="${c.id}">Registrar</button>`;
+  const linhas = vis.map(([c,s])=>{ const p=pacOf(c); return `<div class="inj-row ${s.estado}">
     <div class="inj-sit">${sit(c,s)}</div>
     <div class="inj-nome"><button class="linklike" data-pac="${p.id}">${esc(nomeCurto(p.nome))}</button><small>${TIPO_LABEL[c.tipo]}${c.olho?" "+esc(c.olho):""} · ${Math.min(s.feitas.length+1,s.total)}ª de ${s.total} · ${esc(pagLabel(c))}${c.local?" · "+esc(c.local):""}${s.ultima?` · última ${dm(s.ultima)}`:""}</small></div>
-    <div class="inj-acts">${tel(p)}${s.estado==="agendado"?"":`<button class="btn small ghost" data-act="agendar" data-id="${c.id}">Agendar</button>`}<button class="btn small okb" data-act="aplicar" data-id="${c.id}">Registrar</button></div>
+    <div class="inj-acts">${tel(p)}${acts(c,s)}</div>
   </div>`; }).join("");
+  const chip=(k,cls,t)=>`<button class="fl ${cls} fchip ${f===k?"on":""}" data-finj="${k}">${n(k)} ${t}</button>`;
+  const tit={late:"Vencidas",lembrar:"Agendar (3ª semana)",primeira:"1ª a agendar",agendado:"Agendadas",ok:"Em dia",avaliar:"Ciclo completo",pausa:"Em pausa"};
   return `<div class="inj-box">
-    <div class="panel-h"><h3>💉 Injeções e laser a vencer</h3><button class="linkbtn" data-goto="trat">Ver todas →</button></div>
-    <div class="resumo-hoje"><span class="fl late">${n("late")} vencidas</span><span class="fl warn">${n("lembrar")} vencem em até 10 dias</span><span class="fl warn">${n("primeira")} 1ª a agendar</span><span class="fl ok">${n("agendado")} agendadas</span><span class="fl ok">${emdia} em dia</span></div>
-    <div class="inj-list">${linhas||'<div class="empty">Nenhuma injeção vencendo nos próximos 10 dias. 👏</div>'}</div>
+    <div class="panel-h"><h3>💉 Injeções e laser ${f?"· "+tit[f]:"a vencer"}</h3>${f?`<button class="linkbtn" data-finj="${f}">Voltar ao resumo ✕</button>`:`<button class="linkbtn" data-goto="trat">Ver todas →</button>`}</div>
+    <div class="resumo-hoje">${chip("late","late","vencidas")}${chip("lembrar","warn","agendar (3ª semana)")}${chip("primeira","warn","1ª a agendar")}${chip("agendado","ok","agendadas")}${chip("ok","ok","em dia")}${chip("avaliar","blue","ciclo completo")}${chip("pausa","","em pausa")}</div>
+    <div class="sub" style="font-size:.78rem">Toque num número para ver a lista.</div>
+    <div class="inj-list">${linhas||'<div class="empty">Ninguém aqui. 👏</div>'}</div>
   </div>`;
 }
 const AGENDA = {1:[["OA Palmas","Manhã e tarde"]],2:[["OA Paraíso","Dia todo"]],3:[["ICOG Palmas","Manhã"],["OPUS","Tarde"]],4:[["ICOG Porto","Dia todo"]],5:[["OPUS","Manhã"],["OA Palmas","Tarde"]]};
@@ -605,7 +623,7 @@ function blocoTarefas(lista){
   return GRUPOS.map(([g,t,sub])=>{ const it=lista.filter(x=>x.g===g); if(!it.length) return "";
     return `<div class="tk-g"><div class="tk-gt">${t} <span class="count">${it.length}</span>${sub?`<small>${sub}</small>`:""}</div>${it.map(linhaTarefa).join("")}</div>`; }).join("");
 }
-function telaPainel(){
+function telaSemana(){
   const W=tarefasSemana(); const sel=Math.min(S.dia||0,4); const dia=W.dias[sel];
   const nome=d=>d.toLocaleDateString("pt-BR",{weekday:"short",day:"2-digit",month:"2-digit"}).replace(".","");
   const strip=W.dias.map((d,i)=>{ const ag=AGENDA[d.getDay()]||[]; const n=W.porDia[i].length; const urg=W.porDia[i].filter(t=>t.g==="atrasada").length;
@@ -620,6 +638,115 @@ function telaPainel(){
   ${W.semLocal.length?`<details class="panel resumo"><summary><b>Sem local definido</b> · ${W.semLocal.length} tarefas · edite o paciente e escolha o local</summary>${blocoTarefas(W.semLocal)}</details>`:""}
   ${W.antigas.length?`<details class="panel resumo"><summary><b>🗂️ Indicações antigas</b> · ${W.antigas.length} paradas há mais de ${PAUSA_DIAS} dias · marque como Perdido ou mova</summary>${W.antigas.sort((a,b)=>(a.c.local||"").localeCompare(b.c.local||"")).map(linhaTarefa).join("")}</details>`:""}
   ${W.pausa.length?`<details class="panel resumo"><summary><b>⏸️ Em pausa</b> · ${W.pausa.length} pacientes há mais de ${PAUSA_DIAS} dias sem aplicação</summary>${W.pausa.sort((a,b)=>a.st.dU-b.st.dU).map(({c,st})=>linhaTarefa({c,g:"pausa",txt:`${st.dU} dias sem aplicar · última ${br(st.ultima)} · ${st.feitas.length}/${st.total} feitas${c.local?" · "+c.local:""}`})).join("").replace(/data-act="menu" data-id="([^"]+)">Atualizar/g,'data-act="agendar" data-id="$1">Retomar</button><button class="btn small ghost" data-act="finalizar" data-id="$1">Encerrar')}</details>`:""}`;
+}
+
+function telaPainel(){
+  const h=hoje(); const F=fasesPainel();
+  const sel=S.fase?F.find(f=>f.id===S.fase):null;
+  const tile=f=>`<button class="fase ${f.id===S.fase?"sel":""}" data-fase="${f.id}"><b>${f.casos.length}</b><span class="fn1">${f.nome}</span><span class="fn2">${f.sub}</span>${f.red?`<em class="fl late">${f.red} atrasado${f.red>1?"s":""}</em>`:""}${f.amb?`<em class="fl warn">${f.amb} pedindo ação</em>`:""}${!f.red&&!f.amb?`<em class="fl ok">em dia</em>`:""}</button>`;
+  const abertas = S.casos.filter(c=>ABERTAS.includes(c.etapa) && noLocal(c));
+  const conv = abertas.filter(ehConv), part = abertas.filter(c=>!ehConv(c));
+  const porConv = [["Particular",part.length,"ind"],...CONVENIOS.map(cv=>[cv,conv.filter(c=>(c.convenio||"").toUpperCase()===cv).length,"ind"]),["Outros convênios",conv.filter(c=>!CONVENIOS.includes((c.convenio||"").toUpperCase())).length,"ind"]];
+  const porLocal = [...LOCAIS.map(l=>[l,abertas.filter(c=>c.local===l).length,"ind"]),["Sem local",abertas.filter(c=>!c.local).length,"ind"]];
+  const mesIni = new Date(h.getFullYear(), h.getMonth(), 1);
+  const apMes = S.sessoes.filter(s=>s.data_realizada && parse(s.data_realizada)>=mesIni).map(s=>[s,S.casos.find(c=>c.id===s.caso_id)]).filter(([,c])=>c&&noLocal(c)).sort((a,b)=>b[0].data_realizada.localeCompare(a[0].data_realizada));
+  const d = new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"});
+  return `<div class="sec-head"><div><h2>Painel</h2><div class="sub">${d}</div></div><button class="btn" data-act="novo">+ Nova indicação</button></div>
+  <div class="loc-chips">${[["","Todos",S.casos.length],...LOCAIS.map(l=>[l,l,S.casos.filter(c=>c.local===l).length]),["sem","Sem local",S.casos.filter(c=>!c.local).length]].map(([v,tx,n])=>`<button class="lchip ${(S.fLocal||"")===v?"on":""}" data-floc="${v}">${tx} <small>${n}</small></button>`).join("")}</div>
+  <div class="trilha-t">Fases · toque para ver os pacientes</div>
+  <div class="trilha-t sm">💉 Injeção e laser · ciclo de 3 aplicações</div>
+  <div class="fases">${F.filter(f=>f.trilha==="inj").map(tile).join("")}</div>
+  <div class="trilha-t sm">👁️ Cirurgias</div>
+  <div class="fases">${F.filter(f=>f.trilha==="cir").map(tile).join("")}</div>
+  ${sel?`<div class="group-title">${sel.trilha==="cir"?"Cirurgias":"Injeção e laser"} · ${sel.nome} <span class="count">${sel.casos.length}</span><button class="linkbtn" data-fase="${sel.id}">Fechar ✕</button></div>
+  <div class="list">${sel.ord.map(([c])=>sel.card(c)).join("")||'<div class="empty">Ninguém nesta fase.</div>'}</div>`:""}
+  <div style="height:14px"></div>
+  ${blocoInjecoes()}
+  ${blocoPos()}
+  <details class="panel resumo"><summary><b>Resumo</b> · aplicações do mês, convênios e locais</summary>
+    <div class="panel-h"><h3>Aplicações feitas neste mês</h3><span class="sub">${apMes.length} no total</span></div>
+    ${apMes.length?`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Data</th><th>Paciente</th><th>Tipo</th><th>Aplicação</th><th>Pagamento</th></tr></thead><tbody>${apMes.map(([s,c])=>`<tr><td>${br(s.data_realizada)}</td><td><button class="linklike" data-pac="${c.paciente_id}">${esc(nomeCurto(pacOf(c).nome))}</button></td><td>${TIPO_LABEL[c.tipo]} ${esc(c.olho||"")}</td><td>${s.numero}ª/${c.total_sessoes||3}${s.ciclo>1?` · ciclo ${s.ciclo}`:""}</td><td>${esc(pagLabel(c))}</td></tr>`).join("")}</tbody></table></div>`:'<div class="empty">Nenhuma aplicação registrada neste mês.</div>'}
+    <div class="panel-h"><h3>Indicações em aberto por pagamento</h3></div>${barras(porConv)}
+    <div class="panel-h"><h3>Indicações em aberto por local</h3></div>${barras(porLocal)}
+  </details>`;
+}
+
+/* ===== Pós-procedimento: contato e WhatsApp ===== */
+const POS_DIAS = 15;
+function procsRecentes(){
+  const ini=addDias(hoje(),-POS_DIAS), out=[];
+  for(const c of S.casos){
+    if(!noLocal(c)) continue;
+    if(c.tipo==="cirurgia" && c.data_realizado && ["realizado","pos_op","finalizado"].includes(c.etapa) && parse(c.data_realizado)>=ini)
+      out.push({c,ses:null,data:c.data_realizado,rot:`Cirurgia ${c.procedimento||""}`.trim()});
+  }
+  for(const s of S.sessoes){
+    if(!s.data_realizada || parse(s.data_realizada)<ini) continue;
+    const c=S.casos.find(x=>x.id===s.caso_id); if(!c||!noLocal(c)) continue;
+    out.push({c,ses:s,data:s.data_realizada,rot:`${TIPO_LABEL[c.tipo]}${c.olho?" "+c.olho:""} · ${s.numero}ª aplicação`});
+  }
+  for(const x of out) x.pos=S.pos.find(p=>p.caso_id===x.c.id && (p.sessao_id||null)===(x.ses?x.ses.id:null))||null;
+  return out.sort((a,b)=>b.data.localeCompare(a.data));
+}
+function blocoPos(){
+  const L=procsRecentes();
+  const semCont=L.filter(x=>!x.pos?.contato_em), semWa=L.filter(x=>!x.pos?.whatsapp_em), ok=L.filter(x=>x.pos?.contato_em&&x.pos?.whatsapp_em);
+  const f=S.fPos||"pend";
+  const vis = f==="contato"?semCont : f==="whats"?semWa : f==="ok"?ok : L.filter(x=>!(x.pos?.contato_em&&x.pos?.whatsapp_em));
+  const chip=(k,cls,n,t)=>`<button class="fl ${cls} fchip ${f===k?"on":""}" data-fpos="${k}">${n} ${t}</button>`;
+  const nomeMod=id=>{ const m=S.modelos.find(x=>x.id===id); return m?esc(m.nome):""; };
+  const linhas=vis.map(x=>{ const c=x.c,p=pacOf(c),key=`${c.id}|${x.ses?x.ses.id:""}`;
+    const sc=x.pos?.contato_em?`<span class="fl ok">✔ Contato ${dm(x.pos.contato_em)}</span>`:`<span class="fl warn">Contato pendente</span>`;
+    const sw=x.pos?.whatsapp_em?`<span class="fl ok">✔ WhatsApp ${dm(x.pos.whatsapp_em)}${x.pos.modelo_msg?" · "+nomeMod(x.pos.modelo_msg):""}${x.pos.modelo_video?" · 🎬 "+nomeMod(x.pos.modelo_video):""}</span>`:`<span class="fl warn">WhatsApp pendente</span>`;
+    return `<div class="tk-row"><div class="inj-nome"><button class="linklike" data-pac="${p.id}">${esc(nomeCurto(p.nome))}</button><small>${esc(x.rot)} · ${br(x.data)}${c.local?" · "+esc(c.local):""}</small><div class="pos-st">${sc}${sw}</div></div>
+    <div class="inj-acts">${x.pos?.contato_em?"":`<button class="btn small ghost" data-act="pos-contato" data-key="${key}">Contato feito</button>`}<button class="btn small ${x.pos?.whatsapp_em?"ghost":"okb"}" data-act="pos-whats" data-key="${key}">${x.pos?.whatsapp_em?"Reenviar":"Enviar WhatsApp"}</button></div></div>`; }).join("");
+  return `<div class="inj-box pos-box">
+    <div class="panel-h"><h3>📲 Pós-procedimento · últimos ${POS_DIAS} dias</h3><button class="linkbtn" data-act="modelos">Modelos de mensagem e vídeo →</button></div>
+    <div class="resumo-hoje">${chip("pend","warn",L.length-ok.length,"pendentes")}${chip("contato","warn",semCont.length,"sem contato")}${chip("whats","warn",semWa.length,"sem WhatsApp")}${chip("ok","ok",ok.length,"concluídos")}</div>
+    <div class="inj-list">${linhas||'<div class="empty">Nada pendente aqui. 👏</div>'}</div></div>`;
+}
+function achaProc(key){ const [cid,sid]=key.split("|"); return procsRecentes().find(x=>x.c.id===cid && (x.ses?x.ses.id:"")===sid) || (()=>{ const c=S.casos.find(x=>x.id===cid); const s=sid?S.sessoes.find(x=>x.id===sid):null; return {c,ses:s,data:s?s.data_realizada:c.data_realizado,rot:"",pos:S.pos.find(p=>p.caso_id===cid&&(p.sessao_id||"")===sid)||null}; })(); }
+async function salvaPos(x, campos){
+  const row={...campos, atualizado_por:S.user?.email||null};
+  if(x.pos) return salvar(sb.from("pos_contatos").update(row).eq("id",x.pos.id), campos.contato_em?"Contato registrado ✔":"WhatsApp registrado ✔");
+  return salvar(sb.from("pos_contatos").insert({caso_id:x.c.id, sessao_id:x.ses?x.ses.id:null, data_procedimento:x.data, ...row}), campos.contato_em?"Contato registrado ✔":"WhatsApp registrado ✔");
+}
+function preencher(txt,x){ const p=pacOf(x.c); return String(txt||"").replaceAll("{nome}",nomeCurto(p.nome).split(" ")[0]).replaceAll("{nome_completo}",nomeCurto(p.nome)).replaceAll("{procedimento}",x.c.procedimento||TIPO_LABEL[x.c.tipo]).replaceAll("{olho}",x.c.olho||"").replaceAll("{data}",br(x.data)); }
+function folhaWhats(key){
+  const x=achaProc(key), p=pacOf(x.c), f=fones(p.telefone)[0];
+  const serve=m=>m.ativo!==false && (m.para==="todos"||m.para===x.c.tipo);
+  const msgs=S.modelos.filter(m=>m.tipo==="mensagem"&&serve(m)), vids=S.modelos.filter(m=>m.tipo==="video"&&serve(m));
+  abrir(`<header><div><h2>WhatsApp · ${esc(nomeCurto(p.nome))}</h2><div class="sub">${esc(x.rot||"")} · ${br(x.data)} · ${f?esc(p.telefone):"⚠️ sem telefone cadastrado"}</div></div><button class="close" data-close aria-label="Fechar">×</button></header>
+  <form id="fw" class="form">
+    <label>Tipo de mensagem<select id="wMsg"><option value="">— escolher —</option>${msgs.map(m=>`<option value="${m.id}">${esc(m.nome)}</option>`).join("")}</select></label>
+    <label>Vídeo<select id="wVid"><option value="">— sem vídeo —</option>${vids.map(m=>`<option value="${m.id}">${esc(m.nome)}</option>`).join("")}</select></label>
+    ${!msgs.length&&!vids.length?`<div class="msg">Ainda não há modelos. <button type="button" class="linkbtn" data-act="modelos">Criar modelos →</button></div>`:""}
+    <label>Mensagem que vai sair<textarea id="wTxt" rows="7"></textarea></label>
+    <button class="btn okb" type="submit">${f?"Abrir WhatsApp e marcar como enviado":"Marcar como enviado"}</button>
+    <button class="btn ghost" type="button" id="wSo">Só marcar como enviado</button>
+  </form>`);
+  const monta=()=>{ const m=S.modelos.find(z=>z.id===$("#wMsg").value), v=S.modelos.find(z=>z.id===$("#wVid").value);
+    $("#wTxt").value=[m?preencher(m.texto,x):"", v?`${preencher(v.texto,x)}${v.texto?"\n":""}${v.link||""}`.trim():""].filter(Boolean).join("\n\n"); };
+  $("#wMsg").addEventListener("change",monta); $("#wVid").addEventListener("change",monta);
+  if(msgs.length===1){ $("#wMsg").value=msgs[0].id; monta(); }
+  const grava=()=>{ const mm=$("#wMsg").value||null, vv=$("#wVid").value||null; fechar(); salvaPos(x,{whatsapp_em:iso(hoje()),modelo_msg:mm,modelo_video:vv}); };
+  $("#fw").addEventListener("submit",e=>{ e.preventDefault(); if(f){ const intl=f.length<=11?"55"+f:f; window.open(`https://wa.me/${intl}?text=${encodeURIComponent($("#wTxt").value)}`,"_blank","noopener"); } grava(); });
+  $("#wSo").addEventListener("click",grava);
+}
+function folhaModelos(){
+  const PARA={todos:"Todos",cirurgia:"Cirurgia",injecao:"Injeção",laser:"Laser"};
+  const item=m=>`<div class="tk-row"><div class="inj-nome"><b>${m.tipo==="video"?"🎬 ":"💬 "}${esc(m.nome)}</b><small>${PARA[m.para]||m.para}${m.link?" · "+esc(m.link):""}</small>${m.texto?`<small>${esc(m.texto).slice(0,140)}${m.texto.length>140?"…":""}</small>`:""}</div><div class="inj-acts"><button class="btn small ghost" data-act="mod-del" data-mid="${m.id}">Excluir</button></div></div>`;
+  abrir(`<header><div><h2>Modelos de WhatsApp</h2><div class="sub">Use {nome}, {procedimento}, {olho} e {data} no texto</div></div><button class="close" data-close aria-label="Fechar">×</button></header>
+  <div class="inj-list">${S.modelos.map(item).join("")||'<div class="empty">Nenhum modelo ainda.</div>'}</div>
+  <form id="fm" class="form" style="margin-top:12px"><h3>Novo modelo</h3>
+    <label>Tipo<select id="mTipo"><option value="mensagem">Mensagem</option><option value="video">Vídeo</option></select></label>
+    <label>Nome<input id="mNome" required placeholder="Ex.: Cuidados pós-catarata"></label>
+    <label>Para<select id="mPara">${Object.entries(PARA).map(([k,v])=>`<option value="${k}">${v}</option>`).join("")}</select></label>
+    <label>Texto<textarea id="mTexto" rows="5" placeholder="Olá {nome}, ..."></textarea></label>
+    <label>Link do vídeo (YouTube não listado, Google Drive…)<input id="mLink" type="url" placeholder="https://"></label>
+    <button class="btn" type="submit">Salvar modelo</button></form>`);
+  $("#fm").addEventListener("submit", async e=>{ e.preventDefault(); const row={tipo:$("#mTipo").value,nome:$("#mNome").value.trim(),para:$("#mPara").value,texto:$("#mTexto").value.trim()||null,link:$("#mLink").value.trim()||null};
+    if(await salvar(sb.from("modelos").insert(row),"Modelo salvo ✔")) folhaModelos(); });
 }
 
 function filtroInd(c){
@@ -815,6 +942,10 @@ async function acao(act, el){
   if(act==="editpac") return folhaPacEdit(el.dataset.pid);
   if(act==="menu") return folhaMenu(c);
   if(act==="mover-ind"||act==="mover-exe") return moverPara(c, el.dataset.to);
+  if(act==="pos-contato") return salvaPos(achaProc(el.dataset.key),{contato_em:iso(hoje())});
+  if(act==="pos-whats") return folhaWhats(el.dataset.key);
+  if(act==="modelos") return folhaModelos();
+  if(act==="mod-del"){ if(confirmar("Excluir este modelo?")){ if(await salvar(sb.from("modelos").delete().eq("id",el.dataset.mid),"Modelo excluído")) folhaModelos(); } return; }
   if(act==="cobrei") return salvar(sb.from("casos").update({ultimo_contato:iso(hoje())}).eq("id",id),"Cobrança registrada ✔ · sai da lista por 7 dias");
   if(act==="avisei") return salvar(sb.from("casos").update({ultimo_contato:iso(hoje())}).eq("id",id),"Marcado: paciente avisado ✔");
   if(act==="aplicar"){
@@ -850,11 +981,13 @@ async function ciclarInteresse(id){
 }
 
 document.addEventListener("click", e=>{
-  const t=e.target.closest("[data-dia],[data-floc],[data-fase],[data-tab],[data-goto],[data-act],[data-pac],[data-ft],[data-fi],[data-int]"); if(!t) return;
+  const t=e.target.closest("[data-finj],[data-fpos],[data-dia],[data-floc],[data-fase],[data-tab],[data-goto],[data-act],[data-pac],[data-ft],[data-fi],[data-int]"); if(!t) return;
   if(t.dataset.int){ ciclarInteresse(t.dataset.int); return; }
   if(t.dataset.dia!==undefined){ S.dia=+t.dataset.dia; render(); return; }
   if(t.dataset.floc!==undefined){ S.fLocal=t.dataset.floc; S.fase=null; render(); return; }
-  if(t.dataset.fase){ S.fase=t.dataset.fase; render(); return; }
+  if(t.dataset.fase){ S.fase = S.fase===t.dataset.fase ? null : t.dataset.fase; render(); return; }
+  if(t.dataset.finj!==undefined){ S.fInj = S.fInj===t.dataset.finj ? null : t.dataset.finj; render(); return; }
+  if(t.dataset.fpos!==undefined){ S.fPos=t.dataset.fpos; render(); return; }
   if(t.dataset.tab||t.dataset.goto){ S.tab=t.dataset.tab||t.dataset.goto; if(t.dataset.f) S.fInd=t.dataset.f; fechar(); render(); window.scrollTo(0,0); return; }
   if(t.dataset.act){ acao(t.dataset.act,t); return; }
   if(t.dataset.pac){ folhaPaciente(t.dataset.pac); return; }
