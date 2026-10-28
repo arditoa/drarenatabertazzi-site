@@ -118,6 +118,19 @@ main{max-width:1480px;margin:0 auto;padding:16px 14px 24px}
 .col{scroll-snap-align:start;background:#ece7de;border-radius:18px;padding:10px;display:grid;gap:8px;align-content:start;min-height:200px}
 .col h3{font-weight:700;font-size:.92rem;display:flex;justify-content:space-between;padding:4px 4px 2px}
 
+/* Painel por fases */
+.trilha-t{font-weight:700;font-size:.9rem;color:var(--soft);margin:14px 0 8px}
+.fases{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+@media(min-width:760px){.fases{grid-template-columns:repeat(5,minmax(0,1fr))}}
+.fase{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px;display:grid;gap:2px;text-align:left;align-content:start}
+.fase.sel{border:2px solid var(--accent);background:#eef4fc}
+.fase b{font-family:var(--display);font-weight:400;font-size:1.9rem;line-height:1}
+.fase .fn1{font-weight:700;font-size:.9rem}
+.fase .fn2{font-size:.76rem;color:var(--soft)}
+.fl{display:inline-block;font-style:normal;font-size:.74rem;font-weight:700;padding:2px 8px;border-radius:999px;margin-top:4px;justify-self:start}
+.fl.late{background:var(--late-soft);color:var(--late)} .fl.warn{background:var(--warn-soft);color:var(--warn)} .fl.ok{background:var(--ok-soft);color:var(--ok)}
+.resumo-hoje{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px}
+.resumo{margin-top:22px} .resumo summary{cursor:pointer;color:var(--soft)}
 /* Painel */
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px;display:grid;gap:12px}
 .panel-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
@@ -448,82 +461,52 @@ function render(){
 
 function barras(lista){ const max=Math.max(1,...lista.map(x=>x[1])); return `<div class="funnel">${lista.map(([t,n,go,cls])=>`<button class="fn" ${go?`data-goto="${go}"`:""}><span>${esc(t)}</span><i class="${cls||""}" style="width:${Math.max(3,Math.round(n/max*100))}%"></i><b>${n}</b></button>`).join("")}</div>`; }
 
+function fasesPainel(){
+  const vivos = S.casos.filter(c=>!["finalizado","desistiu"].includes(c.etapa));
+  const cir = vivos.filter(c=>c.tipo==="cirurgia"), inj = vivos.filter(c=>c.tipo!=="cirurgia");
+  const alInd = c=>{ const n=situacaoInd(c).nivel; return n==="late"?2:n==="warn"?1:0; };
+  const alTrat = c=>{ const s=statusTrat(c); if(s.estado==="late") return 2; if(s.estado==="lembrar"&&!s.avisado) return 1; if(s.estado==="primeira"&&desde(c.etapa_desde)>7) return 1; return 0; };
+  const estTrat = c=>statusTrat(c).estado;
+  return [
+    {id:"c1", trilha:"cir", nome:"Indicado", sub:"enviar orçamento/guia", casos:cir.filter(c=>c.etapa==="indicado"), al:alInd, card:cardInd},
+    {id:"c2", trilha:"cir", nome:"Orçamento enviado", sub:"aguardando resposta", casos:cir.filter(c=>["orcamento","aguardando"].includes(c.etapa)), al:alInd, card:cardInd},
+    {id:"c3", trilha:"cir", nome:"Fechado", sub:"falta agendar", casos:cir.filter(c=>c.etapa==="fechado"), al:alInd, card:cardExe},
+    {id:"c4", trilha:"cir", nome:"Agendado", sub:"data marcada", casos:cir.filter(c=>c.etapa==="agendado").sort((a,b)=>(a.data_agendada||"").localeCompare(b.data_agendada||"")), al:()=>0, card:cardExe},
+    {id:"c5", trilha:"cir", nome:"Operado", sub:"pós-op até a alta", casos:cir.filter(c=>["realizado","pos_op"].includes(c.etapa)), al:()=>0, card:cardExe},
+    {id:"i1", trilha:"inj", nome:"Indicado", sub:"enviar orçamento/guia", casos:inj.filter(c=>c.etapa==="indicado"), al:alInd, card:cardInd},
+    {id:"i2", trilha:"inj", nome:"Aguardando", sub:"resposta / autorização", casos:inj.filter(c=>["orcamento","aguardando"].includes(c.etapa)), al:alInd, card:cardInd},
+    {id:"i3", trilha:"inj", nome:"1ª aplicação", sub:"fechado · agendar", casos:inj.filter(c=>!ABERTAS.includes(c.etapa)&&estTrat(c)==="primeira"), al:alTrat, card:cardTrat},
+    {id:"i4", trilha:"inj", nome:"Em ciclo", sub:"D+20 lembrar · D+30 vence", casos:inj.filter(c=>!ABERTAS.includes(c.etapa)&&["ok","lembrar","late","agendado"].includes(estTrat(c))), al:alTrat, card:cardTrat},
+    {id:"i5", trilha:"inj", nome:"Ciclo concluído", sub:"reavaliar novo ciclo", casos:inj.filter(c=>!ABERTAS.includes(c.etapa)&&estTrat(c)==="avaliar"), al:()=>0, card:cardTrat},
+  ].map(f=>{ const ord=f.casos.map(c=>[c,f.al(c)]).sort((a,b)=>b[1]-a[1]); return {...f, ord, red:ord.filter(x=>x[1]===2).length, amb:ord.filter(x=>x[1]===1).length}; });
+}
 function telaPainel(){
-  const h=hoje();
+  const h=hoje(); const F=fasesPainel();
+  if(!S.fase || !F.find(f=>f.id===S.fase)){ const top=[...F].sort((a,b)=>(b.red*100+b.amb)-(a.red*100+a.amb))[0]; S.fase=(top.red||top.amb)?top.id:"c1"; }
+  const sel=F.find(f=>f.id===S.fase);
+  const totRed=F.reduce((s,f)=>s+f.red,0), totAmb=F.reduce((s,f)=>s+f.amb,0);
+  const tile=f=>`<button class="fase ${f.id===S.fase?"sel":""}" data-fase="${f.id}"><b>${f.casos.length}</b><span class="fn1">${f.nome}</span><span class="fn2">${f.sub}</span>${f.red?`<em class="fl late">${f.red} atrasado${f.red>1?"s":""}</em>`:""}${f.amb?`<em class="fl warn">${f.amb} pedindo ação</em>`:""}${!f.red&&!f.amb?`<em class="fl ok">em dia</em>`:""}</button>`;
   const abertas = S.casos.filter(c=>ABERTAS.includes(c.etapa));
   const conv = abertas.filter(ehConv), part = abertas.filter(c=>!ehConv(c));
-  const sits = abertas.map(c=>[c,situacaoInd(c)]);
-  const travConv = sits.filter(([c,s])=>s.nivel==="late");
-  const semResp = sits.filter(([c,s])=>s.nivel==="warn" && c.etapa!=="indicado");
-  const semEnvio = sits.filter(([c,s])=>s.nivel==="warn" && c.etapa==="indicado");
-  const ini30=addDias(h,-30);
-  const fech30 = S.casos.filter(c=>c.fechado_em && parse(c.fechado_em)>=ini30);
-  const perd30 = S.casos.filter(c=>c.etapa==="desistiu" && c.etapa_desde && parse(c.etapa_desde)>=ini30);
-  const conv30 = fech30.length+perd30.length ? Math.round(fech30.length/(fech30.length+perd30.length)*100) : null;
-  // envelhecimento das indicações abertas
-  const faixas=[["0–7 dias",0,7],["8–15 dias",8,15],["16–30 dias",16,30],["+30 dias",31,1e9]];
-  const aging=faixas.map(([t,a,b],i)=>[t,abertas.filter(c=>{const d=desde(c.data_indicacao||c.criado_em);return d>=a&&d<=b;}).length,"ind",i===3?"late":i===2?"warn":""]);
   const porConv = [["Particular",part.length,"ind"],...CONVENIOS.map(cv=>[cv,conv.filter(c=>(c.convenio||"").toUpperCase()===cv).length,"ind"]),["Outros convênios",conv.filter(c=>!CONVENIOS.includes((c.convenio||"").toUpperCase())).length,"ind"]];
   const porLocal = [...LOCAIS.map(l=>[l,abertas.filter(c=>c.local===l).length,"ind"]),["Sem local",abertas.filter(c=>!c.local).length,"ind"]];
-  // injeções
-  const trat = S.casos.filter(c=>c.tipo!=="cirurgia" && !["finalizado","desistiu"].includes(c.etapa) && !ABERTAS.includes(c.etapa)).map(c=>[c,statusTrat(c)]);
-  const venc = trat.filter(([,s])=>s.estado==="late").sort((a,b)=>b[1].dU-a[1].dU);
-  const lemb = trat.filter(([,s])=>s.estado==="lembrar").sort((a,b)=>b[1].dU-a[1].dU);
-  const prim = trat.filter(([,s])=>s.estado==="primeira");
   const mesIni = new Date(h.getFullYear(), h.getMonth(), 1);
   const apMes = S.sessoes.filter(s=>s.data_realizada && parse(s.data_realizada)>=mesIni).map(s=>[s,S.casos.find(c=>c.id===s.caso_id)]).filter(([,c])=>c).sort((a,b)=>b[0].data_realizada.localeCompare(a[0].data_realizada));
-  const cirAg = S.casos.filter(c=>c.tipo==="cirurgia"&&c.etapa==="agendado").sort((a,b)=>(a.data_agendada||"").localeCompare(b.data_agendada||""));
-  const aAgendar = S.casos.filter(c=>c.tipo==="cirurgia"&&c.etapa==="fechado");
   const d = new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"});
   return `<div class="sec-head"><div><h2>Painel</h2><div class="sub">${d}</div></div><button class="btn" data-act="novo">+ Nova indicação</button></div>
-
-  <div class="kpis">
-    <button class="kpi late" data-goto="ind" data-f="travados"><b>${travConv.length}</b><span>Convênios parados +${PRAZO_CONVENIO} dias</span></button>
-    <button class="kpi warn" data-goto="ind" data-f="atencao"><b>${semResp.length+semEnvio.length}</b><span>Indicações pedindo ação</span></button>
-    <button class="kpi late" data-goto="trat"><b>${venc.length}</b><span>Injeções vencidas (D+30)</span></button>
-    <button class="kpi warn" data-goto="trat"><b>${lemb.length}</b><span>Lembrar agora (D+20)</span></button>
-  </div>
-
-  <div class="grid-panels">
-    <div class="panel">
-      <div class="panel-h"><h3>Indicações em aberto</h3><button class="linkbtn" data-goto="ind">Abrir quadro →</button></div>
-      <div class="mini-kpis"><div><b>${abertas.length}</b><span>abertas</span></div><div><b>${conv.length}</b><span>convênio</span></div><div><b>${part.length}</b><span>particular</span></div><div><b>${fech30.length}</b><span>fechadas em 30 dias${conv30!==null?` · ${conv30}% conversão`:""}</span></div></div>
-      ${barras(ETAPAS_IND.slice(0,3).map(([k,t])=>[t,abertas.filter(c=>c.etapa===k).length,"ind"]))}
-    </div>
-    <div class="panel">
-      <div class="panel-h"><h3>Há quanto tempo estão em aberto</h3><span class="sub">desde a indicação</span></div>
-      ${barras(aging)}
-    </div>
-    <div class="panel">
-      <div class="panel-h"><h3>Por forma de pagamento</h3></div>
-      ${barras(porConv)}
-    </div>
-    <div class="panel">
-      <div class="panel-h"><h3>Por local de atendimento</h3></div>
-      ${barras(porLocal)}
-    </div>
-  </div>
-
-  <div class="group-title">🔴 Convênio parado · provável documento faltando ou autorização demorando <span class="count">${travConv.length}</span></div>
-  <div class="list">${travConv.map(([c])=>cardInd(c)).join("")||'<div class="empty">Nenhum convênio parado além do prazo. 👏</div>'}</div>
-  ${semEnvio.length?`<div class="group-title">🟡 Indicados sem orçamento/guia enviado <span class="count">${semEnvio.length}</span></div><div class="list">${semEnvio.map(([c])=>cardInd(c)).join("")}</div>`:""}
-  ${semResp.length?`<div class="group-title">🟡 Orçamentos e fechamentos esperando contato <span class="count">${semResp.length}</span></div><div class="list">${semResp.map(([c])=>cardInd(c)).join("")}</div>`:""}
-
-  <div class="group-title">💉 Injeções e laser · D+30 vencidas <span class="count">${venc.length}</span></div>
-  <div class="list">${venc.map(([c])=>cardTrat(c)).join("")||'<div class="empty">Nenhuma aplicação vencida.</div>'}</div>
-  <div class="group-title">🔔 D+20 · lembrar o paciente e cobrar a equipe <span class="count">${lemb.length}</span></div>
-  <div class="list">${lemb.map(([c])=>cardTrat(c)).join("")||'<div class="empty">Ninguém entre D+20 e D+29 hoje.</div>'}</div>
-  ${prim.length?`<div class="group-title">🆕 Fechados aguardando a 1ª aplicação <span class="count">${prim.length}</span></div><div class="list">${prim.map(([c])=>cardTrat(c)).join("")}</div>`:""}
-
-  <div class="panel" style="margin-top:22px">
-    <div class="panel-h"><h3>Aplicações feitas neste mês</h3><span class="sub">data de cada aplicação · ${apMes.length} no total</span></div>
+  <div class="resumo-hoje">${totRed||totAmb?`${totRed?`<span class="fl late">${totRed} atrasado${totRed===1?"":"s"}</span>`:""}${totAmb?`<span class="fl warn">${totAmb} pedindo ação</span>`:""}<span class="sub">toque numa fase para ver quem é</span>`:`<span class="fl ok">Tudo em dia</span>`}</div>
+  <div class="trilha-t">👁️ Cirurgias</div>
+  <div class="fases">${F.filter(f=>f.trilha==="cir").map(tile).join("")}</div>
+  <div class="trilha-t">💉 Injeção e laser · ciclo de 3 aplicações</div>
+  <div class="fases">${F.filter(f=>f.trilha==="inj").map(tile).join("")}</div>
+  <div class="group-title">${sel.trilha==="cir"?"Cirurgias":"Injeção e laser"} · ${sel.nome} <span class="count">${sel.casos.length}</span></div>
+  <div class="list">${sel.ord.map(([c])=>sel.card(c)).join("")||'<div class="empty">Ninguém nesta fase.</div>'}</div>
+  <details class="panel resumo"><summary><b>Resumo</b> · aplicações do mês, convênios e locais</summary>
+    <div class="panel-h"><h3>Aplicações feitas neste mês</h3><span class="sub">${apMes.length} no total</span></div>
     ${apMes.length?`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Data</th><th>Paciente</th><th>Tipo</th><th>Aplicação</th><th>Pagamento</th></tr></thead><tbody>${apMes.map(([s,c])=>`<tr><td>${br(s.data_realizada)}</td><td><button class="linklike" data-pac="${c.paciente_id}">${esc(nomeCurto(pacOf(c).nome))}</button></td><td>${TIPO_LABEL[c.tipo]} ${esc(c.olho||"")}</td><td>${s.numero}ª/${c.total_sessoes||3}${s.ciclo>1?` · ciclo ${s.ciclo}`:""}</td><td>${esc(pagLabel(c))}</td></tr>`).join("")}</tbody></table></div>`:'<div class="empty">Nenhuma aplicação registrada neste mês.</div>'}
-  </div>
-
-  <div class="group-title">🗓️ Cirurgias fechadas a agendar <span class="count">${aAgendar.length}</span></div>
-  <div class="list">${aAgendar.map(cardExe).join("")||'<div class="empty">Nenhuma cirurgia aguardando data.</div>'}</div>
-  <div class="group-title">📅 Próximas cirurgias <span class="count">${cirAg.length}</span></div>
-  <div class="list">${cirAg.map(cardExe).join("")||'<div class="empty">Nenhuma cirurgia agendada.</div>'}</div>`;
+    <div class="panel-h"><h3>Indicações em aberto por pagamento</h3></div>${barras(porConv)}
+    <div class="panel-h"><h3>Indicações em aberto por local</h3></div>${barras(porLocal)}
+  </details>`;
 }
 
 function filtroInd(c){
@@ -751,8 +734,9 @@ async function ciclarInteresse(id){
 }
 
 document.addEventListener("click", e=>{
-  const t=e.target.closest("[data-tab],[data-goto],[data-act],[data-pac],[data-ft],[data-fi],[data-int]"); if(!t) return;
+  const t=e.target.closest("[data-fase],[data-tab],[data-goto],[data-act],[data-pac],[data-ft],[data-fi],[data-int]"); if(!t) return;
   if(t.dataset.int){ ciclarInteresse(t.dataset.int); return; }
+  if(t.dataset.fase){ S.fase=t.dataset.fase; render(); return; }
   if(t.dataset.tab||t.dataset.goto){ S.tab=t.dataset.tab||t.dataset.goto; if(t.dataset.f) S.fInd=t.dataset.f; fechar(); render(); window.scrollTo(0,0); return; }
   if(t.dataset.act){ acao(t.dataset.act,t); return; }
   if(t.dataset.pac){ folhaPaciente(t.dataset.pac); return; }
