@@ -160,6 +160,55 @@ main{max-width:1480px;margin:0 auto;padding:16px 14px 24px}
 @media(min-width:900px){.fab{bottom:24px}}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(150px + env(safe-area-inset-bottom));background:var(--ink);color:#fff;padding:10px 16px;border-radius:999px;font-size:.9rem;z-index:60}
 .footnote{font-size:.78rem;color:var(--soft);text-align:center;margin-top:24px}
+
+/* ===== v3: indicações, interesse, aplicações ===== */
+.tabs{grid-template-columns:repeat(5,1fr)}
+.tabs button{font-size:.7rem}
+@media(min-width:900px){.tabs{grid-template-columns:repeat(5,max-content)}.tabs button{font-size:.9rem}}
+.sec-head .btn{white-space:nowrap}
+.chip.conv{background:#efe6fb;color:#5b3a99}
+.chip.part{background:#e6f3ee;color:#2f6b52}
+button.chip{border:0;cursor:pointer;font:inherit;font-size:.74rem;font-weight:700}
+.int-b{background:#eef1f5;color:#5b687c}
+.int-m{background:var(--warn-soft);color:var(--warn)}
+.int-a{background:var(--late-soft);color:var(--late)}
+.int-f{background:var(--ok-soft);color:var(--ok)}
+.item.info{border-left:5px solid var(--accent)}
+.apps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.apps li{border:1.5px dashed var(--line);border-radius:12px;padding:6px 8px;display:grid;gap:1px;font-size:.78rem;color:var(--soft)}
+.apps li b{font-size:.92rem;color:var(--soft);font-weight:700}
+.apps li.done{border-style:solid;border-color:var(--accent);background:#eef4fc}
+.apps li.done b{color:var(--ink)}
+.apps li.sched{border-style:solid;border-color:var(--ok);background:var(--ok-soft)}
+.legend{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.grid-panels{display:grid;gap:12px;margin-bottom:6px}
+@media(min-width:900px){.grid-panels{grid-template-columns:1fr 1fr}}
+.mini-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.mini-kpis div{display:grid;gap:0}
+.mini-kpis b{font-family:var(--display);font-weight:400;font-size:1.5rem;line-height:1.1}
+.mini-kpis span{font-size:.72rem;color:var(--soft);font-weight:700;line-height:1.2}
+.fn i.warn{background:var(--warn)} .fn i.late{background:var(--late)}
+.tbl-wrap{overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse;font-size:.88rem;min-width:460px}
+.tbl th,.tbl td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+.tbl th{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--soft)}
+.linklike{background:none;border:0;padding:0;color:var(--accent);font-weight:700;text-align:left}
+.form{display:grid;gap:14px}
+fieldset{border:0;margin:0;padding:0;display:grid;gap:8px}
+legend{font-size:.86rem;font-weight:700;color:var(--soft);padding:0;margin-bottom:6px}
+.radios{display:flex;flex-wrap:wrap;gap:8px}
+.rd{display:inline-flex;font-size:.92rem;font-weight:700;color:var(--ink)}
+.rd input{position:absolute;opacity:0;width:1px;height:1px}
+.rd span{border:1.5px solid var(--line);border-radius:999px;padding:9px 14px;background:#fff;cursor:pointer}
+.rd input:checked+span{background:var(--accent);border-color:var(--accent);color:#fff}
+.rd input:focus-visible+span{outline:3px solid var(--accent);outline-offset:2px}
+.err{font-size:.82rem;color:var(--late);font-weight:700;min-height:0}
+.err:empty{display:none}
+.col{min-width:0}
+.col .item{min-width:0}
+.item .chip{white-space:normal;line-height:1.3}
+.item .actions{margin-left:auto}
+.fab{display:none}
 </style>
 </head>
 <body>
@@ -209,13 +258,14 @@ main{max-width:1480px;margin:0 auto;padding:16px 14px 24px}
     <button class="out" id="bOut">Sair</button>
   </header>
   <nav class="tabs" aria-label="Seções">
-    <button data-tab="hoje" aria-current="page"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>Painel</button>
-    <button data-tab="trat"><svg viewBox="0 0 24 24"><path d="M14 4l6 6M17 7l-9 9-3 1 1-3 9-9M11 8l5 5M4 20l2-2"/></svg>Injeção/Laser</button>
-    <button data-tab="pipe"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="10" y="4" width="5" height="11" rx="1.5"/><rect x="17" y="4" width="4" height="7" rx="1.5"/></svg>Pipeline</button>
+    <button data-tab="painel" aria-current="page"><svg viewBox="0 0 24 24"><rect x="3.5" y="4" width="7" height="7" rx="2"/><rect x="13.5" y="4" width="7" height="4" rx="2"/><rect x="13.5" y="11" width="7" height="9" rx="2"/><rect x="3.5" y="14" width="7" height="6" rx="2"/></svg>Painel</button>
+    <button data-tab="ind"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="10" y="4" width="5" height="11" rx="1.5"/><rect x="17" y="4" width="4" height="7" rx="1.5"/></svg>Indicações</button>
+    <button data-tab="cir"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M6 12c2-2.5 10-2.5 12 0"/></svg>Cirurgias</button>
+    <button data-tab="trat"><svg viewBox="0 0 24 24"><path d="M14 4l6 6M17 7l-9 9-3 1 1-3 9-9M11 8l5 5M4 20l2-2"/></svg>Injeções</button>
     <button data-tab="pac"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c.8-3.4 3.2-5.2 6-5.2s5.2 1.8 6 5.2"/><circle cx="17" cy="9" r="2.4"/><path d="M16 14.8c2.4.2 4.2 1.8 5 4.6"/></svg>Pacientes</button>
   </nav>
   <main id="main"></main>
-  <button class="fab" id="fab">+ Novo</button>
+  <button class="fab" id="fab">+ Nova indicação</button>
 </div>
 
 <div id="sheetRoot"></div>
@@ -226,33 +276,49 @@ const SUPABASE_URL = "https://avbmtrvxieetoptmzere.supabase.co";
 const SUPABASE_KEY = "sb_publishable_Ohqe8a6rhGEwOImU302jjw_69V8kcJ7"; // chave pública; o acesso é protegido por RLS
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
 
-// Pipeline de cirurgia: cada coluna tem um prazo "saudável" (dias). Passou disso, o card fica amarelo.
-const ETAPAS_CIR = [
-  ["indicado","Indicado","Consulta feita, cirurgia indicada",14],
-  ["exames","Exames pré-op","Biometria, exames e risco cirúrgico",21],
-  ["autorizacao","Autorização","Convênio / município / orçamento",15],
-  ["agendado","Agendado","Data marcada no centro cirúrgico",null],
-  ["realizado","Realizado","Cirurgia feita",3],
-  ["pos_op","Pós-operatório","Retornos de 1 dia, 7 e 30 dias",45],
-  ["finalizado","Alta","Pós-operatório concluído",null],
-];
-const ETAPA_LABEL = {indicado:"Indicado",exames:"Exames pré-op",autorizacao:"Autorização",agendado:"Agendado",realizado:"Realizado",pos_op:"Pós-operatório",em_tratamento:"Em tratamento",finalizado:"Finalizado",desistiu:"Desistiu / não fará"};
-const INTERVALO_PADRAO = 30; // lembrete de injeção/laser: 30 dias após a última aplicação
+const LOCAIS = ["OA Palmas","OA Paraíso","ICOG Palmas","ICOG Porto","OPUS"];
+const CONVENIOS = ["SERVIR","CASSI","CAIXA"];          // + "Outros" (texto livre)
 const TIPO_LABEL = {cirurgia:"Cirurgia",injecao:"Injeção",laser:"Laser"};
-const CONVENIOS = ["PART","SERVIR","IPASGU","MUNICIPIO","Outro"];
+const INTERESSE = {baixo:["Baixo","int-b"],medio:["Médio","int-m"],alto:["Alto","int-a"],fechado:["Fechado","int-f"]};
 
-const S = { tab:"hoje", pacientes:[], casos:[], sessoes:[], user:null, filtroTrat:"todos", filtroPipe:"", busca:"" };
+// Quadro de INDICAÇÕES (comercial). prazo = dias "saudáveis" na coluna antes do alerta
+const ETAPAS_IND = [
+  ["indicado","Nova indicação","Enviar orçamento (particular) ou guia/pedido (convênio)",3],
+  ["orcamento","Orçamento / guia enviado","Esperando o paciente ou o convênio responder",7],
+  ["aguardando","Aguardando resposta","Particular: decidindo · Convênio: em autorização",15],
+  ["fechado","Fechado","Cirurgia: falta agendar",7],
+];
+// Quadro de EXECUÇÃO das cirurgias (depois de fechado)
+const ETAPAS_EXE = [
+  ["fechado","Fechado · a agendar","Marcar data no centro cirúrgico",7],
+  ["agendado","Agendado","Data marcada",null],
+  ["realizado","Realizado","Cirurgia feita",3],
+  ["pos_op","Pós-operatório","Retornos 1, 7 e 30 dias",45],
+  ["finalizado","Alta","Acompanhamento concluído",null],
+];
+const ETAPA_LABEL = {indicado:"Nova indicação",orcamento:"Orçamento/guia enviado",aguardando:"Aguardando resposta",fechado:"Fechado",agendado:"Agendado",realizado:"Realizado",pos_op:"Pós-operatório",finalizado:"Alta",em_tratamento:"Em tratamento",desistiu:"Perdido / não fará"};
+const ABERTAS = ["indicado","orcamento","aguardando"];
+// Prazo para considerar convênio "travado" (dias desde o envio da guia sem fechar)
+const PRAZO_CONVENIO = 15, PRAZO_PARTICULAR = 7;
+// Injeções/laser: lembrete D+20, vencimento D+30
+const LEMBRAR_DIAS = 20, VENCE_DIAS = 30;
+
+const S = { tab:"painel", pacientes:[], casos:[], sessoes:[], user:null, fInd:"todos", fTrat:"ativos", busca:"" };
 
 /* ================= Utilidades ================= */
 const $ = (s, el=document) => el.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const hoje = () => { const d=new Date(); d.setHours(0,0,0,0); return d; };
 const iso = d => d ? new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10) : null;
-const parse = s => s ? new Date(s+"T00:00:00") : null;
+const parse = s => s ? new Date(String(s).slice(0,10)+"T00:00:00") : null;
 const addDias = (d,n) => { const x=new Date(d); x.setDate(x.getDate()+n); return x; };
 const diff = (a,b) => Math.round((a-b)/86400000);
-const br = s => { if(!s) return "—"; const [y,m,d]=s.split("-"); return `${d}/${m}/${y.slice(2)}`; };
+const desde = s => s ? diff(hoje(), parse(s)) : null;
+const br = s => { if(!s) return "—"; const [y,m,d]=String(s).slice(0,10).split("-"); return `${d}/${m}/${y.slice(2)}`; };
+const dm = s => s ? br(s).slice(0,5) : "—";
+const plural = (n,s,p) => `${n} ${n===1?s:p}`;
 const nomeCurto = n => { const p=String(n||"").toLowerCase().split(/\s+/).filter(Boolean).map(w=>w.length>2?w[0].toUpperCase()+w.slice(1):w); return p.length>3?[p[0],p[1],p[p.length-1]].join(" "):p.join(" "); };
+const moeda = v => v==null||v==="" ? "" : Number(v).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 function toast(t){ const el=document.createElement("div"); el.className="toast"; el.textContent=t; document.body.appendChild(el); setTimeout(()=>el.remove(),2600); }
 function fones(tel){ return String(tel||"").split(/[|/]/).map(s=>s.replace(/\D/g,"")).filter(s=>s.length>=10); }
 function contato(tel){
@@ -261,8 +327,26 @@ function contato(tel){
   return `<span class="contact"><a href="tel:+${intl}">Ligar</a><a class="wa" href="https://wa.me/${intl}" target="_blank" rel="noopener">WhatsApp</a></span>`;
 }
 const pacOf = c => S.pacientes.find(p=>p.id===c.paciente_id) || {nome:"?"};
+const pagLabel = c => c.pagamento==="particular" ? "Particular" : (c.convenio || "Convênio");
+const ehConv = c => c.pagamento==="convenio";
+function chipPag(c){ return `<span class="chip ${ehConv(c)?"conv":"part"}">${esc(pagLabel(c))}</span>`; }
+function chipInt(c){ const i=INTERESSE[c.interesse||"medio"]; return `<button class="chip ${i[1]}" data-int="${c.id}" title="Toque para mudar o interesse">● ${i[0]}</button>`; }
 
-/* ================= Regras de injeção / laser ================= */
+/* ================= Regras ================= */
+// Situação de uma indicação aberta: o que precisa ser feito e se está atrasada
+function situacaoInd(c){
+  const dEt = desde(c.etapa_desde), dInd = desde(c.data_indicacao || c.criado_em);
+  const dEnv = desde(c.orcamento_em);
+  if (c.etapa==="indicado" && dEt!==null && dEt>3) return {nivel:"warn", txt:`Há ${plural(dEt,"dia","dias")} sem ${ehConv(c)?"enviar a guia":"enviar orçamento"}`};
+  if (["orcamento","aguardando"].includes(c.etapa) && ehConv(c) && dEnv!==null && dEnv>PRAZO_CONVENIO)
+    return {nivel:"late", txt:`Convênio parado há ${dEnv} dias · conferir documentos/autorização`};
+  if (["orcamento","aguardando"].includes(c.etapa) && !ehConv(c) && dEnv!==null && dEnv>PRAZO_PARTICULAR)
+    return {nivel:"warn", txt:`Orçamento sem resposta há ${dEnv} dias · fazer contato`};
+  if (c.etapa==="fechado" && c.tipo==="cirurgia" && dEt!==null && dEt>7) return {nivel:"warn", txt:`Fechado há ${dEt} dias e ainda sem data`};
+  return {nivel:"", txt: dInd!==null ? `Indicado há ${plural(dInd,"dia","dias")}` : ""};
+}
+
+// Injeção/laser: aplicações do ciclo atual, D+20 (lembrar) e D+30 (vence)
 function statusTrat(c){
   const ses = S.sessoes.filter(s=>s.caso_id===c.id);
   const ciclo = ses.length ? Math.max(...ses.map(s=>s.ciclo)) : 1;
@@ -270,26 +354,20 @@ function statusTrat(c){
   const feitas = doCiclo.filter(s=>s.data_realizada);
   const total = c.total_sessoes || 3;
   const ultima = feitas.length ? feitas.map(s=>s.data_realizada).sort().at(-1) : null;
-  const pendenteAgendada = doCiclo.find(s=>!s.data_realizada && s.data_prevista);
-  let proxima = null, estado = "ok", rotulo = "";
-  const intervalo = c.intervalo_dias || INTERVALO_PADRAO;
-  if (c.etapa==="finalizado"||c.etapa==="desistiu") { estado="fim"; rotulo=ETAPA_LABEL[c.etapa]; }
-  else if (feitas.length >= total) { estado="avaliar"; rotulo="Ciclo completo · avaliar novo ciclo"; }
-  else {
-    if (pendenteAgendada) proxima = parse(pendenteAgendada.data_prevista);
-    else if (ultima) proxima = addDias(parse(ultima), intervalo);
-    else if (c.data_indicacao) proxima = parse(c.data_indicacao);
-    if (!proxima) { estado="warn"; rotulo="Sem data · agendar 1ª"; }
-    else {
-      const d = diff(proxima, hoje());
-      if (d < 0) { estado="late"; rotulo=`Atrasada há ${-d} dia${-d>1?"s":""}`; }
-      else if (d <= 7) { estado="warn"; rotulo = d===0?"É hoje":`Em ${d} dia${d>1?"s":""}`; }
-      else { estado="ok"; rotulo=`Em ${d} dias`; }
-    }
-  }
-  // contato feito depois da última aplicação = lembrete já tratado (até agendar)
-  const contatado = c.ultimo_contato && (!ultima || c.ultimo_contato >= ultima) && !pendenteAgendada && ["late","warn"].includes(estado);
-  return { ses, ciclo, doCiclo, feitas, total, ultima, proxima, estado, rotulo, agendada: !!pendenteAgendada, contatado, intervalo };
+  const agendada = doCiclo.find(s=>!s.data_realizada && s.data_prevista);
+  const dU = ultima ? desde(ultima) : null;
+  const lembrar = ultima ? addDias(parse(ultima), LEMBRAR_DIAS) : null;
+  const vence = ultima ? addDias(parse(ultima), c.intervalo_dias || VENCE_DIAS) : null;
+  let estado="ok", rotulo="";
+  if (["finalizado","desistiu"].includes(c.etapa)) { estado="fim"; rotulo=ETAPA_LABEL[c.etapa]; }
+  else if (feitas.length >= total) { estado="avaliar"; rotulo=`Ciclo completo (${total}/${total}) · avaliar novo ciclo`; }
+  else if (agendada) { estado="agendado"; rotulo=`${feitas.length+1}ª aplicação agendada · ${br(agendada.data_prevista)}`; }
+  else if (!ultima) { estado="primeira"; rotulo="1ª aplicação a agendar"; }
+  else if (dU >= (c.intervalo_dias||VENCE_DIAS)) { estado="late"; rotulo=`D+${dU} · venceu em ${dm(iso(vence))}`; }
+  else if (dU >= LEMBRAR_DIAS) { estado="lembrar"; rotulo=`D+${dU} · lembrar paciente e equipe`; }
+  else { estado="ok"; rotulo=`D+${dU} · lembrete em ${dm(iso(lembrar))}`; }
+  const avisado = c.ultimo_contato && ultima && c.ultimo_contato >= ultima && ["late","lembrar"].includes(estado);
+  return { ses, ciclo, doCiclo, feitas, total, ultima, agendada, dU, lembrar, vence, estado, rotulo, avisado };
 }
 
 /* ================= Dados ================= */
@@ -304,133 +382,206 @@ async function carregar(){
 }
 async function salvar(prom, ok){ const {error} = await prom; if(error){ toast("Não foi possível salvar: "+error.message); return false; } if(ok) toast(ok); await carregar(); render(); return true; }
 
-/* ================= Telas ================= */
-function render(){
-  document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-current", b.dataset.tab===S.tab?"page":"false"));
-  const m=$("#main");
-  if (S.tab==="hoje") m.innerHTML = telaHoje();
-  if (S.tab==="trat") m.innerHTML = telaTrat();
-  if (S.tab==="pipe") m.innerHTML = telaPipe();
-  if (S.tab==="pac") m.innerHTML = telaPac();
-  m.insertAdjacentHTML("beforeend", `<p class="footnote">Dados protegidos · acesso restrito à equipe · ${S.pacientes.length} pacientes cadastrados</p>`);
+/* ================= Cartões ================= */
+function cardInd(c){
+  const p=pacOf(c), st=situacaoInd(c);
+  const idx=ETAPAS_IND.findIndex(e=>e[0]===c.etapa);
+  const prox = idx>=0 && idx<ETAPAS_IND.length-1 ? ETAPAS_IND[idx+1] : null;
+  return `<div class="item card-dd ${st.nivel}" data-card="${c.id}">
+    <div class="row"><span class="grip" data-grip="${c.id}" title="Arraste para mudar de etapa" aria-hidden="true">⠿</span><div class="name"><button data-pac="${p.id}">${esc(nomeCurto(p.nome))}</button></div>${c.etapa==="fechado"?"":chipInt(c)}</div>
+    <div class="row meta"><span class="chip blue">${TIPO_LABEL[c.tipo]}</span>${chipPag(c)}${c.local?`<span class="chip">${esc(c.local)}</span>`:""}</div>
+    ${c.procedimento||c.olho?`<div class="meta"><b style="color:var(--ink)">${esc(c.procedimento||"")}</b>${c.olho?" · "+esc(c.olho):""}${c.valor?` · ${moeda(c.valor)}`:""}</div>`:""}
+    ${st.txt?`<div class="row"><span class="chip ${st.nivel==="late"?"late":st.nivel==="warn"?"warn":""}">${esc(st.txt)}</span></div>`:""}
+    <div class="row" style="justify-content:space-between">${contato(p.telefone)}
+      <span class="actions">${prox&&c.etapa!=="fechado"?`<button class="btn small" data-act="mover-ind" data-id="${c.id}" data-to="${prox[0]}">→ ${prox[0]==="orcamento"?(ehConv(c)?"Guia enviada":"Orçamento enviado"):prox[1]}</button>`:""}<button class="btn small ghost" data-act="menu" data-id="${c.id}" aria-label="Mais opções">⋯</button></span></div>
+  </div>`;
+}
+
+function cardExe(c){
+  const p=pacOf(c), meta=ETAPAS_EXE.find(e=>e[0]===c.etapa), dEt=desde(c.etapa_desde);
+  const parado = meta && meta[3] && dEt!==null && dEt>meta[3];
+  const idx=ETAPAS_EXE.findIndex(e=>e[0]===c.etapa);
+  const prox = idx>=0 && idx<ETAPAS_EXE.length-1 ? ETAPAS_EXE[idx+1] : null;
+  const info = c.etapa==="agendado"&&c.data_agendada ? (()=>{const d=diff(parse(c.data_agendada),hoje()); return `📅 ${br(c.data_agendada)} · ${d>=0?`em ${plural(d,"dia","dias")}`:`há ${-d} dias`}`;})()
+    : c.data_realizado ? `Operado em ${br(c.data_realizado)}` : c.fechado_em ? `Fechado em ${br(c.fechado_em)}` : "";
+  return `<div class="item card-dd ${parado?"warn":""}" data-card="${c.id}">
+    <div class="row"><span class="grip" data-grip="${c.id}" aria-hidden="true">⠿</span><div class="name"><button data-pac="${p.id}">${esc(nomeCurto(p.nome))}</button></div>${chipPag(c)}</div>
+    <div class="meta"><b style="color:var(--ink)">${esc(c.procedimento||"Cirurgia")}</b>${c.olho?" · "+esc(c.olho):""}${c.local?" · "+esc(c.local):""}</div>
+    ${info?`<div class="meta">${info}</div>`:""}
+    ${dEt!==null?`<div class="row"><span class="chip ${parado?"warn":""}">${dEt===0?"Entrou hoje nesta etapa":`Há ${plural(dEt,"dia","dias")} nesta etapa`}</span></div>`:""}
+    <div class="row" style="justify-content:space-between">${contato(p.telefone)}
+      <span class="actions">${prox?`<button class="btn small" data-act="mover-exe" data-id="${c.id}" data-to="${prox[0]}">→ ${prox[1]}</button>`:""}<button class="btn small ghost" data-act="menu" data-id="${c.id}" aria-label="Mais opções">⋯</button></span></div>
+  </div>`;
 }
 
 function cardTrat(c){
   const st=statusTrat(c), p=pacOf(c);
-  const dots = Array.from({length:st.total},(_,i)=>`<i class="${i<st.feitas.length?"on":""}"></i>`).join("");
-  const cls = st.estado==="late"?"late":st.estado==="warn"?"warn":st.estado==="avaliar"?"warn":"okc";
-  const chip = st.estado==="late"?"late":st.estado==="warn"||st.estado==="avaliar"?"warn":st.estado==="fim"?"":"ok";
+  const cls = {late:"late",lembrar:"warn",primeira:"warn",avaliar:"info",agendado:"okc",ok:"okc",fim:""}[st.estado];
+  const chip = {late:"late",lembrar:"warn",primeira:"warn",avaliar:"blue",agendado:"ok",ok:"ok",fim:""}[st.estado];
+  const linhas = Array.from({length:st.total},(_,i)=>{
+    const s=st.doCiclo.find(x=>x.numero===i+1);
+    if(s&&s.data_realizada) return `<li class="done"><span>${i+1}ª</span><b>${br(s.data_realizada)}</b></li>`;
+    if(s&&s.data_prevista) return `<li class="sched"><span>${i+1}ª</span><b>📅 ${br(s.data_prevista)}</b></li>`;
+    return `<li><span>${i+1}ª</span><b>—</b></li>`;
+  }).join("");
   return `<div class="item ${cls}">
     <div class="row"><div class="name"><button data-pac="${p.id}">${esc(nomeCurto(p.nome))}</button></div><span class="chip ${chip}">${esc(st.rotulo)}</span></div>
-    <div class="row meta"><span class="chip blue">${TIPO_LABEL[c.tipo]}</span>${c.olho?`<span class="chip">${esc(c.olho)}</span>`:""}${c.convenio?`<span class="chip">${esc(c.convenio)}</span>`:""}<span class="dots" title="${st.feitas.length} de ${st.total}">${dots}</span><span>${st.feitas.length}/${st.total}${st.ciclo>1?` · ciclo ${st.ciclo}`:""}</span></div>
-    <div class="meta">Última: ${br(st.ultima)} · Lembrete: ${st.proxima?br(iso(st.proxima)):"—"}${st.agendada?" (agendada)":st.proxima&&st.estado!=="fim"?` (${st.intervalo} dias)`:""}</div>
-    ${st.contatado?`<span class="chip sage">✔ Paciente avisado em ${br(c.ultimo_contato)} · falta agendar</span>`:""}
+    <div class="row meta"><span class="chip blue">${TIPO_LABEL[c.tipo]}</span>${c.olho?`<span class="chip">${esc(c.olho)}</span>`:""}${chipPag(c)}${c.local?`<span class="chip">${esc(c.local)}</span>`:""}${st.ciclo>1?`<span class="chip">Ciclo ${st.ciclo}</span>`:""}</div>
+    <ol class="apps">${linhas}</ol>
+    ${st.ultima&&!["fim","avaliar"].includes(st.estado)?`<div class="meta">Última aplicação <b style="color:var(--ink)">${br(st.ultima)}</b> · lembrar D+20: <b>${dm(iso(st.lembrar))}</b> · vence D+30: <b>${dm(iso(st.vence))}</b></div>`:""}
+    ${st.avisado?`<span class="chip sage">✔ Paciente avisado em ${br(c.ultimo_contato)} · falta agendar</span>`:""}
     ${c.obs?`<div class="meta">📝 ${esc(c.obs)}</div>`:""}
     <div class="row" style="justify-content:space-between">${contato(p.telefone)}
       <span class="actions">${st.estado==="fim"?"":st.estado==="avaliar"
         ?`<button class="btn small" data-act="ciclo" data-id="${c.id}">Novo ciclo</button><button class="btn small ghost" data-act="finalizar" data-id="${c.id}">Finalizar</button>`
-        :`${["late","warn"].includes(st.estado)&&!st.agendada&&!st.contatado?`<button class="btn small ghost" data-act="contato" data-id="${c.id}">Avisei o paciente</button>`:""}<button class="btn small ghost" data-act="agendar" data-id="${c.id}">Agendar</button><button class="btn small okb" data-act="aplicar" data-id="${c.id}">Registrar aplicação</button>`}</span></div>
+        :`${["late","lembrar"].includes(st.estado)&&!st.avisado?`<button class="btn small ghost" data-act="avisei" data-id="${c.id}">Avisei o paciente</button>`:""}<button class="btn small ghost" data-act="agendar" data-id="${c.id}">Agendar</button><button class="btn small okb" data-act="aplicar" data-id="${c.id}">Registrar aplicação</button>`}</span></div>
   </div>`;
 }
 
-function cardCir(c, compact){
-  const p=pacOf(c);
-  const meta = ETAPAS_CIR.find(e=>e[0]===c.etapa);
-  const desde = c.etapa_desde ? diff(hoje(), parse(c.etapa_desde)) : null;
-  const parado = meta && meta[3] && desde!==null && desde>meta[3];
-  const idx = ETAPAS_CIR.findIndex(e=>e[0]===c.etapa);
-  const prox = idx>=0 && idx<ETAPAS_CIR.length-1 ? ETAPAS_CIR[idx+1] : null;
-  const dataInfo = c.etapa==="agendado"&&c.data_agendada ? `📅 Cirurgia em ${br(c.data_agendada)}${(()=>{const d=diff(parse(c.data_agendada),hoje());return d>=0?` · em ${d} dia${d!==1?"s":""}`:` · há ${-d} dias`;})()}`
-    : c.data_realizado ? `Operado em ${br(c.data_realizado)}` : c.data_indicacao ? `Indicado em ${br(c.data_indicacao)}` : "";
-  return `<div class="item card-cir ${parado?"warn":""}" data-card="${c.id}">
-    <div class="row"><span class="grip" data-grip="${c.id}" title="Arraste para mudar de etapa" aria-hidden="true">⠿</span><div class="name"><button data-pac="${p.id}">${esc(nomeCurto(p.nome))}</button></div>${c.convenio?`<span class="chip">${esc(c.convenio)}</span>`:""}</div>
-    <div class="meta"><b style="color:var(--ink)">${esc(c.procedimento||"Cirurgia")}</b>${c.olho?" · "+esc(c.olho):""}</div>
-    ${dataInfo?`<div class="meta">${dataInfo}</div>`:""}
-    ${desde!==null?`<div class="row"><span class="chip ${parado?"warn":""}">${desde===0?"Entrou hoje nesta etapa":`Há ${desde} dia${desde!==1?"s":""} nesta etapa`}</span></div>`:""}
-    ${c.obs && !compact?`<div class="meta">📝 ${esc(c.obs)}</div>`:""}
-    <div class="row" style="justify-content:space-between">${contato(p.telefone)}
-      <span class="actions">${prox?`<button class="btn small" data-act="avancar" data-id="${c.id}" data-to="${prox[0]}">→ ${prox[1]}</button>`:""}<button class="btn small ghost" data-act="mover" data-id="${c.id}" aria-label="Mover ou editar">⋯</button></span></div>
-  </div>`;
+/* ================= Telas ================= */
+function render(){
+  document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-current", b.dataset.tab===S.tab?"page":"false"));
+  const m=$("#main");
+  m.innerHTML = ({painel:telaPainel, ind:telaInd, cir:telaCir, trat:telaTrat, pac:telaPac}[S.tab])();
+  m.insertAdjacentHTML("beforeend", `<p class="footnote">Dados protegidos · acesso restrito à equipe · ${S.pacientes.length} pacientes cadastrados</p>`);
 }
 
-function telaHoje(){
-  const ativos = S.casos.filter(c=>c.tipo!=="cirurgia" && !["finalizado","desistiu"].includes(c.etapa)).map(c=>[c,statusTrat(c)]);
-  const vencidos = ativos.filter(([,s])=>s.estado==="late").sort((a,b)=>a[1].proxima-b[1].proxima);
-  const semana = ativos.filter(([,s])=>s.estado==="warn").sort((a,b)=>(a[1].proxima||0)-(b[1].proxima||0));
-  const avaliar = ativos.filter(([,s])=>s.estado==="avaliar");
-  const pendAviso = [...vencidos,...semana].filter(([,s])=>!s.contatado&&!s.agendada).length;
-  // agenda das próximas 4 semanas (lembretes de 30 dias)
-  const h=hoje(); const semanas=[0,1,2,3].map(i=>{const ini=addDias(h,i*7), fim=addDias(h,i*7+6); return {ini,fim,itens:ativos.filter(([,s])=>s.proxima&&s.proxima>=ini&&s.proxima<=fim)};});
-  const maxSem=Math.max(1,...semanas.map(x=>x.itens.length));
-  const cir=S.casos.filter(c=>c.tipo==="cirurgia");
-  const funil=ETAPAS_CIR.map(([k,t])=>[k,t,cir.filter(c=>c.etapa===k).length]);
-  const maxF=Math.max(1,...funil.map(f=>f[2]));
-  const paradosCir = cir.filter(c=>{const m=ETAPAS_CIR.find(e=>e[0]===c.etapa); const d=c.etapa_desde?diff(h,parse(c.etapa_desde)):null; return m&&m[3]&&d!==null&&d>m[3];});
-  const cirAg = cir.filter(c=>c.etapa==="agendado").sort((a,b)=>(a.data_agendada||"").localeCompare(b.data_agendada||""));
+function barras(lista){ const max=Math.max(1,...lista.map(x=>x[1])); return `<div class="funnel">${lista.map(([t,n,go,cls])=>`<button class="fn" ${go?`data-goto="${go}"`:""}><span>${esc(t)}</span><i class="${cls||""}" style="width:${Math.max(3,Math.round(n/max*100))}%"></i><b>${n}</b></button>`).join("")}</div>`; }
+
+function telaPainel(){
+  const h=hoje();
+  const abertas = S.casos.filter(c=>ABERTAS.includes(c.etapa));
+  const conv = abertas.filter(ehConv), part = abertas.filter(c=>!ehConv(c));
+  const sits = abertas.map(c=>[c,situacaoInd(c)]);
+  const travConv = sits.filter(([c,s])=>s.nivel==="late");
+  const semResp = sits.filter(([c,s])=>s.nivel==="warn" && c.etapa!=="indicado");
+  const semEnvio = sits.filter(([c,s])=>s.nivel==="warn" && c.etapa==="indicado");
+  const ini30=addDias(h,-30);
+  const fech30 = S.casos.filter(c=>c.fechado_em && parse(c.fechado_em)>=ini30);
+  const perd30 = S.casos.filter(c=>c.etapa==="desistiu" && c.etapa_desde && parse(c.etapa_desde)>=ini30);
+  const conv30 = fech30.length+perd30.length ? Math.round(fech30.length/(fech30.length+perd30.length)*100) : null;
+  // envelhecimento das indicações abertas
+  const faixas=[["0–7 dias",0,7],["8–15 dias",8,15],["16–30 dias",16,30],["+30 dias",31,1e9]];
+  const aging=faixas.map(([t,a,b],i)=>[t,abertas.filter(c=>{const d=desde(c.data_indicacao||c.criado_em);return d>=a&&d<=b;}).length,"ind",i===3?"late":i===2?"warn":""]);
+  const porConv = [["Particular",part.length,"ind"],...CONVENIOS.map(cv=>[cv,conv.filter(c=>(c.convenio||"").toUpperCase()===cv).length,"ind"]),["Outros convênios",conv.filter(c=>!CONVENIOS.includes((c.convenio||"").toUpperCase())).length,"ind"]];
+  const porLocal = [...LOCAIS.map(l=>[l,abertas.filter(c=>c.local===l).length,"ind"]),["Sem local",abertas.filter(c=>!c.local).length,"ind"]];
+  // injeções
+  const trat = S.casos.filter(c=>c.tipo!=="cirurgia" && !["finalizado","desistiu"].includes(c.etapa) && !ABERTAS.includes(c.etapa)).map(c=>[c,statusTrat(c)]);
+  const venc = trat.filter(([,s])=>s.estado==="late").sort((a,b)=>b[1].dU-a[1].dU);
+  const lemb = trat.filter(([,s])=>s.estado==="lembrar").sort((a,b)=>b[1].dU-a[1].dU);
+  const prim = trat.filter(([,s])=>s.estado==="primeira");
+  const mesIni = new Date(h.getFullYear(), h.getMonth(), 1);
+  const apMes = S.sessoes.filter(s=>s.data_realizada && parse(s.data_realizada)>=mesIni).map(s=>[s,S.casos.find(c=>c.id===s.caso_id)]).filter(([,c])=>c).sort((a,b)=>b[0].data_realizada.localeCompare(a[0].data_realizada));
+  const cirAg = S.casos.filter(c=>c.tipo==="cirurgia"&&c.etapa==="agendado").sort((a,b)=>(a.data_agendada||"").localeCompare(b.data_agendada||""));
+  const aAgendar = S.casos.filter(c=>c.tipo==="cirurgia"&&c.etapa==="fechado");
   const d = new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"});
-  return `<div class="sec-head"><div><h2>Painel</h2><div class="sub">${d}</div></div></div>
+  return `<div class="sec-head"><div><h2>Painel</h2><div class="sub">${d}</div></div><button class="btn" data-act="novo">+ Nova indicação</button></div>
+
   <div class="kpis">
-    <button class="kpi late" data-goto="trat"><b>${vencidos.length}</b><span>Injeções/laser vencidos (+30 dias)</span></button>
-    <button class="kpi warn" data-goto="trat"><b>${semana.length}</b><span>Vencem nos próximos 7 dias</span></button>
-    <button class="kpi" data-goto="trat"><b>${pendAviso}</b><span>Pacientes ainda não avisados</span></button>
-    <button class="kpi ok" data-goto="pipe"><b>${cirAg.length}</b><span>Cirurgias agendadas</span></button>
+    <button class="kpi late" data-goto="ind" data-f="travados"><b>${travConv.length}</b><span>Convênios parados +${PRAZO_CONVENIO} dias</span></button>
+    <button class="kpi warn" data-goto="ind" data-f="atencao"><b>${semResp.length+semEnvio.length}</b><span>Indicações pedindo ação</span></button>
+    <button class="kpi late" data-goto="trat"><b>${venc.length}</b><span>Injeções vencidas (D+30)</span></button>
+    <button class="kpi warn" data-goto="trat"><b>${lemb.length}</b><span>Lembrar agora (D+20)</span></button>
   </div>
 
-  <div class="panel">
-    <div class="panel-h"><h3>Lembretes de injeção e laser · próximas 4 semanas</h3><span class="sub">Lembrete = 30 dias após a última aplicação</span></div>
-    <div class="weeks">${semanas.map((w,i)=>`<div class="wk"><div class="wk-bar"><i style="height:${Math.round(w.itens.length/maxSem*100)}%"></i></div><b>${w.itens.length}</b><span>${i===0?"Esta semana":`${br(iso(w.ini)).slice(0,5)}–${br(iso(w.fim)).slice(0,5)}`}</span></div>`).join("")}</div>
+  <div class="grid-panels">
+    <div class="panel">
+      <div class="panel-h"><h3>Indicações em aberto</h3><button class="linkbtn" data-goto="ind">Abrir quadro →</button></div>
+      <div class="mini-kpis"><div><b>${abertas.length}</b><span>abertas</span></div><div><b>${conv.length}</b><span>convênio</span></div><div><b>${part.length}</b><span>particular</span></div><div><b>${fech30.length}</b><span>fechadas em 30 dias${conv30!==null?` · ${conv30}% conversão`:""}</span></div></div>
+      ${barras(ETAPAS_IND.slice(0,3).map(([k,t])=>[t,abertas.filter(c=>c.etapa===k).length,"ind"]))}
+    </div>
+    <div class="panel">
+      <div class="panel-h"><h3>Há quanto tempo estão em aberto</h3><span class="sub">desde a indicação</span></div>
+      ${barras(aging)}
+    </div>
+    <div class="panel">
+      <div class="panel-h"><h3>Por forma de pagamento</h3></div>
+      ${barras(porConv)}
+    </div>
+    <div class="panel">
+      <div class="panel-h"><h3>Por local de atendimento</h3></div>
+      ${barras(porLocal)}
+    </div>
   </div>
 
-  <div class="group-title">🔴 Vencidos · chamar agora <span class="count">${vencidos.length}</span></div>
-  <div class="list">${vencidos.map(([c])=>cardTrat(c)).join("")||'<div class="empty">Nenhuma injeção vencida. 👏</div>'}</div>
-  <div class="group-title">🟡 Vencem nos próximos 7 dias <span class="count">${semana.length}</span></div>
-  <div class="list">${semana.map(([c])=>cardTrat(c)).join("")||'<div class="empty">Ninguém para chamar nos próximos 7 dias.</div>'}</div>
-  ${avaliar.length?`<div class="group-title">🔵 Ciclo completo · avaliar novo ciclo <span class="count">${avaliar.length}</span></div><div class="list">${avaliar.map(([c])=>cardTrat(c)).join("")}</div>`:""}
+  <div class="group-title">🔴 Convênio parado · provável documento faltando ou autorização demorando <span class="count">${travConv.length}</span></div>
+  <div class="list">${travConv.map(([c])=>cardInd(c)).join("")||'<div class="empty">Nenhum convênio parado além do prazo. 👏</div>'}</div>
+  ${semEnvio.length?`<div class="group-title">🟡 Indicados sem orçamento/guia enviado <span class="count">${semEnvio.length}</span></div><div class="list">${semEnvio.map(([c])=>cardInd(c)).join("")}</div>`:""}
+  ${semResp.length?`<div class="group-title">🟡 Orçamentos e fechamentos esperando contato <span class="count">${semResp.length}</span></div><div class="list">${semResp.map(([c])=>cardInd(c)).join("")}</div>`:""}
+
+  <div class="group-title">💉 Injeções e laser · D+30 vencidas <span class="count">${venc.length}</span></div>
+  <div class="list">${venc.map(([c])=>cardTrat(c)).join("")||'<div class="empty">Nenhuma aplicação vencida.</div>'}</div>
+  <div class="group-title">🔔 D+20 · lembrar o paciente e cobrar a equipe <span class="count">${lemb.length}</span></div>
+  <div class="list">${lemb.map(([c])=>cardTrat(c)).join("")||'<div class="empty">Ninguém entre D+20 e D+29 hoje.</div>'}</div>
+  ${prim.length?`<div class="group-title">🆕 Fechados aguardando a 1ª aplicação <span class="count">${prim.length}</span></div><div class="list">${prim.map(([c])=>cardTrat(c)).join("")}</div>`:""}
 
   <div class="panel" style="margin-top:22px">
-    <div class="panel-h"><h3>Funil de cirurgias</h3><button class="linkbtn" data-goto="pipe">Abrir pipeline →</button></div>
-    <div class="funnel">${funil.map(([k,t,n])=>`<button class="fn" data-goto="pipe"><span>${t}</span><i style="width:${Math.max(4,Math.round(n/maxF*100))}%"></i><b>${n}</b></button>`).join("")}</div>
+    <div class="panel-h"><h3>Aplicações feitas neste mês</h3><span class="sub">data de cada aplicação · ${apMes.length} no total</span></div>
+    ${apMes.length?`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Data</th><th>Paciente</th><th>Tipo</th><th>Aplicação</th><th>Pagamento</th></tr></thead><tbody>${apMes.map(([s,c])=>`<tr><td>${br(s.data_realizada)}</td><td><button class="linklike" data-pac="${c.paciente_id}">${esc(nomeCurto(pacOf(c).nome))}</button></td><td>${TIPO_LABEL[c.tipo]} ${esc(c.olho||"")}</td><td>${s.numero}ª/${c.total_sessoes||3}${s.ciclo>1?` · ciclo ${s.ciclo}`:""}</td><td>${esc(pagLabel(c))}</td></tr>`).join("")}</tbody></table></div>`:'<div class="empty">Nenhuma aplicação registrada neste mês.</div>'}
   </div>
-  ${paradosCir.length?`<div class="group-title">⏳ Cirurgias paradas além do prazo da etapa <span class="count">${paradosCir.length}</span></div><div class="list">${paradosCir.map(c=>cardCir(c,true)).join("")}</div>`:""}
+
+  <div class="group-title">🗓️ Cirurgias fechadas a agendar <span class="count">${aAgendar.length}</span></div>
+  <div class="list">${aAgendar.map(cardExe).join("")||'<div class="empty">Nenhuma cirurgia aguardando data.</div>'}</div>
   <div class="group-title">📅 Próximas cirurgias <span class="count">${cirAg.length}</span></div>
-  <div class="list">${cirAg.map(c=>cardCir(c,true)).join("")||'<div class="empty">Nenhuma cirurgia agendada.</div>'}</div>`;
+  <div class="list">${cirAg.map(cardExe).join("")||'<div class="empty">Nenhuma cirurgia agendada.</div>'}</div>`;
+}
+
+function filtroInd(c){
+  const f=S.fInd;
+  if(f==="convenio") return ehConv(c);
+  if(f==="particular") return !ehConv(c);
+  if(["cirurgia","injecao","laser"].includes(f)) return c.tipo===f;
+  if(f==="travados") return situacaoInd(c).nivel==="late";
+  if(f==="atencao") return !!situacaoInd(c).nivel;
+  if(f==="alto") return c.interesse==="alto";
+  return true;
+}
+function telaInd(){
+  const base=S.casos.filter(c=>[...ABERTAS,"fechado"].includes(c.etapa) && (c.etapa!=="fechado" || c.tipo==="cirurgia" || (c.fechado_em && desde(c.fechado_em)<=7))).filter(filtroInd);
+  const cols = ETAPAS_IND.map(([k,t,desc,prazo])=>{
+    const items=base.filter(c=>c.etapa===k).sort((a,b)=>({alto:0,medio:1,baixo:2,fechado:3}[a.interesse||"medio"]-{alto:0,medio:1,baixo:2,fechado:3}[b.interesse||"medio"])||(a.etapa_desde||"").localeCompare(b.etapa_desde||""));
+    const n=items.filter(c=>situacaoInd(c).nivel).length;
+    return `<section class="col" data-drop="${k}" data-board="ind"><h3><span>${t}</span><span class="count">${items.length}</span></h3><div class="col-desc">${desc}${n?` · <b style="color:var(--warn)">${n} pedindo ação</b>`:""}</div>${items.map(cardInd).join("")||'<div class="empty drop-hint">Solte um card aqui</div>'}</section>`;
+  }).join("");
+  const perdidos=S.casos.filter(c=>c.etapa==="desistiu").length;
+  const fb=(k,t)=>`<button data-fi="${k}" aria-pressed="${S.fInd===k}">${t}</button>`;
+  return `<div class="sec-head"><div><h2>Indicações</h2><div class="sub">Arraste pela alça ⠿ · toque no selo de interesse para mudar · no celular use “→” ou “⋯”</div></div><button class="btn" data-act="novo">+ Nova indicação</button></div>
+  <div class="seg">${fb("todos","Todas")}${fb("atencao","Pedindo ação")}${fb("travados","Convênio parado")}${fb("convenio","Convênio")}${fb("particular","Particular")}${fb("alto","Interesse alto")}${fb("cirurgia","Cirurgia")}${fb("injecao","Injeção")}${fb("laser","Laser")}</div>
+  <div class="board" id="board">${cols}</div>
+  <section class="col col-out" data-drop="desistiu" data-board="ind"><h3><span>Perdido / não fará</span><span class="count">${perdidos}</span></h3><div class="col-desc">Solte aqui quem desistiu. O card sai do quadro, mas fica no histórico do paciente.</div></section>`;
+}
+
+function telaCir(){
+  const list=S.casos.filter(c=>c.tipo==="cirurgia");
+  const cols=ETAPAS_EXE.map(([k,t,desc,prazo])=>{
+    let items=list.filter(c=>c.etapa===k);
+    if(k==="finalizado") items=items.filter(c=>desde(c.etapa_desde)<=60);
+    items.sort((a,b)=>k==="agendado"?(a.data_agendada||"").localeCompare(b.data_agendada||""):(a.etapa_desde||"").localeCompare(b.etapa_desde||""));
+    return `<section class="col" data-drop="${k}" data-board="exe"><h3><span>${t}</span><span class="count">${items.length}</span></h3><div class="col-desc">${desc}${prazo?` · meta ${prazo} dias`:""}</div>${items.map(cardExe).join("")||'<div class="empty drop-hint">Solte um card aqui</div>'}</section>`;
+  }).join("");
+  return `<div class="sec-head"><div><h2>Cirurgias fechadas</h2><div class="sub">Do fechamento até a alta · altas dos últimos 60 dias</div></div></div>
+  <div class="board" id="board">${cols}</div>`;
 }
 
 function telaTrat(){
-  const f=S.filtroTrat;
-  let list = S.casos.filter(c=>c.tipo!=="cirurgia");
-  if (f==="injecao"||f==="laser") list=list.filter(c=>c.tipo===f&&!["finalizado","desistiu"].includes(c.etapa));
-  else if (f==="finalizados") list=list.filter(c=>["finalizado","desistiu"].includes(c.etapa));
-  else list=list.filter(c=>!["finalizado","desistiu"].includes(c.etapa));
-  const ord={late:0,warn:1,avaliar:2,ok:3,fim:4};
-  list = list.map(c=>[c,statusTrat(c)]).sort((a,b)=>(ord[a[1].estado]-ord[b[1].estado])||((a[1].proxima||0)-(b[1].proxima||0))).map(x=>x[0]);
-  const btn=(k,t)=>`<button data-ft="${k}" aria-pressed="${f===k}">${t}</button>`;
-  return `<div class="sec-head"><div><h2>Injeções e laser</h2><div class="sub">Sessões mensais, ordenadas pela urgência</div></div></div>
-  <div class="seg">${btn("todos","Ativos")}${btn("injecao","Injeção")}${btn("laser","Laser")}${btn("finalizados","Finalizados")}</div>
+  const f=S.fTrat;
+  let list = S.casos.filter(c=>c.tipo!=="cirurgia" && !ABERTAS.includes(c.etapa));
+  list = f==="finalizados" ? list.filter(c=>["finalizado","desistiu"].includes(c.etapa)) : list.filter(c=>!["finalizado","desistiu"].includes(c.etapa));
+  if(f==="convenio") list=list.filter(ehConv);
+  if(f==="particular") list=list.filter(c=>!ehConv(c));
+  const ord={late:0,lembrar:1,primeira:2,avaliar:3,agendado:4,ok:5,fim:6};
+  list = list.map(c=>[c,statusTrat(c)]).sort((a,b)=>(ord[a[1].estado]-ord[b[1].estado])||((b[1].dU||0)-(a[1].dU||0))).map(x=>x[0]);
+  const fb=(k,t)=>`<button data-ft="${k}" aria-pressed="${f===k}">${t}</button>`;
+  return `<div class="sec-head"><div><h2>Injeções e laser</h2><div class="sub">Ciclos de 3 aplicações mensais · lembrete em D+20 · vence em D+30</div></div></div>
+  <div class="legend"><span class="chip late">D+30 vencida</span><span class="chip warn">D+20 lembrar</span><span class="chip ok">em dia / agendada</span><span class="chip blue">ciclo completo</span></div>
+  <div class="seg">${fb("ativos","Em tratamento")}${fb("convenio","Convênio")}${fb("particular","Particular")}${fb("finalizados","Finalizados")}</div>
   <div class="list">${list.map(cardTrat).join("")||'<div class="empty">Nada por aqui.</div>'}</div>`;
 }
 
-function telaPipe(){
-  const q=S.filtroPipe, h=hoje();
-  let list=S.casos.filter(c=>c.tipo==="cirurgia");
-  if(q) list=list.filter(c=>c.convenio===q);
-  const cols = ETAPAS_CIR.map(([k,t,desc,prazo])=>{
-    let items=list.filter(c=>c.etapa===k);
-    items.sort((a,b)=>k==="agendado"?(a.data_agendada||"").localeCompare(b.data_agendada||""):(a.etapa_desde||"").localeCompare(b.etapa_desde||""));
-    const atras=items.filter(c=>prazo&&c.etapa_desde&&diff(h,parse(c.etapa_desde))>prazo).length;
-    return `<section class="col" data-drop="${k}"><h3><span>${t}</span><span class="count">${items.length}</span></h3><div class="col-desc">${desc}${prazo?` · meta ${prazo} dias`:""}${atras?` · <b style="color:var(--warn)">${atras} parado${atras>1?"s":""}</b>`:""}</div>${items.map(c=>cardCir(c,true)).join("")||'<div class="empty drop-hint">Solte um card aqui</div>'}</section>`;
-  }).join("");
-  const des=list.filter(c=>c.etapa==="desistiu");
-  return `<div class="sec-head"><div><h2>Pipeline de cirurgias</h2><div class="sub">Arraste o card pela alça ⠿ para mudar de etapa · no celular, use “→” ou “⋯”</div></div></div>
-  <div class="seg"><button data-fp="" aria-pressed="${!q}">Todos</button>${CONVENIOS.slice(0,4).map(cv=>`<button data-fp="${cv}" aria-pressed="${q===cv}">${cv}</button>`).join("")}</div>
-  <div class="board" id="board">${cols}</div>
-  <section class="col col-out" data-drop="desistiu"><h3><span>Desistiu / não fará</span><span class="count">${des.length}</span></h3><div class="col-desc">Solte aqui quem não vai operar. O card sai do funil, mas fica no histórico.</div></section>`;
-}
-
 function telaPac(){
-  const q=S.busca.trim().toLowerCase();
-  const list=S.pacientes.filter(p=>!q||p.nome.toLowerCase().includes(q)||(p.telefone||"").replace(/\D/g,"").includes(q.replace(/\D/g,"")||"#"));
-  return `<div class="sec-head"><div><h2>Pacientes</h2><div class="sub">${S.pacientes.length} cadastrados</div></div></div>
+  const q=S.busca.trim().toLowerCase(), qd=q.replace(/\D/g,"");
+  const list=S.pacientes.filter(p=>!q||p.nome.toLowerCase().includes(q)||(qd&&(p.telefone||"").replace(/\D/g,"").includes(qd)));
+  return `<div class="sec-head"><div><h2>Pacientes</h2><div class="sub">${S.pacientes.length} cadastrados</div></div><button class="btn" data-act="novo">+ Nova indicação</button></div>
   <div class="filters"><input type="search" id="busca" placeholder="Buscar por nome ou telefone" value="${esc(S.busca)}"></div>
   <div class="list">${list.map(p=>{
     const cs=S.casos.filter(c=>c.paciente_id===p.id);
@@ -441,8 +592,73 @@ function telaPac(){
 }
 
 /* ================= Folhas (modais) ================= */
-function abrir(html){ $("#sheetRoot").innerHTML = `<div class="sheet-bg" id="sbg"><div class="sheet" role="dialog" aria-modal="true">${html}</div></div>`; $("#sbg").addEventListener("click",e=>{ if(e.target.id==="sbg"||e.target.dataset.close!==undefined) fechar(); }); const f=$("#sheetRoot input,#sheetRoot select"); if(f) f.focus(); }
+function abrir(html){ $("#sheetRoot").innerHTML = `<div class="sheet-bg" id="sbg"><div class="sheet" role="dialog" aria-modal="true">${html}</div></div>`; $("#sbg").addEventListener("click",e=>{ if(e.target.id==="sbg"||e.target.closest("[data-close]")) fechar(); }); }
 function fechar(){ $("#sheetRoot").innerHTML=""; }
+function confirmar(t){ try { return window.confirm(t); } catch(e){ return true; } }
+
+function radios(name, opts, val){ return `<div class="radios">${opts.map(([v,t])=>`<label class="rd"><input type="radio" name="${name}" value="${v}" ${v===val?"checked":""}><span>${t}</span></label>`).join("")}</div>`; }
+
+// Formulário de indicação: novo paciente ou novo procedimento de um paciente existente
+function folhaIndicacao(caso, pacienteId){
+  const c = caso || {tipo:"cirurgia", etapa:"indicado", interesse:"medio", pagamento:"particular", data_indicacao: iso(hoje()), paciente_id:pacienteId};
+  const novoPac = !c.paciente_id;
+  const convAtual = (c.convenio||"").toUpperCase();
+  const convSel = c.pagamento!=="convenio" ? "SERVIR" : (CONVENIOS.includes(convAtual) ? convAtual : "OUTROS");
+  abrir(`<header><h2>${caso?"Editar indicação":"Nova indicação"}</h2><button class="close" data-close aria-label="Fechar">×</button></header>
+  <form id="fi" class="form" novalidate>
+    ${novoPac?`<label>Nome do paciente<input id="iNome" required autocomplete="off" placeholder="Nome completo"><span class="err" id="eNome"></span></label>
+    <label>Telefone<input id="iTel" inputmode="tel" placeholder="(63) 9____-____"></label>`:`<div class="meta">Paciente: <b>${esc(pacOf(c).nome)}</b></div>`}
+    <label>Data da indicação<input type="date" id="iData" value="${c.data_indicacao||iso(hoje())}"></label>
+    <fieldset><legend>Local de atendimento</legend>${radios("local", LOCAIS.map(l=>[l,l]), c.local||"")}<span class="err" id="eLocal"></span></fieldset>
+    <fieldset><legend>Forma de pagamento</legend>${radios("pag", [["particular","Particular"],["convenio","Convênio"]], c.pagamento||"particular")}</fieldset>
+    <fieldset id="fsConv" class="${c.pagamento==="convenio"?"":"hidden"}"><legend>Convênio</legend>${radios("conv", [...CONVENIOS.map(x=>[x,x==="SERVIR"?"Servir":x==="CASSI"?"Cassi":"Caixa"]),["OUTROS","Outros"]], convSel)}
+      <input id="iConvOutro" class="${convSel==="OUTROS"?"":"hidden"}" placeholder="Qual convênio? (ex.: IPASGU, Município)" value="${convSel==="OUTROS"?esc(c.convenio||""):""}"></fieldset>
+    <fieldset><legend>Procedimento</legend>${radios("tipo", [["cirurgia","Cirurgia"],["injecao","Injeção"],["laser","Laser"]], c.tipo)}</fieldset>
+    <div class="grid2"><label>Detalhe<input id="iProc" value="${esc(c.procedimento||"")}" placeholder="Ex.: FACO OD, VVPP, anti-VEGF"></label>
+      <label>Olho<select id="iOlho">${[["","—"],["OD","OD"],["OE","OE"],["AO","AO"]].map(([v,t])=>`<option value="${v}" ${v===(c.olho||"")?"selected":""}>${t}</option>`).join("")}</select></label></div>
+    <fieldset><legend>Interesse</legend>${radios("int", [["baixo","Baixo"],["medio","Médio"],["alto","Alto"],["fechado","Fechado"]], c.interesse||"medio")}</fieldset>
+    <label id="lValor" class="${c.pagamento==="convenio"?"hidden":""}">Valor do orçamento (opcional)<input id="iValor" inputmode="decimal" placeholder="R$" value="${c.valor??""}"></label>
+    ${caso?`<label>Etapa<select id="iEtapa">${Object.entries(ETAPA_LABEL).map(([k,t])=>`<option value="${k}" ${k===c.etapa?"selected":""}>${t}</option>`).join("")}</select></label>
+    <div class="grid2"><label>Orçamento/guia enviado em<input type="date" id="iOrc" value="${c.orcamento_em||""}"></label><label>Data da cirurgia<input type="date" id="iAg" value="${c.data_agendada||""}"></label></div>`:""}
+    <label>Observações<textarea id="iObs" rows="3" placeholder="Ex.: falta biometria; aguardando laudo; deseja lente multifocal">${esc(c.obs||"")}</textarea></label>
+    <button class="btn" type="submit">${caso?"Salvar":"Criar indicação"}</button>
+    ${caso?`<button class="btn ghost" type="button" id="iDel" style="color:var(--late)">Excluir</button>`:""}
+  </form>`);
+  const form=$("#fi");
+  form.addEventListener("change", e=>{
+    if(e.target.name==="pag"){ const conv=e.target.value==="convenio"; $("#fsConv").classList.toggle("hidden",!conv); $("#lValor").classList.toggle("hidden",conv); }
+    if(e.target.name==="conv"){ $("#iConvOutro").classList.toggle("hidden", e.target.value!=="OUTROS"); }
+    if(e.target.name==="local") $("#eLocal").textContent="";
+  });
+  form.addEventListener("input", e=>{ if(e.target.id==="iNome") $("#eNome").textContent=""; });
+  form.addEventListener("submit", async e=>{
+    e.preventDefault();
+    const val=n=>form.querySelector(`input[name="${n}"]:checked`)?.value;
+    let ok=true;
+    if(novoPac && !$("#iNome").value.trim()){ $("#eNome").textContent="Digite o nome do paciente."; ok=false; }
+    if(!val("local")){ $("#eLocal").textContent="Escolha o local de atendimento."; ok=false; }
+    if(!ok) return;
+    let pid=c.paciente_id;
+    if(novoPac){
+      const nome=$("#iNome").value.trim().toUpperCase();
+      const ex=S.pacientes.find(p=>p.nome.toUpperCase()===nome);
+      if(ex) pid=ex.id; else { const r=await sb.from("pacientes").insert({nome, telefone:$("#iTel").value.trim()||null}).select().single(); if(r.error){toast(r.error.message);return;} pid=r.data.id; }
+    }
+    const pag=val("pag"), tipo=val("tipo"), interesse=val("int");
+    const conv = pag==="convenio" ? (val("conv")==="OUTROS" ? ($("#iConvOutro").value.trim().toUpperCase()||"OUTROS") : val("conv")) : null;
+    const row={paciente_id:pid, tipo, local:val("local"), pagamento:pag, convenio:conv, interesse,
+      procedimento:$("#iProc").value.trim()||null, olho:$("#iOlho").value||null, data_indicacao:$("#iData").value||iso(hoje()),
+      valor: pag==="particular" && $("#iValor").value ? Number($("#iValor").value.replace(/\./g,"").replace(",",".")) || null : null,
+      obs:$("#iObs").value.trim()||null };
+    if(tipo!=="cirurgia"){ row.total_sessoes=c.total_sessoes||3; row.intervalo_dias=c.intervalo_dias||VENCE_DIAS; }
+    if(caso){ row.etapa=$("#iEtapa").value; row.orcamento_em=$("#iOrc").value||null; row.data_agendada=$("#iAg").value||null; }
+    else row.etapa = "indicado";
+    if(interesse==="fechado" && ABERTAS.includes(row.etapa)) row.etapa = tipo==="cirurgia" ? "fechado" : "em_tratamento";
+    fechar();
+    await salvar(caso? sb.from("casos").update(row).eq("id",c.id) : sb.from("casos").insert(row), caso?"Salvo ✔":"Indicação criada ✔");
+  });
+  if(caso) $("#iDel").addEventListener("click", async ()=>{ if(!confirmar("Excluir esta indicação e o histórico dela?")) return; fechar(); await salvar(sb.from("casos").delete().eq("id",c.id),"Excluído"); });
+}
 
 function folhaPaciente(id){
   const p=S.pacientes.find(x=>x.id===id); if(!p) return;
@@ -450,131 +666,102 @@ function folhaPaciente(id){
   abrir(`<header><div><h2>${esc(p.nome)}</h2><div class="sub">${esc(p.telefone||"sem telefone")}</div></div><button class="close" data-close aria-label="Fechar">×</button></header>
   <div class="row">${contato(p.telefone)}</div>
   ${cs.map(c=>{
-    if(c.tipo==="cirurgia") return `<div class="box"><div class="row"><b style="flex:1">${esc(c.procedimento||"Cirurgia")}</b><span class="chip">${ETAPA_LABEL[c.etapa]}</span></div>
-      <div class="meta">${c.convenio||""} · Indicação ${br(c.data_indicacao)} · Agendada ${br(c.data_agendada)} · Realizada ${br(c.data_realizado)}</div>${c.obs?`<div class="meta">📝 ${esc(c.obs)}</div>`:""}
-      <div class="actions"><button class="btn small ghost" data-act="editar" data-id="${c.id}">Editar</button></div></div>`;
-    const st=statusTrat(c);
-    return `<div class="box"><div class="row"><b style="flex:1">${TIPO_LABEL[c.tipo]} ${esc(c.olho||"")}</b><span class="chip">${ETAPA_LABEL[c.etapa]}</span></div>
-      <div class="sesslist">${st.ses.sort((a,b)=>a.ciclo-b.ciclo||a.numero-b.numero).map(s=>`<div class="sess"><span>Ciclo ${s.ciclo} · ${s.numero}ª</span><span>${s.data_realizada?"✔ "+br(s.data_realizada):"📅 "+br(s.data_prevista)}</span></div>`).join("")||'<span class="meta">Nenhuma sessão registrada</span>'}</div>
-      ${c.obs?`<div class="meta">📝 ${esc(c.obs)}</div>`:""}
-      <div class="actions"><button class="btn small ghost" data-act="editar" data-id="${c.id}">Editar</button></div></div>`;
+    const head=`<div class="row"><b style="flex:1">${TIPO_LABEL[c.tipo]} ${esc(c.procedimento||"")} ${esc(c.olho||"")}</b><span class="chip">${ETAPA_LABEL[c.etapa]}</span></div>
+      <div class="row meta">${chipPag(c)}${c.local?`<span class="chip">${esc(c.local)}</span>`:""}${c.interesse?`<span class="chip ${INTERESSE[c.interesse][1]}">${INTERESSE[c.interesse][0]}</span>`:""}</div>
+      <div class="meta">Indicação ${br(c.data_indicacao)} · Orçamento/guia ${br(c.orcamento_em)} · Fechado ${br(c.fechado_em)}${c.tipo==="cirurgia"?` · Cirurgia ${br(c.data_agendada||c.data_realizado)}`:""}</div>`;
+    const ses = c.tipo==="cirurgia" ? "" : `<div class="sesslist">${S.sessoes.filter(s=>s.caso_id===c.id).sort((a,b)=>a.ciclo-b.ciclo||a.numero-b.numero).map(s=>`<div class="sess"><span>Ciclo ${s.ciclo} · ${s.numero}ª</span><span>${s.data_realizada?"✔ "+br(s.data_realizada):"📅 "+br(s.data_prevista)}</span></div>`).join("")||'<span class="meta">Nenhuma aplicação registrada</span>'}</div>`;
+    return `<div class="box">${head}${ses}${c.obs?`<div class="meta">📝 ${esc(c.obs)}</div>`:""}<div class="actions"><button class="btn small ghost" data-act="editar" data-id="${c.id}">Editar</button></div></div>`;
   }).join("")}
-  <div class="actions"><button class="btn small" data-act="novocaso" data-pid="${p.id}">+ Novo procedimento</button><button class="btn small ghost" data-act="editpac" data-pid="${p.id}">Editar paciente</button></div>`);
+  <div class="actions"><button class="btn small" data-act="novo-do-pac" data-pid="${p.id}">+ Nova indicação para este paciente</button><button class="btn small ghost" data-act="editpac" data-pid="${p.id}">Editar paciente</button></div>`);
 }
-
-function folhaData(titulo, rotulo, valor, onOk){
-  abrir(`<header><h2>${titulo}</h2><button class="close" data-close aria-label="Fechar">×</button></header>
-  <form id="fd" style="display:grid;gap:12px"><label>${rotulo}<input type="date" id="fdData" value="${valor}" required></label>
-  <button class="btn" type="submit">Salvar</button></form>`);
-  $("#fd").addEventListener("submit",e=>{ e.preventDefault(); const v=$("#fdData").value; fechar(); onOk(v); });
-}
-
-function folhaCaso(caso, pacienteId){
-  const c = caso || {tipo:"cirurgia", etapa:"indicado", data_indicacao: iso(hoje()), paciente_id:pacienteId};
-  const novoPac = !c.paciente_id;
-  const opts = (arr,v)=>arr.map(([k,t])=>`<option value="${k}" ${k===v?"selected":""}>${t}</option>`).join("");
-  abrir(`<header><h2>${caso?"Editar procedimento":"Novo procedimento"}</h2><button class="close" data-close aria-label="Fechar">×</button></header>
-  <form id="fc" style="display:grid;gap:12px">
-    ${novoPac?`<label>Nome do paciente<input id="cNome" required placeholder="Nome completo"></label><label>Telefone<input id="cTel" inputmode="tel" placeholder="(63) 9____-____"></label>`:`<div class="meta">Paciente: <b>${esc(pacOf(c).nome)}</b></div>`}
-    <div class="grid2">
-      <label>Tipo<select id="cTipo">${opts([["cirurgia","Cirurgia"],["injecao","Injeção"],["laser","Laser"]],c.tipo)}</select></label>
-      <label>Olho<select id="cOlho">${opts([["","—"],["OD","OD"],["OE","OE"],["AO","AO"]],c.olho||"")}</select></label>
-    </div>
-    <label>Procedimento / indicação<input id="cProc" value="${esc(c.procedimento||"")}" placeholder="Ex.: FACO OD, VVPP, anti-VEGF"></label>
-    <div class="grid2">
-      <label>Convênio<select id="cConv">${opts(CONVENIOS.map(x=>[x==="Outro"?"":x,x]),c.convenio||"")}</select></label>
-      <label>Etapa<select id="cEtapa">${opts(Object.entries(ETAPA_LABEL),c.etapa)}</select></label>
-    </div>
-    <div class="grid2">
-      <label>Data da indicação<input type="date" id="cInd" value="${c.data_indicacao||""}"></label>
-      <label>Data agendada<input type="date" id="cAg" value="${c.data_agendada||""}"></label>
-    </div>
-    <div class="grid2">
-      <label>Data realizada<input type="date" id="cReal" value="${c.data_realizado||""}"></label>
-      <label>Lembrete após (dias)<input type="number" id="cInt" min="7" max="180" value="${c.intervalo_dias||INTERVALO_PADRAO}"></label>
-    </div>
-    <label>Observações<textarea id="cObs" rows="3">${esc(c.obs||"")}</textarea></label>
-    <button class="btn" type="submit">Salvar</button>
-    ${caso?`<button class="btn ghost" type="button" id="cDel" style="color:var(--late)">Excluir procedimento</button>`:""}
-  </form>`);
-  $("#fc").addEventListener("submit", async e=>{
-    e.preventDefault();
-    let pid=c.paciente_id;
-    if(novoPac){
-      const nome=$("#cNome").value.trim().toUpperCase();
-      const ex=S.pacientes.find(p=>p.nome.toUpperCase()===nome);
-      if(ex) pid=ex.id; else { const r=await sb.from("pacientes").insert({nome, telefone:$("#cTel").value.trim()||null}).select().single(); if(r.error){toast(r.error.message);return;} pid=r.data.id; }
-    }
-    const tipo=$("#cTipo").value;
-    const row={paciente_id:pid,tipo,olho:$("#cOlho").value||null,procedimento:$("#cProc").value.trim()||null,convenio:$("#cConv").value||null,etapa:$("#cEtapa").value,
-      data_indicacao:$("#cInd").value||null,data_agendada:$("#cAg").value||null,data_realizado:$("#cReal").value||null,obs:$("#cObs").value.trim()||null,
-      intervalo_dias: tipo==="cirurgia"?null:(+$("#cInt").value||INTERVALO_PADRAO), total_sessoes: tipo==="cirurgia"?null:(c.total_sessoes||3)};
-    if(tipo!=="cirurgia" && row.etapa==="indicado" && caso===undefined) row.etapa="em_tratamento";
-    fechar();
-    await salvar(caso? sb.from("casos").update(row).eq("id",c.id) : sb.from("casos").insert(row), "Salvo ✔");
-  });
-  if(caso) $("#cDel").addEventListener("click", async ()=>{ if(!confirmar("Excluir este procedimento e suas sessões?")) return; fechar(); await salvar(sb.from("casos").delete().eq("id",c.id),"Excluído"); });
-}
-function confirmar(t){ try { return window.confirm(t); } catch(e){ return true; } }
 
 function folhaPacEdit(id){
   const p=S.pacientes.find(x=>x.id===id);
   abrir(`<header><h2>Editar paciente</h2><button class="close" data-close aria-label="Fechar">×</button></header>
-  <form id="fp" style="display:grid;gap:12px"><label>Nome<input id="pNome" value="${esc(p.nome)}" required></label><label>Telefone(s)<input id="pTel" value="${esc(p.telefone||"")}" inputmode="tel"></label><label>Observações<textarea id="pObs" rows="3">${esc(p.obs||"")}</textarea></label><button class="btn" type="submit">Salvar</button></form>`);
+  <form id="fp" class="form"><label>Nome<input id="pNome" value="${esc(p.nome)}" required></label><label>Telefone(s)<input id="pTel" value="${esc(p.telefone||"")}" inputmode="tel"></label><label>Observações<textarea id="pObs" rows="3">${esc(p.obs||"")}</textarea></label><button class="btn" type="submit">Salvar</button></form>`);
   $("#fp").addEventListener("submit", async e=>{ e.preventDefault(); const row={nome:$("#pNome").value.trim(),telefone:$("#pTel").value.trim()||null,obs:$("#pObs").value.trim()||null}; fechar(); await salvar(sb.from("pacientes").update(row).eq("id",id),"Paciente atualizado"); });
+}
+
+function folhaData(titulo, rotulo, valor, onOk){
+  abrir(`<header><h2>${titulo}</h2><button class="close" data-close aria-label="Fechar">×</button></header>
+  <form id="fd" class="form"><label>${rotulo}<input type="date" id="fdData" value="${valor}" required></label><button class="btn" type="submit">Salvar</button></form>`);
+  $("#fd").addEventListener("submit",e=>{ e.preventDefault(); const v=$("#fdData").value; if(!v) return; fechar(); onOk(v); });
+}
+
+function folhaMenu(c){
+  const p=pacOf(c);
+  const opts = c.tipo==="cirurgia" ? [...ETAPAS_IND.slice(0,3),...ETAPAS_EXE].map(e=>[e[0],e[1]]) : [...ETAPAS_IND.slice(0,3).map(e=>[e[0],e[1]]),["fechado","Fechado · iniciar aplicações"]];
+  abrir(`<header><div><h2>${esc(nomeCurto(p.nome))}</h2><div class="sub">${TIPO_LABEL[c.tipo]} ${esc(c.procedimento||"")} · agora em ${ETAPA_LABEL[c.etapa]}</div></div><button class="close" data-close aria-label="Fechar">×</button></header>
+  <div class="move-list">${[...opts,["desistiu","Perdido / não fará"]].map(([k,t])=>`<button class="btn ${k===c.etapa?"":"ghost"}" data-moveto="${k}" ${k===c.etapa?"disabled":""}>${k===c.etapa?"● ":""}${t}</button>`).join("")}</div>
+  <button class="btn ghost" data-act="editar" data-id="${c.id}">Editar dados da indicação</button>`);
+  document.querySelectorAll("[data-moveto]").forEach(b=>b.addEventListener("click",()=>{ fechar(); moverPara(c,b.dataset.moveto); }));
+}
+
+/* ================= Mover cards ================= */
+async function moverPara(c, to){
+  const id=c.id;
+  if(to==="fechado" && c.tipo!=="cirurgia"){ await salvar(sb.from("casos").update({etapa:"em_tratamento"}).eq("id",id),"Fechado ✔ · aparece em Injeção/Laser para agendar a 1ª aplicação"); return; }
+  if(to==="agendado") return folhaData("Agendar cirurgia","Data da cirurgia", c.data_agendada||iso(hoje()), v=>salvar(sb.from("casos").update({etapa:"agendado",data_agendada:v}).eq("id",id),"Cirurgia agendada ✔"));
+  if(to==="realizado") return folhaData("Cirurgia realizada","Data da cirurgia", c.data_agendada||iso(hoje()), v=>salvar(sb.from("casos").update({etapa:"realizado",data_realizado:v}).eq("id",id),"Cirurgia realizada ✔"));
+  if(to==="orcamento") return folhaData(ehConv(c)?"Guia / pedido enviado ao convênio":"Orçamento enviado", "Data do envio", iso(hoje()), v=>salvar(sb.from("casos").update({etapa:"orcamento",orcamento_em:v}).eq("id",id), ehConv(c)?"Guia enviada ✔ · o prazo do convênio começa a contar":"Orçamento enviado ✔"));
+  if(to==="desistiu" && !confirmar("Marcar como perdido / não fará?")) return;
+  await salvar(sb.from("casos").update({etapa:to}).eq("id",id), `Movido para ${ETAPA_LABEL[to]} ✔`);
 }
 
 /* ================= Ações ================= */
 async function acao(act, el){
   const id=el.dataset.id; const c=S.casos.find(x=>x.id===id);
+  if(act==="novo") return folhaIndicacao();
+  if(act==="novo-do-pac") return folhaIndicacao(undefined, el.dataset.pid);
+  if(act==="editar") return folhaIndicacao(c);
+  if(act==="editpac") return folhaPacEdit(el.dataset.pid);
+  if(act==="menu") return folhaMenu(c);
+  if(act==="mover-ind"||act==="mover-exe") return moverPara(c, el.dataset.to);
+  if(act==="avisei") return salvar(sb.from("casos").update({ultimo_contato:iso(hoje())}).eq("id",id),"Marcado: paciente avisado ✔");
   if(act==="aplicar"){
-    folhaData("Registrar aplicação","Data da aplicação", iso(hoje()), async v=>{
-      const st=statusTrat(c);
+    const st=statusTrat(c);
+    return folhaData(`Registrar ${st.feitas.length+1}ª aplicação`,"Data da aplicação", st.agendada?.data_prevista||iso(hoje()), async v=>{
       const pend=st.doCiclo.find(s=>!s.data_realizada);
-      if(pend) await salvar(sb.from("sessoes").update({data_realizada:v}).eq("id",pend.id),"Aplicação registrada ✔");
-      else await salvar(sb.from("sessoes").insert({caso_id:c.id,ciclo:st.ciclo,numero:st.feitas.length+1,data_realizada:v}),"Aplicação registrada ✔");
-      await salvar(sb.from("casos").update({etapa:"em_tratamento",ultimo_contato:null}).eq("id",c.id));
+      const ok = pend ? await salvar(sb.from("sessoes").update({data_realizada:v}).eq("id",pend.id))
+                      : await salvar(sb.from("sessoes").insert({caso_id:c.id,ciclo:st.ciclo,numero:st.feitas.length+1,data_realizada:v}));
+      if(ok) await salvar(sb.from("casos").update({etapa:"em_tratamento",ultimo_contato:null}).eq("id",c.id),`Aplicação de ${br(v)} registrada ✔ · lembrete em ${dm(iso(addDias(parse(v),LEMBRAR_DIAS)))}`);
     });
   }
   if(act==="agendar"){
     const st=statusTrat(c);
-    folhaData("Agendar próxima sessão",`Data da ${st.feitas.length+1}ª sessão`, st.proxima?iso(st.proxima):iso(hoje()), async v=>{
+    const sug = st.ultima ? iso(addDias(parse(st.ultima), c.intervalo_dias||VENCE_DIAS)) : iso(hoje());
+    return folhaData(`Agendar ${st.feitas.length+1}ª aplicação`,"Data", st.agendada?.data_prevista||sug, async v=>{
       const pend=st.doCiclo.find(s=>!s.data_realizada);
-      if(pend) await salvar(sb.from("sessoes").update({data_prevista:v}).eq("id",pend.id),"Agendado ✔");
-      else await salvar(sb.from("sessoes").insert({caso_id:c.id,ciclo:st.ciclo,numero:st.feitas.length+1,data_prevista:v}),"Agendado ✔");
+      await salvar(pend ? sb.from("sessoes").update({data_prevista:v}).eq("id",pend.id) : sb.from("sessoes").insert({caso_id:c.id,ciclo:st.ciclo,numero:st.feitas.length+1,data_prevista:v}),"Agendado ✔");
     });
   }
   if(act==="ciclo"){
     const st=statusTrat(c);
-    folhaData("Iniciar novo ciclo","Data prevista da 1ª aplicação", iso(addDias(st.ultima?parse(st.ultima):hoje(), st.intervalo)), async v=>{
-      await salvar(sb.from("sessoes").insert({caso_id:c.id,ciclo:st.ciclo+1,numero:1,data_prevista:v}),"Novo ciclo criado ✔");
-    });
+    return folhaData("Iniciar novo ciclo (3 aplicações)","Data prevista da 1ª aplicação", iso(addDias(st.ultima?parse(st.ultima):hoje(), c.intervalo_dias||VENCE_DIAS)), v=>salvar(sb.from("sessoes").insert({caso_id:c.id,ciclo:st.ciclo+1,numero:1,data_prevista:v}),"Novo ciclo criado ✔"));
   }
-  if(act==="contato"){ await salvar(sb.from("casos").update({ultimo_contato:iso(hoje())}).eq("id",id),"Marcado: paciente avisado ✔"); return; }
-  if(act==="mover"){ folhaMover(c); return; }
-  if(act==="finalizar"){ if(confirmar("Finalizar o tratamento deste paciente?")) await salvar(sb.from("casos").update({etapa:"finalizado"}).eq("id",id),"Tratamento finalizado"); }
-  if(act==="editar") { folhaCaso(c); return; }
-  if(act==="novocaso") { folhaCaso(undefined, el.dataset.pid); return; }
-  if(act==="editpac") { folhaPacEdit(el.dataset.pid); return; }
-  if(act==="avancar"){ moverPara(c, el.dataset.to); }
+  if(act==="finalizar"){ if(confirmar("Finalizar o tratamento deste paciente?")) return salvar(sb.from("casos").update({etapa:"finalizado"}).eq("id",id),"Tratamento finalizado"); }
 }
 
-async function moverPara(c, to){
-  const id=c.id;
-  {
-    if(to==="agendado") folhaData("Agendar cirurgia","Data da cirurgia", c.data_agendada||iso(hoje()), v=>salvar(sb.from("casos").update({etapa:"agendado",data_agendada:v}).eq("id",id),"Cirurgia agendada ✔"));
-    else if(to==="realizado") folhaData("Cirurgia realizada","Data da cirurgia", c.data_agendada||iso(hoje()), v=>salvar(sb.from("casos").update({etapa:"realizado",data_realizado:v}).eq("id",id),"Marcada como realizada ✔"));
-    else await salvar(sb.from("casos").update({etapa:to}).eq("id",id),`Movido para ${ETAPA_LABEL[to]} ✔`);
-  }
+async function ciclarInteresse(id){
+  const c=S.casos.find(x=>x.id===id); const ordem=["baixo","medio","alto"];
+  const novo = ordem[(ordem.indexOf(c.interesse||"medio")+1)%3];
+  c.interesse=novo; render();
+  const {error}=await sb.from("casos").update({interesse:novo}).eq("id",id);
+  if(error){ toast("Não foi possível salvar: "+error.message); await carregar(); render(); } else toast(`Interesse: ${INTERESSE[novo][0]}`);
 }
 
-function folhaMover(c){
-  const p=pacOf(c);
-  abrir(`<header><div><h2>${esc(nomeCurto(p.nome))}</h2><div class="sub">${esc(c.procedimento||"Cirurgia")} · agora em ${ETAPA_LABEL[c.etapa]}</div></div><button class="close" data-close aria-label="Fechar">×</button></header>
-  <div class="move-list">${[...ETAPAS_CIR.map(e=>[e[0],e[1]]),["desistiu","Desistiu / não fará"]].map(([k,t])=>`<button class="btn ${k===c.etapa?"":"ghost"}" data-moveto="${k}" ${k===c.etapa?"disabled":""}>${k===c.etapa?"● ":""}${t}</button>`).join("")}</div>
-  <button class="btn ghost" data-act="editar" data-id="${c.id}">Editar dados do procedimento</button>`);
-  document.querySelectorAll("[data-moveto]").forEach(b=>b.addEventListener("click",()=>{ fechar(); moverPara(c,b.dataset.moveto); }));
-}
+document.addEventListener("click", e=>{
+  const t=e.target.closest("[data-tab],[data-goto],[data-act],[data-pac],[data-ft],[data-fi],[data-int]"); if(!t) return;
+  if(t.dataset.int){ ciclarInteresse(t.dataset.int); return; }
+  if(t.dataset.tab||t.dataset.goto){ S.tab=t.dataset.tab||t.dataset.goto; if(t.dataset.f) S.fInd=t.dataset.f; fechar(); render(); window.scrollTo(0,0); return; }
+  if(t.dataset.act){ acao(t.dataset.act,t); return; }
+  if(t.dataset.pac){ folhaPaciente(t.dataset.pac); return; }
+  if(t.dataset.ft!==undefined){ S.fTrat=t.dataset.ft; render(); return; }
+  if(t.dataset.fi!==undefined){ S.fInd=t.dataset.fi; render(); return; }
+});
+document.addEventListener("input", e=>{ if(e.target.id==="busca"){ S.busca=e.target.value; const pos=e.target.selectionStart; render(); const b=$("#busca"); b.focus(); b.setSelectionRange(pos,pos); } });
+$("#fab").addEventListener("click", ()=>folhaIndicacao());
+document.addEventListener("keydown", e=>{ if(e.key==="Escape") fechar(); });
 
 /* ---------- Arrastar e soltar (mouse e toque) ---------- */
 let drag=null;
@@ -584,10 +771,9 @@ document.addEventListener("pointerdown", e=>{
   e.preventDefault();
   const r=card.getBoundingClientRect();
   const ghost=card.cloneNode(true); ghost.classList.add("ghost-card"); ghost.style.width=r.width+"px";
-  document.body.appendChild(ghost);
-  card.classList.add("dragging");
+  document.body.appendChild(ghost); card.classList.add("dragging");
   drag={id:card.dataset.card, card, ghost, dx:e.clientX-r.left, dy:e.clientY-r.top, over:null};
-  moveGhost(e); g.setPointerCapture?.(e.pointerId);
+  moveGhost(e);
 });
 function moveGhost(e){
   if(!drag) return;
@@ -596,11 +782,10 @@ function moveGhost(e){
   const col=el&&el.closest("[data-drop]");
   if(drag.over&&drag.over!==col) drag.over.classList.remove("drop-on");
   if(col){ col.classList.add("drop-on"); drag.over=col; } else drag.over=null;
-  // rolagem automática do quadro perto das bordas
   const board=$("#board"); if(board){ const b=board.getBoundingClientRect(); if(e.clientX>b.right-40) board.scrollLeft+=14; else if(e.clientX<b.left+40) board.scrollLeft-=14; }
 }
 document.addEventListener("pointermove", e=>{ if(drag){ e.preventDefault(); moveGhost(e); } }, {passive:false});
-document.addEventListener("pointerup", async e=>{
+document.addEventListener("pointerup", ()=>{
   if(!drag) return;
   const {id,card,ghost,over}=drag; drag=null;
   ghost.remove(); card.classList.remove("dragging"); if(over) over.classList.remove("drop-on");
@@ -608,18 +793,6 @@ document.addEventListener("pointerup", async e=>{
   if(over&&c&&over.dataset.drop!==c.etapa) moverPara(c, over.dataset.drop);
 });
 document.addEventListener("pointercancel", ()=>{ if(drag){ drag.ghost.remove(); drag.card.classList.remove("dragging"); drag.over?.classList.remove("drop-on"); drag=null; } });
-
-document.addEventListener("click", e=>{
-  const t=e.target.closest("[data-tab],[data-goto],[data-act],[data-pac],[data-ft],[data-fp]"); if(!t) return;
-  if(t.dataset.tab||t.dataset.goto){ S.tab=t.dataset.tab||t.dataset.goto; fechar(); render(); window.scrollTo(0,0); return; }
-  if(t.dataset.act){ acao(t.dataset.act,t); return; }
-  if(t.dataset.pac){ folhaPaciente(t.dataset.pac); return; }
-  if(t.dataset.ft!==undefined){ S.filtroTrat=t.dataset.ft; render(); return; }
-  if(t.dataset.fp!==undefined){ S.filtroPipe=t.dataset.fp; render(); return; }
-});
-document.addEventListener("input", e=>{ if(e.target.id==="busca"){ S.busca=e.target.value; const pos=e.target.selectionStart; render(); const b=$("#busca"); b.focus(); b.setSelectionRange(pos,pos); } });
-$("#fab").addEventListener("click", ()=>folhaCaso());
-document.addEventListener("keydown", e=>{ if(e.key==="Escape") fechar(); });
 
 /* ================= Autenticação ================= */
 function mostrar(v){ ["vLogin","vPass","vDenied","vApp"].forEach(x=>$("#"+x).classList.toggle("hidden",x!==v)); }
@@ -663,6 +836,7 @@ $("#bOut").addEventListener("click", sair); $("#dOut").addEventListener("click",
 
 sb.auth.onAuthStateChange((ev, session)=>{ if(ev==="PASSWORD_RECOVERY"){ modoSenha=true; mostrar("vPass"); } if(ev==="SIGNED_OUT") mostrar("vLogin"); });
 sb.auth.getSession().then(({data})=>entrar(data.session));
+
 </script>
 </body>
 </html>
