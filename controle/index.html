@@ -59,7 +59,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);outline:none}
 .top b{display:block;font-family:var(--display);font-weight:400;font-size:1.05rem;letter-spacing:.03em}
 .top span{display:block;font-size:.75rem;color:#c8d7ee;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .top .out{background:transparent;border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:999px;padding:6px 12px;font-size:.82rem}
-main{max-width:1100px;margin:0 auto;padding:16px 14px 24px}
+main{max-width:1480px;margin:0 auto;padding:16px 14px 24px}
 .tabs{position:fixed;left:0;right:0;bottom:0;z-index:10;background:#fff;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
 .tabs button{background:none;border:0;display:grid;justify-items:center;gap:2px;font-size:.74rem;font-weight:700;color:var(--soft);padding:6px 2px;border-radius:12px}
 .tabs button svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
@@ -113,10 +113,37 @@ main{max-width:1100px;margin:0 auto;padding:16px 14px 24px}
 
 /* Pipeline (kanban) */
 .board{display:grid;grid-auto-flow:column;grid-auto-columns:86%;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:10px}
-@media(min-width:900px){.board{grid-auto-columns:1fr}}
+@media(min-width:900px){.board{grid-auto-columns:minmax(250px,1fr)}}
+.col h3 .count{flex:none;margin-left:8px}
 .col{scroll-snap-align:start;background:#ece7de;border-radius:18px;padding:10px;display:grid;gap:8px;align-content:start;min-height:200px}
 .col h3{font-weight:700;font-size:.92rem;display:flex;justify-content:space-between;padding:4px 4px 2px}
 
+/* Painel */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px;display:grid;gap:12px}
+.panel-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.panel-h h3{font-weight:700;font-size:.98rem}
+.weeks{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;align-items:end}
+.wk{display:grid;justify-items:center;gap:4px;text-align:center}
+.wk-bar{height:70px;width:100%;max-width:56px;background:#eef1f5;border-radius:10px;display:flex;align-items:flex-end;overflow:hidden}
+.wk-bar i{display:block;width:100%;background:var(--accent);border-radius:10px 10px 0 0;min-height:4px}
+.wk:first-child .wk-bar i{background:var(--warn)}
+.wk b{font-family:var(--display);font-weight:400;font-size:1.3rem}
+.wk span{font-size:.74rem;color:var(--soft);font-weight:700}
+.funnel{display:grid;gap:6px}
+.fn{display:grid;grid-template-columns:118px 1fr 34px;align-items:center;gap:8px;background:none;border:0;padding:2px 0;text-align:left;font-size:.85rem;font-weight:700;color:var(--soft)}
+.fn i{display:block;height:14px;background:var(--accent);border-radius:999px;opacity:.85}
+.fn b{font-family:var(--display);font-weight:400;font-size:1.1rem;color:var(--ink);text-align:right}
+/* Pipeline arrastável */
+.col-desc{font-size:.76rem;color:var(--soft);padding:0 4px 4px;line-height:1.3}
+.col.drop-on{outline:3px dashed var(--accent);outline-offset:-3px;background:#e2eaf6}
+.col-out{margin-top:12px;min-height:0;background:#f1e7e4}
+.col-out.drop-on{background:var(--late-soft);outline-color:var(--late)}
+.grip{cursor:grab;touch-action:none;user-select:none;font-size:1.25rem;line-height:1;color:var(--soft);padding:6px 6px 6px 2px;margin:-6px 0 -6px -4px}
+.grip:active{cursor:grabbing}
+.card-cir.dragging{opacity:.35}
+.ghost-card{position:fixed;z-index:100;pointer-events:none;transform:rotate(2deg);box-shadow:0 22px 40px -16px rgba(24,41,74,.55);opacity:.95}
+.move-list{display:grid;gap:8px}
+.move-list .btn[disabled]{opacity:1;cursor:default}
 /* Modal */
 .sheet-bg{position:fixed;inset:0;background:rgba(15,24,40,.45);z-index:50;display:grid;align-items:end;justify-items:center}
 @media(min-width:760px){.sheet-bg{align-items:center}}
@@ -182,9 +209,9 @@ main{max-width:1100px;margin:0 auto;padding:16px 14px 24px}
     <button class="out" id="bOut">Sair</button>
   </header>
   <nav class="tabs" aria-label="Seções">
-    <button data-tab="hoje" aria-current="page"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>Hoje</button>
+    <button data-tab="hoje" aria-current="page"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>Painel</button>
     <button data-tab="trat"><svg viewBox="0 0 24 24"><path d="M14 4l6 6M17 7l-9 9-3 1 1-3 9-9M11 8l5 5M4 20l2-2"/></svg>Injeção/Laser</button>
-    <button data-tab="pipe"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="10" y="4" width="5" height="11" rx="1.5"/><rect x="17" y="4" width="4" height="7" rx="1.5"/></svg>Cirurgias</button>
+    <button data-tab="pipe"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="10" y="4" width="5" height="11" rx="1.5"/><rect x="17" y="4" width="4" height="7" rx="1.5"/></svg>Pipeline</button>
     <button data-tab="pac"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c.8-3.4 3.2-5.2 6-5.2s5.2 1.8 6 5.2"/><circle cx="17" cy="9" r="2.4"/><path d="M16 14.8c2.4.2 4.2 1.8 5 4.6"/></svg>Pacientes</button>
   </nav>
   <main id="main"></main>
@@ -199,8 +226,18 @@ const SUPABASE_URL = "https://avbmtrvxieetoptmzere.supabase.co";
 const SUPABASE_KEY = "sb_publishable_Ohqe8a6rhGEwOImU302jjw_69V8kcJ7"; // chave pública; o acesso é protegido por RLS
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
 
-const ETAPAS_CIR = [["indicado","Indicado"],["agendado","Agendado"],["realizado","Realizado"],["pos_op","Pós-operatório"],["finalizado","Finalizado"]];
-const ETAPA_LABEL = {indicado:"Indicado",agendado:"Agendado",realizado:"Realizado",pos_op:"Pós-operatório",em_tratamento:"Em tratamento",finalizado:"Finalizado",desistiu:"Desistiu / não fará"};
+// Pipeline de cirurgia: cada coluna tem um prazo "saudável" (dias). Passou disso, o card fica amarelo.
+const ETAPAS_CIR = [
+  ["indicado","Indicado","Consulta feita, cirurgia indicada",14],
+  ["exames","Exames pré-op","Biometria, exames e risco cirúrgico",21],
+  ["autorizacao","Autorização","Convênio / município / orçamento",15],
+  ["agendado","Agendado","Data marcada no centro cirúrgico",null],
+  ["realizado","Realizado","Cirurgia feita",3],
+  ["pos_op","Pós-operatório","Retornos de 1 dia, 7 e 30 dias",45],
+  ["finalizado","Alta","Pós-operatório concluído",null],
+];
+const ETAPA_LABEL = {indicado:"Indicado",exames:"Exames pré-op",autorizacao:"Autorização",agendado:"Agendado",realizado:"Realizado",pos_op:"Pós-operatório",em_tratamento:"Em tratamento",finalizado:"Finalizado",desistiu:"Desistiu / não fará"};
+const INTERVALO_PADRAO = 30; // lembrete de injeção/laser: 30 dias após a última aplicação
 const TIPO_LABEL = {cirurgia:"Cirurgia",injecao:"Injeção",laser:"Laser"};
 const CONVENIOS = ["PART","SERVIR","IPASGU","MUNICIPIO","Outro"];
 
@@ -235,11 +272,12 @@ function statusTrat(c){
   const ultima = feitas.length ? feitas.map(s=>s.data_realizada).sort().at(-1) : null;
   const pendenteAgendada = doCiclo.find(s=>!s.data_realizada && s.data_prevista);
   let proxima = null, estado = "ok", rotulo = "";
+  const intervalo = c.intervalo_dias || INTERVALO_PADRAO;
   if (c.etapa==="finalizado"||c.etapa==="desistiu") { estado="fim"; rotulo=ETAPA_LABEL[c.etapa]; }
   else if (feitas.length >= total) { estado="avaliar"; rotulo="Ciclo completo · avaliar novo ciclo"; }
   else {
     if (pendenteAgendada) proxima = parse(pendenteAgendada.data_prevista);
-    else if (ultima) proxima = addDias(parse(ultima), c.intervalo_dias||28);
+    else if (ultima) proxima = addDias(parse(ultima), intervalo);
     else if (c.data_indicacao) proxima = parse(c.data_indicacao);
     if (!proxima) { estado="warn"; rotulo="Sem data · agendar 1ª"; }
     else {
@@ -249,7 +287,9 @@ function statusTrat(c){
       else { estado="ok"; rotulo=`Em ${d} dias`; }
     }
   }
-  return { ses, ciclo, doCiclo, feitas, total, ultima, proxima, estado, rotulo, agendada: !!pendenteAgendada };
+  // contato feito depois da última aplicação = lembrete já tratado (até agendar)
+  const contatado = c.ultimo_contato && (!ultima || c.ultimo_contato >= ultima) && !pendenteAgendada && ["late","warn"].includes(estado);
+  return { ses, ciclo, doCiclo, feitas, total, ultima, proxima, estado, rotulo, agendada: !!pendenteAgendada, contatado, intervalo };
 }
 
 /* ================= Dados ================= */
@@ -283,53 +323,77 @@ function cardTrat(c){
   return `<div class="item ${cls}">
     <div class="row"><div class="name"><button data-pac="${p.id}">${esc(nomeCurto(p.nome))}</button></div><span class="chip ${chip}">${esc(st.rotulo)}</span></div>
     <div class="row meta"><span class="chip blue">${TIPO_LABEL[c.tipo]}</span>${c.olho?`<span class="chip">${esc(c.olho)}</span>`:""}${c.convenio?`<span class="chip">${esc(c.convenio)}</span>`:""}<span class="dots" title="${st.feitas.length} de ${st.total}">${dots}</span><span>${st.feitas.length}/${st.total}${st.ciclo>1?` · ciclo ${st.ciclo}`:""}</span></div>
-    <div class="meta">Última: ${br(st.ultima)} · Próxima: ${st.proxima?br(iso(st.proxima)):"—"}${st.agendada?" (agendada)":st.proxima&&st.estado!=="fim"?" (prevista)":""}</div>
+    <div class="meta">Última: ${br(st.ultima)} · Lembrete: ${st.proxima?br(iso(st.proxima)):"—"}${st.agendada?" (agendada)":st.proxima&&st.estado!=="fim"?` (${st.intervalo} dias)`:""}</div>
+    ${st.contatado?`<span class="chip sage">✔ Paciente avisado em ${br(c.ultimo_contato)} · falta agendar</span>`:""}
     ${c.obs?`<div class="meta">📝 ${esc(c.obs)}</div>`:""}
     <div class="row" style="justify-content:space-between">${contato(p.telefone)}
       <span class="actions">${st.estado==="fim"?"":st.estado==="avaliar"
         ?`<button class="btn small" data-act="ciclo" data-id="${c.id}">Novo ciclo</button><button class="btn small ghost" data-act="finalizar" data-id="${c.id}">Finalizar</button>`
-        :`<button class="btn small okb" data-act="aplicar" data-id="${c.id}">Registrar aplicação</button><button class="btn small ghost" data-act="agendar" data-id="${c.id}">Agendar</button>`}</span></div>
+        :`${["late","warn"].includes(st.estado)&&!st.agendada&&!st.contatado?`<button class="btn small ghost" data-act="contato" data-id="${c.id}">Avisei o paciente</button>`:""}<button class="btn small ghost" data-act="agendar" data-id="${c.id}">Agendar</button><button class="btn small okb" data-act="aplicar" data-id="${c.id}">Registrar aplicação</button>`}</span></div>
   </div>`;
 }
 
 function cardCir(c, compact){
   const p=pacOf(c);
-  const dias = c.data_indicacao ? diff(hoje(), parse(c.data_indicacao)) : null;
-  const parado = c.etapa==="indicado" && dias!==null && dias>30;
+  const meta = ETAPAS_CIR.find(e=>e[0]===c.etapa);
+  const desde = c.etapa_desde ? diff(hoje(), parse(c.etapa_desde)) : null;
+  const parado = meta && meta[3] && desde!==null && desde>meta[3];
   const idx = ETAPAS_CIR.findIndex(e=>e[0]===c.etapa);
   const prox = idx>=0 && idx<ETAPAS_CIR.length-1 ? ETAPAS_CIR[idx+1] : null;
-  return `<div class="item ${parado?"warn":""}">
-    <div class="row"><div class="name"><button data-pac="${p.id}">${esc(nomeCurto(p.nome))}</button></div>${c.convenio?`<span class="chip">${esc(c.convenio)}</span>`:""}</div>
+  const dataInfo = c.etapa==="agendado"&&c.data_agendada ? `📅 Cirurgia em ${br(c.data_agendada)}${(()=>{const d=diff(parse(c.data_agendada),hoje());return d>=0?` · em ${d} dia${d!==1?"s":""}`:` · há ${-d} dias`;})()}`
+    : c.data_realizado ? `Operado em ${br(c.data_realizado)}` : c.data_indicacao ? `Indicado em ${br(c.data_indicacao)}` : "";
+  return `<div class="item card-cir ${parado?"warn":""}" data-card="${c.id}">
+    <div class="row"><span class="grip" data-grip="${c.id}" title="Arraste para mudar de etapa" aria-hidden="true">⠿</span><div class="name"><button data-pac="${p.id}">${esc(nomeCurto(p.nome))}</button></div>${c.convenio?`<span class="chip">${esc(c.convenio)}</span>`:""}</div>
     <div class="meta"><b style="color:var(--ink)">${esc(c.procedimento||"Cirurgia")}</b>${c.olho?" · "+esc(c.olho):""}</div>
-    <div class="meta">${c.etapa==="agendado"&&c.data_agendada?`📅 Cirurgia em ${br(c.data_agendada)}`:c.data_realizado?`Realizada em ${br(c.data_realizado)}`:c.data_indicacao?`Indicada em ${br(c.data_indicacao)}${dias!==null?` · há ${dias} dias`:""}`:"Sem data de indicação"}</div>
-    ${parado?`<span class="chip warn">Aguardando há mais de 30 dias</span>`:""}
+    ${dataInfo?`<div class="meta">${dataInfo}</div>`:""}
+    ${desde!==null?`<div class="row"><span class="chip ${parado?"warn":""}">${desde===0?"Entrou hoje nesta etapa":`Há ${desde} dia${desde!==1?"s":""} nesta etapa`}</span></div>`:""}
     ${c.obs && !compact?`<div class="meta">📝 ${esc(c.obs)}</div>`:""}
     <div class="row" style="justify-content:space-between">${contato(p.telefone)}
-      <span class="actions">${prox?`<button class="btn small" data-act="avancar" data-id="${c.id}" data-to="${prox[0]}">${prox[0]==="agendado"?"Agendar":"→ "+prox[1]}</button>`:""}<button class="btn small ghost" data-act="editar" data-id="${c.id}">Editar</button></span></div>
+      <span class="actions">${prox?`<button class="btn small" data-act="avancar" data-id="${c.id}" data-to="${prox[0]}">→ ${prox[1]}</button>`:""}<button class="btn small ghost" data-act="mover" data-id="${c.id}" aria-label="Mover ou editar">⋯</button></span></div>
   </div>`;
 }
 
 function telaHoje(){
-  const ativosTrat = S.casos.filter(c=>c.tipo!=="cirurgia" && !["finalizado","desistiu"].includes(c.etapa));
-  const st = ativosTrat.map(c=>[c,statusTrat(c)]);
-  const atras = st.filter(([,s])=>s.estado==="late").sort((a,b)=>a[1].proxima-b[1].proxima);
-  const semana = st.filter(([,s])=>s.estado==="warn"||s.estado==="avaliar").sort((a,b)=>(a[1].proxima||0)-(b[1].proxima||0));
-  const cirAg = S.casos.filter(c=>c.tipo==="cirurgia"&&c.etapa==="agendado").sort((a,b)=>(a.data_agendada||"").localeCompare(b.data_agendada||""));
-  const parados = S.casos.filter(c=>c.tipo==="cirurgia"&&c.etapa==="indicado");
+  const ativos = S.casos.filter(c=>c.tipo!=="cirurgia" && !["finalizado","desistiu"].includes(c.etapa)).map(c=>[c,statusTrat(c)]);
+  const vencidos = ativos.filter(([,s])=>s.estado==="late").sort((a,b)=>a[1].proxima-b[1].proxima);
+  const semana = ativos.filter(([,s])=>s.estado==="warn").sort((a,b)=>(a[1].proxima||0)-(b[1].proxima||0));
+  const avaliar = ativos.filter(([,s])=>s.estado==="avaliar");
+  const pendAviso = [...vencidos,...semana].filter(([,s])=>!s.contatado&&!s.agendada).length;
+  // agenda das próximas 4 semanas (lembretes de 30 dias)
+  const h=hoje(); const semanas=[0,1,2,3].map(i=>{const ini=addDias(h,i*7), fim=addDias(h,i*7+6); return {ini,fim,itens:ativos.filter(([,s])=>s.proxima&&s.proxima>=ini&&s.proxima<=fim)};});
+  const maxSem=Math.max(1,...semanas.map(x=>x.itens.length));
+  const cir=S.casos.filter(c=>c.tipo==="cirurgia");
+  const funil=ETAPAS_CIR.map(([k,t])=>[k,t,cir.filter(c=>c.etapa===k).length]);
+  const maxF=Math.max(1,...funil.map(f=>f[2]));
+  const paradosCir = cir.filter(c=>{const m=ETAPAS_CIR.find(e=>e[0]===c.etapa); const d=c.etapa_desde?diff(h,parse(c.etapa_desde)):null; return m&&m[3]&&d!==null&&d>m[3];});
+  const cirAg = cir.filter(c=>c.etapa==="agendado").sort((a,b)=>(a.data_agendada||"").localeCompare(b.data_agendada||""));
   const d = new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"});
-  return `<div class="sec-head"><div><h2>Bom dia!</h2><div class="sub">${d}</div></div></div>
+  return `<div class="sec-head"><div><h2>Painel</h2><div class="sub">${d}</div></div></div>
   <div class="kpis">
-    <button class="kpi late" data-goto="trat"><b>${atras.length}</b><span>Injeções/laser atrasados</span></button>
-    <button class="kpi warn" data-goto="trat"><b>${semana.length}</b><span>Chamar nesta semana</span></button>
-    <button class="kpi" data-goto="pipe"><b>${cirAg.length}</b><span>Cirurgias agendadas</span></button>
-    <button class="kpi ok" data-goto="pipe"><b>${parados.length}</b><span>Cirurgias indicadas a confirmar</span></button>
+    <button class="kpi late" data-goto="trat"><b>${vencidos.length}</b><span>Injeções/laser vencidos (+30 dias)</span></button>
+    <button class="kpi warn" data-goto="trat"><b>${semana.length}</b><span>Vencem nos próximos 7 dias</span></button>
+    <button class="kpi" data-goto="trat"><b>${pendAviso}</b><span>Pacientes ainda não avisados</span></button>
+    <button class="kpi ok" data-goto="pipe"><b>${cirAg.length}</b><span>Cirurgias agendadas</span></button>
   </div>
-  <div class="group-title">🔴 Atrasados <span class="count">${atras.length}</span></div>
-  <div class="list">${atras.map(([c])=>cardTrat(c)).join("")||'<div class="empty">Nenhum paciente atrasado. 👏</div>'}</div>
-  <div class="group-title">🟡 Chamar nesta semana <span class="count">${semana.length}</span></div>
+
+  <div class="panel">
+    <div class="panel-h"><h3>Lembretes de injeção e laser · próximas 4 semanas</h3><span class="sub">Lembrete = 30 dias após a última aplicação</span></div>
+    <div class="weeks">${semanas.map((w,i)=>`<div class="wk"><div class="wk-bar"><i style="height:${Math.round(w.itens.length/maxSem*100)}%"></i></div><b>${w.itens.length}</b><span>${i===0?"Esta semana":`${br(iso(w.ini)).slice(0,5)}–${br(iso(w.fim)).slice(0,5)}`}</span></div>`).join("")}</div>
+  </div>
+
+  <div class="group-title">🔴 Vencidos · chamar agora <span class="count">${vencidos.length}</span></div>
+  <div class="list">${vencidos.map(([c])=>cardTrat(c)).join("")||'<div class="empty">Nenhuma injeção vencida. 👏</div>'}</div>
+  <div class="group-title">🟡 Vencem nos próximos 7 dias <span class="count">${semana.length}</span></div>
   <div class="list">${semana.map(([c])=>cardTrat(c)).join("")||'<div class="empty">Ninguém para chamar nos próximos 7 dias.</div>'}</div>
-  <div class="group-title">📅 Cirurgias agendadas <span class="count">${cirAg.length}</span></div>
-  <div class="list">${cirAg.map(c=>cardCir(c,true)).join("")||'<div class="empty">Nenhuma cirurgia agendada. Use a aba Cirurgias para agendar.</div>'}</div>`;
+  ${avaliar.length?`<div class="group-title">🔵 Ciclo completo · avaliar novo ciclo <span class="count">${avaliar.length}</span></div><div class="list">${avaliar.map(([c])=>cardTrat(c)).join("")}</div>`:""}
+
+  <div class="panel" style="margin-top:22px">
+    <div class="panel-h"><h3>Funil de cirurgias</h3><button class="linkbtn" data-goto="pipe">Abrir pipeline →</button></div>
+    <div class="funnel">${funil.map(([k,t,n])=>`<button class="fn" data-goto="pipe"><span>${t}</span><i style="width:${Math.max(4,Math.round(n/maxF*100))}%"></i><b>${n}</b></button>`).join("")}</div>
+  </div>
+  ${paradosCir.length?`<div class="group-title">⏳ Cirurgias paradas além do prazo da etapa <span class="count">${paradosCir.length}</span></div><div class="list">${paradosCir.map(c=>cardCir(c,true)).join("")}</div>`:""}
+  <div class="group-title">📅 Próximas cirurgias <span class="count">${cirAg.length}</span></div>
+  <div class="list">${cirAg.map(c=>cardCir(c,true)).join("")||'<div class="empty">Nenhuma cirurgia agendada.</div>'}</div>`;
 }
 
 function telaTrat(){
@@ -347,18 +411,20 @@ function telaTrat(){
 }
 
 function telaPipe(){
-  const q=S.filtroPipe;
+  const q=S.filtroPipe, h=hoje();
   let list=S.casos.filter(c=>c.tipo==="cirurgia");
   if(q) list=list.filter(c=>c.convenio===q);
-  const cols = ETAPAS_CIR.map(([k,t])=>{
+  const cols = ETAPAS_CIR.map(([k,t,desc,prazo])=>{
     let items=list.filter(c=>c.etapa===k);
-    items.sort((a,b)=>(k==="agendado"?(a.data_agendada||"").localeCompare(b.data_agendada||""):(b.data_realizado||b.data_indicacao||"").localeCompare(a.data_realizado||a.data_indicacao||"")));
-    return `<div class="col"><h3>${t}<span class="count">${items.length}</span></h3>${items.map(c=>cardCir(c,true)).join("")||'<div class="empty">—</div>'}</div>`;
+    items.sort((a,b)=>k==="agendado"?(a.data_agendada||"").localeCompare(b.data_agendada||""):(a.etapa_desde||"").localeCompare(b.etapa_desde||""));
+    const atras=items.filter(c=>prazo&&c.etapa_desde&&diff(h,parse(c.etapa_desde))>prazo).length;
+    return `<section class="col" data-drop="${k}"><h3><span>${t}</span><span class="count">${items.length}</span></h3><div class="col-desc">${desc}${prazo?` · meta ${prazo} dias`:""}${atras?` · <b style="color:var(--warn)">${atras} parado${atras>1?"s":""}</b>`:""}</div>${items.map(c=>cardCir(c,true)).join("")||'<div class="empty drop-hint">Solte um card aqui</div>'}</section>`;
   }).join("");
-  const des=list.filter(c=>c.etapa==="desistiu").length;
-  return `<div class="sec-head"><div><h2>Cirurgias</h2><div class="sub">Arraste para o lado para ver as etapas${des?` · ${des} desistência(s) ocultas`:""}</div></div></div>
+  const des=list.filter(c=>c.etapa==="desistiu");
+  return `<div class="sec-head"><div><h2>Pipeline de cirurgias</h2><div class="sub">Arraste o card pela alça ⠿ para mudar de etapa · no celular, use “→” ou “⋯”</div></div></div>
   <div class="seg"><button data-fp="" aria-pressed="${!q}">Todos</button>${CONVENIOS.slice(0,4).map(cv=>`<button data-fp="${cv}" aria-pressed="${q===cv}">${cv}</button>`).join("")}</div>
-  <div class="board">${cols}</div>`;
+  <div class="board" id="board">${cols}</div>
+  <section class="col col-out" data-drop="desistiu"><h3><span>Desistiu / não fará</span><span class="count">${des.length}</span></h3><div class="col-desc">Solte aqui quem não vai operar. O card sai do funil, mas fica no histórico.</div></section>`;
 }
 
 function telaPac(){
@@ -425,7 +491,7 @@ function folhaCaso(caso, pacienteId){
     </div>
     <div class="grid2">
       <label>Data realizada<input type="date" id="cReal" value="${c.data_realizado||""}"></label>
-      <label>Intervalo (dias)<input type="number" id="cInt" min="7" max="180" value="${c.intervalo_dias||28}"></label>
+      <label>Lembrete após (dias)<input type="number" id="cInt" min="7" max="180" value="${c.intervalo_dias||INTERVALO_PADRAO}"></label>
     </div>
     <label>Observações<textarea id="cObs" rows="3">${esc(c.obs||"")}</textarea></label>
     <button class="btn" type="submit">Salvar</button>
@@ -442,7 +508,7 @@ function folhaCaso(caso, pacienteId){
     const tipo=$("#cTipo").value;
     const row={paciente_id:pid,tipo,olho:$("#cOlho").value||null,procedimento:$("#cProc").value.trim()||null,convenio:$("#cConv").value||null,etapa:$("#cEtapa").value,
       data_indicacao:$("#cInd").value||null,data_agendada:$("#cAg").value||null,data_realizado:$("#cReal").value||null,obs:$("#cObs").value.trim()||null,
-      intervalo_dias: tipo==="cirurgia"?null:(+$("#cInt").value||28), total_sessoes: tipo==="cirurgia"?null:(c.total_sessoes||3)};
+      intervalo_dias: tipo==="cirurgia"?null:(+$("#cInt").value||INTERVALO_PADRAO), total_sessoes: tipo==="cirurgia"?null:(c.total_sessoes||3)};
     if(tipo!=="cirurgia" && row.etapa==="indicado" && caso===undefined) row.etapa="em_tratamento";
     fechar();
     await salvar(caso? sb.from("casos").update(row).eq("id",c.id) : sb.from("casos").insert(row), "Salvo ✔");
@@ -467,7 +533,7 @@ async function acao(act, el){
       const pend=st.doCiclo.find(s=>!s.data_realizada);
       if(pend) await salvar(sb.from("sessoes").update({data_realizada:v}).eq("id",pend.id),"Aplicação registrada ✔");
       else await salvar(sb.from("sessoes").insert({caso_id:c.id,ciclo:st.ciclo,numero:st.feitas.length+1,data_realizada:v}),"Aplicação registrada ✔");
-      if(c.etapa!=="em_tratamento") await salvar(sb.from("casos").update({etapa:"em_tratamento"}).eq("id",c.id));
+      await salvar(sb.from("casos").update({etapa:"em_tratamento",ultimo_contato:null}).eq("id",c.id));
     });
   }
   if(act==="agendar"){
@@ -480,21 +546,68 @@ async function acao(act, el){
   }
   if(act==="ciclo"){
     const st=statusTrat(c);
-    folhaData("Iniciar novo ciclo","Data prevista da 1ª aplicação", iso(addDias(st.ultima?parse(st.ultima):hoje(), c.intervalo_dias||28)), async v=>{
+    folhaData("Iniciar novo ciclo","Data prevista da 1ª aplicação", iso(addDias(st.ultima?parse(st.ultima):hoje(), st.intervalo)), async v=>{
       await salvar(sb.from("sessoes").insert({caso_id:c.id,ciclo:st.ciclo+1,numero:1,data_prevista:v}),"Novo ciclo criado ✔");
     });
   }
+  if(act==="contato"){ await salvar(sb.from("casos").update({ultimo_contato:iso(hoje())}).eq("id",id),"Marcado: paciente avisado ✔"); return; }
+  if(act==="mover"){ folhaMover(c); return; }
   if(act==="finalizar"){ if(confirmar("Finalizar o tratamento deste paciente?")) await salvar(sb.from("casos").update({etapa:"finalizado"}).eq("id",id),"Tratamento finalizado"); }
-  if(act==="avancar"){
-    const to=el.dataset.to;
+  if(act==="editar") { folhaCaso(c); return; }
+  if(act==="novocaso") { folhaCaso(undefined, el.dataset.pid); return; }
+  if(act==="editpac") { folhaPacEdit(el.dataset.pid); return; }
+  if(act==="avancar"){ moverPara(c, el.dataset.to); }
+}
+
+async function moverPara(c, to){
+  const id=c.id;
+  {
     if(to==="agendado") folhaData("Agendar cirurgia","Data da cirurgia", c.data_agendada||iso(hoje()), v=>salvar(sb.from("casos").update({etapa:"agendado",data_agendada:v}).eq("id",id),"Cirurgia agendada ✔"));
     else if(to==="realizado") folhaData("Cirurgia realizada","Data da cirurgia", c.data_agendada||iso(hoje()), v=>salvar(sb.from("casos").update({etapa:"realizado",data_realizado:v}).eq("id",id),"Marcada como realizada ✔"));
-    else await salvar(sb.from("casos").update({etapa:to}).eq("id",id),"Etapa atualizada ✔");
+    else await salvar(sb.from("casos").update({etapa:to}).eq("id",id),`Movido para ${ETAPA_LABEL[to]} ✔`);
   }
-  if(act==="editar") folhaCaso(c);
-  if(act==="novocaso") folhaCaso(undefined, el.dataset.pid);
-  if(act==="editpac") folhaPacEdit(el.dataset.pid);
 }
+
+function folhaMover(c){
+  const p=pacOf(c);
+  abrir(`<header><div><h2>${esc(nomeCurto(p.nome))}</h2><div class="sub">${esc(c.procedimento||"Cirurgia")} · agora em ${ETAPA_LABEL[c.etapa]}</div></div><button class="close" data-close aria-label="Fechar">×</button></header>
+  <div class="move-list">${[...ETAPAS_CIR.map(e=>[e[0],e[1]]),["desistiu","Desistiu / não fará"]].map(([k,t])=>`<button class="btn ${k===c.etapa?"":"ghost"}" data-moveto="${k}" ${k===c.etapa?"disabled":""}>${k===c.etapa?"● ":""}${t}</button>`).join("")}</div>
+  <button class="btn ghost" data-act="editar" data-id="${c.id}">Editar dados do procedimento</button>`);
+  document.querySelectorAll("[data-moveto]").forEach(b=>b.addEventListener("click",()=>{ fechar(); moverPara(c,b.dataset.moveto); }));
+}
+
+/* ---------- Arrastar e soltar (mouse e toque) ---------- */
+let drag=null;
+document.addEventListener("pointerdown", e=>{
+  const g=e.target.closest("[data-grip]"); if(!g) return;
+  const card=g.closest("[data-card]"); if(!card) return;
+  e.preventDefault();
+  const r=card.getBoundingClientRect();
+  const ghost=card.cloneNode(true); ghost.classList.add("ghost-card"); ghost.style.width=r.width+"px";
+  document.body.appendChild(ghost);
+  card.classList.add("dragging");
+  drag={id:card.dataset.card, card, ghost, dx:e.clientX-r.left, dy:e.clientY-r.top, over:null};
+  moveGhost(e); g.setPointerCapture?.(e.pointerId);
+});
+function moveGhost(e){
+  if(!drag) return;
+  drag.ghost.style.left=(e.clientX-drag.dx)+"px"; drag.ghost.style.top=(e.clientY-drag.dy)+"px";
+  drag.ghost.style.display="none"; const el=document.elementFromPoint(e.clientX,e.clientY); drag.ghost.style.display="";
+  const col=el&&el.closest("[data-drop]");
+  if(drag.over&&drag.over!==col) drag.over.classList.remove("drop-on");
+  if(col){ col.classList.add("drop-on"); drag.over=col; } else drag.over=null;
+  // rolagem automática do quadro perto das bordas
+  const board=$("#board"); if(board){ const b=board.getBoundingClientRect(); if(e.clientX>b.right-40) board.scrollLeft+=14; else if(e.clientX<b.left+40) board.scrollLeft-=14; }
+}
+document.addEventListener("pointermove", e=>{ if(drag){ e.preventDefault(); moveGhost(e); } }, {passive:false});
+document.addEventListener("pointerup", async e=>{
+  if(!drag) return;
+  const {id,card,ghost,over}=drag; drag=null;
+  ghost.remove(); card.classList.remove("dragging"); if(over) over.classList.remove("drop-on");
+  const c=S.casos.find(x=>x.id===id);
+  if(over&&c&&over.dataset.drop!==c.etapa) moverPara(c, over.dataset.drop);
+});
+document.addEventListener("pointercancel", ()=>{ if(drag){ drag.ghost.remove(); drag.card.classList.remove("dragging"); drag.over?.classList.remove("drop-on"); drag=null; } });
 
 document.addEventListener("click", e=>{
   const t=e.target.closest("[data-tab],[data-goto],[data-act],[data-pac],[data-ft],[data-fp]"); if(!t) return;
