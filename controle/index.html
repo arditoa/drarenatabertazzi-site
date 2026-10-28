@@ -131,6 +131,20 @@ main{max-width:1480px;margin:0 auto;padding:16px 14px 24px}
 .inj-acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 @media(max-width:700px){.inj-row{grid-template-columns:1fr}.inj-acts{justify-content:flex-start}}
 .trilha-t.sm{font-size:.8rem;margin-top:10px}
+.dias{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:6px 0 16px}
+@media(min-width:760px){.dias{grid-template-columns:repeat(5,minmax(0,1fr))}}
+.dia{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px;display:grid;gap:3px;text-align:left;align-content:start;color:var(--ink)}
+.dia.sel{border:2px solid var(--accent);background:#eef4fc}
+.dia b{font-size:.95rem;text-transform:capitalize}
+.dia span{font-size:.82rem;font-weight:700;color:var(--deep)} .dia span small{font-weight:600;color:var(--soft)}
+.tk-local{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+.tk-local h3{font-size:1.05rem;margin-bottom:4px;display:flex;gap:8px;align-items:center}
+.tk-g{margin-top:10px} .tk-gt{font-weight:700;font-size:.9rem;display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:4px 0}
+.tk-gt small{font-weight:600;color:var(--soft);font-size:.76rem}
+.tk-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
+.tk-row.atrasada .inj-nome button{color:var(--late)}
+.tk-txt{color:var(--deep)!important;font-weight:600}
+@media(max-width:700px){.tk-row{grid-template-columns:1fr}}
 /* Painel por fases */
 .trilha-t{font-weight:700;font-size:.9rem;color:var(--soft);margin:14px 0 8px}
 .fases{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
@@ -284,7 +298,7 @@ legend{font-size:.86rem;font-weight:700;color:var(--soft);padding:0;margin-botto
     <button class="out" id="bOut">Sair</button>
   </header>
   <nav class="tabs" aria-label="Seções">
-    <button data-tab="painel" aria-current="page"><svg viewBox="0 0 24 24"><rect x="3.5" y="4" width="7" height="7" rx="2"/><rect x="13.5" y="4" width="7" height="4" rx="2"/><rect x="13.5" y="11" width="7" height="9" rx="2"/><rect x="3.5" y="14" width="7" height="6" rx="2"/></svg>Painel</button>
+    <button data-tab="painel" aria-current="page"><svg viewBox="0 0 24 24"><rect x="3.5" y="4" width="7" height="7" rx="2"/><rect x="13.5" y="4" width="7" height="4" rx="2"/><rect x="13.5" y="11" width="7" height="9" rx="2"/><rect x="3.5" y="14" width="7" height="6" rx="2"/></svg>Semana</button>
     <button data-tab="ind"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="10" y="4" width="5" height="11" rx="1.5"/><rect x="17" y="4" width="4" height="7" rx="1.5"/></svg>Indicações</button>
     <button data-tab="cir"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M6 12c2-2.5 10-2.5 12 0"/></svg>Cirurgias</button>
     <button data-tab="trat"><svg viewBox="0 0 24 24"><path d="M14 4l6 6M17 7l-9 9-3 1 1-3 9-9M11 8l5 5M4 20l2-2"/></svg>Injeções</button>
@@ -327,7 +341,7 @@ const ABERTAS = ["indicado","orcamento","aguardando"];
 // Prazo para considerar convênio "travado" (dias desde o envio da guia sem fechar)
 const PRAZO_CONVENIO = 15, PRAZO_PARTICULAR = 7;
 // Injeções/laser: lembrete D+20, vencimento D+30
-const LEMBRAR_DIAS = 20, VENCE_DIAS = 30;
+const LEMBRAR_DIAS = 14, VENCE_DIAS = 30, PAUSA_DIAS = 60;
 
 const S = { tab:"painel", pacientes:[], casos:[], sessoes:[], user:null, fInd:"todos", fTrat:"ativos", busca:"" };
 
@@ -389,8 +403,9 @@ function statusTrat(c){
   else if (feitas.length >= total) { estado="avaliar"; rotulo=`Ciclo completo (${total}/${total}) · avaliar novo ciclo`; }
   else if (agendada) { estado="agendado"; rotulo=`${feitas.length+1}ª aplicação agendada · ${br(agendada.data_prevista)}`; }
   else if (!ultima) { estado="primeira"; rotulo="1ª aplicação a agendar"; }
+  else if (dU >= PAUSA_DIAS) { estado="pausa"; rotulo=`Em pausa · ${dU} dias sem aplicação`; }
   else if (dU >= (c.intervalo_dias||VENCE_DIAS)) { estado="late"; rotulo=`D+${dU} · venceu em ${dm(iso(vence))}`; }
-  else if (dU >= LEMBRAR_DIAS) { estado="lembrar"; rotulo=`D+${dU} · lembrar paciente e equipe`; }
+  else if (dU >= LEMBRAR_DIAS) { estado="lembrar"; rotulo=`D+${dU} · agendar próxima (vence ${dm(iso(vence))})`; }
   else { estado="ok"; rotulo=`D+${dU} · lembrete em ${dm(iso(lembrar))}`; }
   const avisado = c.ultimo_contato && ultima && c.ultimo_contato >= ultima && ["late","lembrar"].includes(estado);
   return { ses, ciclo, doCiclo, feitas, total, ultima, agendada, dU, lembrar, vence, estado, rotulo, avisado };
@@ -442,8 +457,8 @@ function cardExe(c){
 
 function cardTrat(c){
   const st=statusTrat(c), p=pacOf(c);
-  const cls = {late:"late",lembrar:"warn",primeira:"warn",avaliar:"info",agendado:"okc",ok:"okc",fim:""}[st.estado];
-  const chip = {late:"late",lembrar:"warn",primeira:"warn",avaliar:"blue",agendado:"ok",ok:"ok",fim:""}[st.estado];
+  const cls = {late:"late",lembrar:"warn",primeira:"warn",avaliar:"info",agendado:"okc",ok:"okc",fim:"",pausa:""}[st.estado];
+  const chip = {late:"late",lembrar:"warn",primeira:"warn",avaliar:"blue",agendado:"ok",ok:"ok",fim:"",pausa:""}[st.estado];
   const linhas = Array.from({length:st.total},(_,i)=>{
     const s=st.doCiclo.find(x=>x.numero===i+1);
     if(s&&s.data_realizada) return `<li class="done"><span>${i+1}ª</span><b>${br(s.data_realizada)}</b></li>`;
@@ -454,7 +469,7 @@ function cardTrat(c){
     <div class="row"><div class="name"><button data-pac="${p.id}">${esc(nomeCurto(p.nome))}</button></div><span class="chip ${chip}">${esc(st.rotulo)}</span></div>
     <div class="row meta"><span class="chip blue">${TIPO_LABEL[c.tipo]}</span>${c.olho?`<span class="chip">${esc(c.olho)}</span>`:""}${chipPag(c)}${c.local?`<span class="chip">${esc(c.local)}</span>`:""}${st.ciclo>1?`<span class="chip">Ciclo ${st.ciclo}</span>`:""}</div>
     <ol class="apps">${linhas}</ol>
-    ${st.ultima&&!["fim","avaliar"].includes(st.estado)?`<div class="meta">Última aplicação <b style="color:var(--ink)">${br(st.ultima)}</b> · lembrar D+20: <b>${dm(iso(st.lembrar))}</b> · vence D+30: <b>${dm(iso(st.vence))}</b></div>`:""}
+    ${st.ultima&&!["fim","avaliar"].includes(st.estado)?`<div class="meta">Última aplicação <b style="color:var(--ink)">${br(st.ultima)}</b> · agendar a partir de: <b>${dm(iso(st.lembrar))}</b> · vence D+30: <b>${dm(iso(st.vence))}</b></div>`:""}
     ${st.avisado?`<span class="chip sage">✔ Paciente avisado em ${br(c.ultimo_contato)} · falta agendar</span>`:""}
     ${c.obs?`<div class="meta">📝 ${esc(c.obs)}</div>`:""}
     <div class="row" style="justify-content:space-between">${contato(p.telefone)}
@@ -521,35 +536,90 @@ function blocoInjecoes(){
     <div class="inj-list">${linhas||'<div class="empty">Nenhuma injeção vencendo nos próximos 10 dias. 👏</div>'}</div>
   </div>`;
 }
+const AGENDA = {1:[["OA Palmas","Manhã e tarde"]],2:[["OA Paraíso","Dia todo"]],3:[["ICOG Palmas","Manhã"],["OPUS","Tarde"]],4:[["ICOG Porto","Dia todo"]],5:[["OPUS","Manhã"],["OA Palmas","Tarde"]]};
+const GRUPOS = [
+  ["atrasada","🔴 Atrasadas","passaram de 30 dias sem aplicar"],
+  ["aplicar","💉 Aplicações marcadas para este dia",""],
+  ["primeira","🆕 Agendar 1ª aplicação","fechados que ainda não começaram"],
+  ["agendar","📞 Agendar próxima aplicação","entraram na 3ª semana após a última"],
+  ["cirdia","👁️ Cirurgias marcadas para este dia",""],
+  ["ciragendar","🗓️ Cirurgias fechadas a agendar",""],
+  ["cobrar","📄 Cobrar convênio / orçamento","indicações paradas"],
+  ["reavaliar","🔁 Ciclo concluído · reavaliar","decidir novo ciclo ou alta"],
+];
+function diasSemana(){
+  const d=[]; let x=hoje(); while(d.length<5){ const w=x.getDay(); if(w>=1&&w<=5) d.push(new Date(x)); x=addDias(x,1); } return d;
+}
+function tarefasSemana(){
+  const h=hoje(), dias=diasSemana(), fim=dias[4];
+  const out=[], pausa=[], antigas=[];
+  for(const c of S.casos){
+    if(["finalizado","desistiu"].includes(c.etapa)) continue;
+    if(ABERTAS.includes(c.etapa)){
+      const si=situacaoInd(c); const ctt=c.ultimo_contato&&desde(c.ultimo_contato)<7;
+      const idade=desde(c.etapa_desde||c.data_indicacao||c.criado_em)??0;
+      if(idade>PAUSA_DIAS) antigas.push({c,g:"antiga",txt:`${ETAPA_LABEL[c.etapa]} há ${idade} dias${c.local?" · "+c.local:""}`});
+      else if(si.nivel && !ctt) out.push({c,g:"cobrar",txt:si.txt,nivel:si.nivel});
+      continue;
+    }
+    if(c.tipo==="cirurgia"){
+      if(c.etapa==="fechado") out.push({c,g:"ciragendar",txt:`Fechado há ${desde(c.etapa_desde)??"?"} dias`});
+      if(c.etapa==="agendado"&&c.data_agendada){ const dt=parse(c.data_agendada); if(dt>=h&&dt<=fim) out.push({c,g:"cirdia",data:dt,txt:`Cirurgia ${br(c.data_agendada)}`}); }
+      continue;
+    }
+    const st=statusTrat(c), prox=`${Math.min(st.feitas.length+1,st.total)}ª de ${st.total}`;
+    if(st.estado==="pausa"){ pausa.push({c,st}); continue; }
+    if(st.estado==="agendado"){ const dt=parse(st.agendada.data_prevista);
+      if(dt<h) out.push({c,g:"atrasada",txt:`Estava marcada para ${br(st.agendada.data_prevista)} · ${prox}`,st});
+      else if(dt<=fim) out.push({c,g:"aplicar",data:dt,txt:`${prox} · marcada ${dm(st.agendada.data_prevista)}`,st});
+      continue; }
+    if(st.estado==="late") out.push({c,g:"atrasada",txt:`${st.dU} dias da última (${dm(st.ultima)}) · ${prox}`,st});
+    else if(st.estado==="lembrar"&&!st.avisado) out.push({c,g:"agendar",txt:`Última ${dm(st.ultima)} · fazer até ${dm(iso(st.vence))} · ${prox}`,st});
+    else if(st.estado==="primeira") out.push({c,g:"primeira",txt:`Fechado ${c.fechado_em?br(c.fechado_em):""}`,st});
+    else if(st.estado==="avaliar") out.push({c,g:"reavaliar",txt:`Ciclo ${st.ciclo} completo · última ${dm(st.ultima)}`,st});
+  }
+  const porDia=dias.map(()=>[]), semLocal=[];
+  for(const t of out){
+    let i=-1;
+    if(t.data) i=dias.findIndex(d=>diff(d,t.data)===0);
+    else if(t.c.local) i=dias.findIndex(d=>(AGENDA[d.getDay()]||[]).some(([l])=>l===t.c.local));
+    if(i<0){ if(!t.c.local) semLocal.push(t); else if(t.data) {} else semLocal.push(t); continue; }
+    porDia[i].push(t);
+  }
+  return {dias,porDia,semLocal,pausa,antigas};
+}
+function linhaTarefa(t){
+  const c=t.c, p=pacOf(c);
+  const f=fones(p.telefone)[0]; const wa=f?`<a class="btn small ghost wa" href="https://wa.me/${f.length<=11?"55"+f:f}" target="_blank" rel="noopener">WhatsApp</a>`:"";
+  let acts="";
+  if(["atrasada","agendar","primeira"].includes(t.g)) acts=`${t.g==="agendar"?`<button class="btn small ghost" data-act="avisei" data-id="${c.id}">Avisei</button>`:""}<button class="btn small" data-act="agendar" data-id="${c.id}">Agendar</button><button class="btn small okb" data-act="aplicar" data-id="${c.id}">Registrar</button>`;
+  else if(t.g==="aplicar") acts=`<button class="btn small okb" data-act="aplicar" data-id="${c.id}">Registrar</button>`;
+  else if(t.g==="reavaliar") acts=`<button class="btn small" data-act="ciclo" data-id="${c.id}">Novo ciclo</button><button class="btn small ghost" data-act="finalizar" data-id="${c.id}">Alta</button>`;
+  else if(t.g==="cobrar") acts=`<button class="btn small ghost" data-act="cobrei" data-id="${c.id}">Cobrei</button><button class="btn small ghost" data-act="menu" data-id="${c.id}">Mover</button>`;
+  else if(t.g==="antiga") acts=`<button class="btn small ghost" data-act="mover-ind" data-to="desistiu" data-id="${c.id}">Perdido</button><button class="btn small ghost" data-act="menu" data-id="${c.id}">Mover</button>`;
+  else acts=`<button class="btn small ghost" data-act="menu" data-id="${c.id}">Atualizar</button>`;
+  const det=[TIPO_LABEL[c.tipo]+(c.olho?" "+c.olho:"")+(c.procedimento&&c.tipo==="cirurgia"?" · "+c.procedimento:""), pagLabel(c)].filter(Boolean).map(esc).join(" · ");
+  return `<div class="tk-row ${t.g}"><div class="inj-nome"><button class="linklike" data-pac="${p.id}">${esc(nomeCurto(p.nome))}</button><small>${det}</small><small class="tk-txt">${esc(t.txt||"")}</small></div><div class="inj-acts">${wa}${acts}</div></div>`;
+}
+function blocoTarefas(lista){
+  return GRUPOS.map(([g,t,sub])=>{ const it=lista.filter(x=>x.g===g); if(!it.length) return "";
+    return `<div class="tk-g"><div class="tk-gt">${t} <span class="count">${it.length}</span>${sub?`<small>${sub}</small>`:""}</div>${it.map(linhaTarefa).join("")}</div>`; }).join("");
+}
 function telaPainel(){
-  const h=hoje(); const F=fasesPainel();
-  if(!S.fase || !F.find(f=>f.id===S.fase)){ const top=[...F].sort((a,b)=>(b.red*100+b.amb)-(a.red*100+a.amb))[0]; S.fase=(top.red||top.amb)?top.id:"i4"; }
-  const sel=F.find(f=>f.id===S.fase);
-  const totRed=F.reduce((s,f)=>s+f.red,0), totAmb=F.reduce((s,f)=>s+f.amb,0);
-  const tile=f=>`<button class="fase ${f.id===S.fase?"sel":""}" data-fase="${f.id}"><b>${f.casos.length}</b><span class="fn1">${f.nome}</span><span class="fn2">${f.sub}</span>${f.red?`<em class="fl late">${f.red} atrasado${f.red>1?"s":""}</em>`:""}${f.amb?`<em class="fl warn">${f.amb} pedindo ação</em>`:""}${!f.red&&!f.amb?`<em class="fl ok">em dia</em>`:""}</button>`;
-  const abertas = S.casos.filter(c=>ABERTAS.includes(c.etapa) && noLocal(c));
-  const conv = abertas.filter(ehConv), part = abertas.filter(c=>!ehConv(c));
-  const porConv = [["Particular",part.length,"ind"],...CONVENIOS.map(cv=>[cv,conv.filter(c=>(c.convenio||"").toUpperCase()===cv).length,"ind"]),["Outros convênios",conv.filter(c=>!CONVENIOS.includes((c.convenio||"").toUpperCase())).length,"ind"]];
-  const porLocal = [...LOCAIS.map(l=>[l,abertas.filter(c=>c.local===l).length,"ind"]),["Sem local",abertas.filter(c=>!c.local).length,"ind"]];
-  const mesIni = new Date(h.getFullYear(), h.getMonth(), 1);
-  const apMes = S.sessoes.filter(s=>s.data_realizada && parse(s.data_realizada)>=mesIni).map(s=>[s,S.casos.find(c=>c.id===s.caso_id)]).filter(([,c])=>c).sort((a,b)=>b[0].data_realizada.localeCompare(a[0].data_realizada));
-  const d = new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"});
-  return `<div class="sec-head"><div><h2>Painel</h2><div class="sub">${d}</div></div><button class="btn" data-act="novo">+ Nova indicação</button></div>
-  <div class="loc-chips">${[["","Todos",S.casos.length],...LOCAIS.map(l=>[l,l,S.casos.filter(c=>c.local===l).length]),["sem","Sem local",S.casos.filter(c=>!c.local).length]].map(([v,tx,n])=>`<button class="lchip ${(S.fLocal||"")===v?"on":""}" data-floc="${v}">${tx} <small>${n}</small></button>`).join("")}</div>
-  ${blocoInjecoes()}
-  <div class="trilha-t">Fases · toque para ver os pacientes</div>
-  <div class="trilha-t sm">💉 Injeção e laser · ciclo de 3 aplicações</div>
-  <div class="fases">${F.filter(f=>f.trilha==="inj").map(tile).join("")}</div>
-  <div class="trilha-t sm">👁️ Cirurgias</div>
-  <div class="fases">${F.filter(f=>f.trilha==="cir").map(tile).join("")}</div>
-  <div class="group-title">${sel.trilha==="cir"?"Cirurgias":"Injeção e laser"} · ${sel.nome} <span class="count">${sel.casos.length}</span></div>
-  <div class="list">${sel.ord.map(([c])=>sel.card(c)).join("")||'<div class="empty">Ninguém nesta fase.</div>'}</div>
-  <details class="panel resumo"><summary><b>Resumo</b> · aplicações do mês, convênios e locais</summary>
-    <div class="panel-h"><h3>Aplicações feitas neste mês</h3><span class="sub">${apMes.length} no total</span></div>
-    ${apMes.length?`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Data</th><th>Paciente</th><th>Tipo</th><th>Aplicação</th><th>Pagamento</th></tr></thead><tbody>${apMes.map(([s,c])=>`<tr><td>${br(s.data_realizada)}</td><td><button class="linklike" data-pac="${c.paciente_id}">${esc(nomeCurto(pacOf(c).nome))}</button></td><td>${TIPO_LABEL[c.tipo]} ${esc(c.olho||"")}</td><td>${s.numero}ª/${c.total_sessoes||3}${s.ciclo>1?` · ciclo ${s.ciclo}`:""}</td><td>${esc(pagLabel(c))}</td></tr>`).join("")}</tbody></table></div>`:'<div class="empty">Nenhuma aplicação registrada neste mês.</div>'}
-    <div class="panel-h"><h3>Indicações em aberto por pagamento</h3></div>${barras(porConv)}
-    <div class="panel-h"><h3>Indicações em aberto por local</h3></div>${barras(porLocal)}
-  </details>`;
+  const W=tarefasSemana(); const sel=Math.min(S.dia||0,4); const dia=W.dias[sel];
+  const nome=d=>d.toLocaleDateString("pt-BR",{weekday:"short",day:"2-digit",month:"2-digit"}).replace(".","");
+  const strip=W.dias.map((d,i)=>{ const ag=AGENDA[d.getDay()]||[]; const n=W.porDia[i].length; const urg=W.porDia[i].filter(t=>t.g==="atrasada").length;
+    return `<button class="dia ${i===sel?"sel":""}" data-dia="${i}"><b>${i===0&&diff(d,hoje())===0?"Hoje · ":""}${nome(d)}</b>${ag.map(([l,p])=>`<span>${esc(l)} <small>${p}</small></span>`).join("")}<em class="fl ${urg?"late":n?"warn":"ok"}">${n?`${n} tarefa${n>1?"s":""}`:"livre"}${urg?` · ${urg} atrasada${urg>1?"s":""}`:""}</em></button>`; }).join("");
+  const ag=AGENDA[dia.getDay()]||[];
+  const doDia=W.porDia[sel];
+  const secoes=ag.map(([l,per])=>{ const it=doDia.filter(t=>t.c.local===l || (t.data&&!ag.some(([x])=>x===t.c.local)&&l===ag[0][0]));
+    return `<div class="tk-local"><h3>${per} · ${esc(l)} <span class="count">${it.length}</span></h3>${blocoTarefas(it)||'<div class="empty">Nenhuma tarefa para este local. 👏</div>'}</div>`; }).join("");
+  return `<div class="sec-head"><div><h2>Semana</h2><div class="sub">Tarefas por dia, de acordo com o local de atendimento</div></div><button class="btn" data-act="novo">+ Nova indicação</button></div>
+  <div class="dias">${strip}</div>
+  ${secoes}
+  ${W.semLocal.length?`<details class="panel resumo"><summary><b>Sem local definido</b> · ${W.semLocal.length} tarefas · edite o paciente e escolha o local</summary>${blocoTarefas(W.semLocal)}</details>`:""}
+  ${W.antigas.length?`<details class="panel resumo"><summary><b>🗂️ Indicações antigas</b> · ${W.antigas.length} paradas há mais de ${PAUSA_DIAS} dias · marque como Perdido ou mova</summary>${W.antigas.sort((a,b)=>(a.c.local||"").localeCompare(b.c.local||"")).map(linhaTarefa).join("")}</details>`:""}
+  ${W.pausa.length?`<details class="panel resumo"><summary><b>⏸️ Em pausa</b> · ${W.pausa.length} pacientes há mais de ${PAUSA_DIAS} dias sem aplicação</summary>${W.pausa.sort((a,b)=>a.st.dU-b.st.dU).map(({c,st})=>linhaTarefa({c,g:"pausa",txt:`${st.dU} dias sem aplicar · última ${br(st.ultima)} · ${st.feitas.length}/${st.total} feitas${c.local?" · "+c.local:""}`})).join("").replace(/data-act="menu" data-id="([^"]+)">Atualizar/g,'data-act="agendar" data-id="$1">Retomar</button><button class="btn small ghost" data-act="finalizar" data-id="$1">Encerrar')}</details>`:""}`;
 }
 
 function filtroInd(c){
@@ -593,14 +663,16 @@ function telaTrat(){
   const f=S.fTrat;
   let list = S.casos.filter(c=>c.tipo!=="cirurgia" && !ABERTAS.includes(c.etapa));
   list = f==="finalizados" ? list.filter(c=>["finalizado","desistiu"].includes(c.etapa)) : list.filter(c=>!["finalizado","desistiu"].includes(c.etapa));
+  if(f==="pausa") list=list.filter(c=>statusTrat(c).estado==="pausa");
+  else if(f!=="finalizados") list=list.filter(c=>statusTrat(c).estado!=="pausa");
   if(f==="convenio") list=list.filter(ehConv);
   if(f==="particular") list=list.filter(c=>!ehConv(c));
-  const ord={late:0,lembrar:1,primeira:2,avaliar:3,agendado:4,ok:5,fim:6};
+  const ord={late:0,lembrar:1,primeira:2,avaliar:3,agendado:4,ok:5,fim:6,pausa:7};
   list = list.map(c=>[c,statusTrat(c)]).sort((a,b)=>(ord[a[1].estado]-ord[b[1].estado])||((b[1].dU||0)-(a[1].dU||0))).map(x=>x[0]);
   const fb=(k,t)=>`<button data-ft="${k}" aria-pressed="${f===k}">${t}</button>`;
-  return `<div class="sec-head"><div><h2>Injeções e laser</h2><div class="sub">Ciclos de 3 aplicações mensais · lembrete em D+20 · vence em D+30</div></div></div>
-  <div class="legend"><span class="chip late">D+30 vencida</span><span class="chip warn">D+20 lembrar</span><span class="chip ok">em dia / agendada</span><span class="chip blue">ciclo completo</span></div>
-  <div class="seg">${fb("ativos","Em tratamento")}${fb("convenio","Convênio")}${fb("particular","Particular")}${fb("finalizados","Finalizados")}</div>
+  return `<div class="sec-head"><div><h2>Injeções e laser</h2><div class="sub">Ciclos de 3 aplicações · agendar a partir de D+14 · vence em D+30 · pausa após 60 dias</div></div></div>
+  <div class="legend"><span class="chip late">D+30 vencida</span><span class="chip warn">D+14 agendar</span><span class="chip ok">em dia / agendada</span><span class="chip blue">ciclo completo</span></div>
+  <div class="seg">${fb("ativos","Em tratamento")}${fb("convenio","Convênio")}${fb("particular","Particular")}${fb("pausa","Em pausa")}${fb("finalizados","Finalizados")}</div>
   <div class="list">${list.map(cardTrat).join("")||'<div class="empty">Nada por aqui.</div>'}</div>`;
 }
 
@@ -743,6 +815,7 @@ async function acao(act, el){
   if(act==="editpac") return folhaPacEdit(el.dataset.pid);
   if(act==="menu") return folhaMenu(c);
   if(act==="mover-ind"||act==="mover-exe") return moverPara(c, el.dataset.to);
+  if(act==="cobrei") return salvar(sb.from("casos").update({ultimo_contato:iso(hoje())}).eq("id",id),"Cobrança registrada ✔ · sai da lista por 7 dias");
   if(act==="avisei") return salvar(sb.from("casos").update({ultimo_contato:iso(hoje())}).eq("id",id),"Marcado: paciente avisado ✔");
   if(act==="aplicar"){
     const st=statusTrat(c);
@@ -777,8 +850,9 @@ async function ciclarInteresse(id){
 }
 
 document.addEventListener("click", e=>{
-  const t=e.target.closest("[data-floc],[data-fase],[data-tab],[data-goto],[data-act],[data-pac],[data-ft],[data-fi],[data-int]"); if(!t) return;
+  const t=e.target.closest("[data-dia],[data-floc],[data-fase],[data-tab],[data-goto],[data-act],[data-pac],[data-ft],[data-fi],[data-int]"); if(!t) return;
   if(t.dataset.int){ ciclarInteresse(t.dataset.int); return; }
+  if(t.dataset.dia!==undefined){ S.dia=+t.dataset.dia; render(); return; }
   if(t.dataset.floc!==undefined){ S.fLocal=t.dataset.floc; S.fase=null; render(); return; }
   if(t.dataset.fase){ S.fase=t.dataset.fase; render(); return; }
   if(t.dataset.tab||t.dataset.goto){ S.tab=t.dataset.tab||t.dataset.goto; if(t.dataset.f) S.fInd=t.dataset.f; fechar(); render(); window.scrollTo(0,0); return; }
