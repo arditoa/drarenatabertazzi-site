@@ -118,6 +118,19 @@ main{max-width:1480px;margin:0 auto;padding:16px 14px 24px}
 .col{scroll-snap-align:start;background:#ece7de;border-radius:18px;padding:10px;display:grid;gap:8px;align-content:start;min-height:200px}
 .col h3{font-weight:700;font-size:.92rem;display:flex;justify-content:space-between;padding:4px 4px 2px}
 
+.loc-chips{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 14px}
+.lchip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 12px;font-weight:700;font-size:.85rem;color:var(--ink)}
+.lchip small{color:var(--soft);font-weight:600;margin-left:2px}
+.lchip.on{background:var(--accent);border-color:var(--accent);color:#fff} .lchip.on small{color:#dbe7f7}
+.inj-box{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--accent);border-radius:16px;padding:14px;display:grid;gap:10px;margin-bottom:8px}
+.inj-list{display:grid}
+.inj-row{display:grid;grid-template-columns:170px 1fr auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.inj-row.late .inj-nome button{color:var(--late)}
+.inj-nome{display:grid;min-width:0} .inj-nome small{color:var(--soft);font-size:.78rem}
+.inj-nome button{font-weight:700;text-align:left;background:none;border:0;padding:0;font-size:.95rem;color:var(--ink)}
+.inj-acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+@media(max-width:700px){.inj-row{grid-template-columns:1fr}.inj-acts{justify-content:flex-start}}
+.trilha-t.sm{font-size:.8rem;margin-top:10px}
 /* Painel por fases */
 .trilha-t{font-weight:700;font-size:.9rem;color:var(--soft);margin:14px 0 8px}
 .fases{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
@@ -462,7 +475,7 @@ function render(){
 function barras(lista){ const max=Math.max(1,...lista.map(x=>x[1])); return `<div class="funnel">${lista.map(([t,n,go,cls])=>`<button class="fn" ${go?`data-goto="${go}"`:""}><span>${esc(t)}</span><i class="${cls||""}" style="width:${Math.max(3,Math.round(n/max*100))}%"></i><b>${n}</b></button>`).join("")}</div>`; }
 
 function fasesPainel(){
-  const vivos = S.casos.filter(c=>!["finalizado","desistiu"].includes(c.etapa));
+  const vivos = S.casos.filter(c=>!["finalizado","desistiu"].includes(c.etapa) && noLocal(c));
   const cir = vivos.filter(c=>c.tipo==="cirurgia"), inj = vivos.filter(c=>c.tipo!=="cirurgia");
   const alInd = c=>{ const n=situacaoInd(c).nivel; return n==="late"?2:n==="warn"?1:0; };
   const alTrat = c=>{ const s=statusTrat(c); if(s.estado==="late") return 2; if(s.estado==="lembrar"&&!s.avisado) return 1; if(s.estado==="primeira"&&desde(c.etapa_desde)>7) return 1; return 0; };
@@ -480,13 +493,41 @@ function fasesPainel(){
     {id:"i5", trilha:"inj", nome:"Ciclo concluído", sub:"reavaliar novo ciclo", casos:inj.filter(c=>!ABERTAS.includes(c.etapa)&&estTrat(c)==="avaliar"), al:()=>0, card:cardTrat},
   ].map(f=>{ const ord=f.casos.map(c=>[c,f.al(c)]).sort((a,b)=>b[1]-a[1]); return {...f, ord, red:ord.filter(x=>x[1]===2).length, amb:ord.filter(x=>x[1]===1).length}; });
 }
+function noLocal(c){ return !S.fLocal || (S.fLocal==="sem" ? !c.local : c.local===S.fLocal); }
+function blocoInjecoes(){
+  const lista = S.casos.filter(c=>c.tipo!=="cirurgia" && noLocal(c) && !ABERTAS.includes(c.etapa) && !["finalizado","desistiu"].includes(c.etapa))
+    .map(c=>[c,statusTrat(c)]).filter(([,s])=>!["fim","avaliar"].includes(s.estado));
+  const ordem={late:0,lembrar:1,primeira:2,agendado:3,ok:4};
+  const urg = lista.filter(([,s])=>s.estado!=="ok" || (s.vence && diff(s.vence,hoje())<=10));
+  const emdia = lista.length-urg.length;
+  urg.sort((a,b)=>ordem[a[1].estado]-ordem[b[1].estado] || (a[1].vence||0)-(b[1].vence||0));
+  const n=e=>lista.filter(([,s])=>s.estado===e).length;
+  const sit=(c,s)=>{
+    if(s.estado==="late") return `<span class="fl late">Vencida há ${s.dU-(c.intervalo_dias||VENCE_DIAS)} d</span>`;
+    if(s.estado==="lembrar") return `<span class="fl warn">Vence ${dm(iso(s.vence))} · em ${diff(s.vence,hoje())} d</span>`;
+    if(s.estado==="primeira") return `<span class="fl warn">1ª a agendar</span>`;
+    if(s.estado==="agendado") return `<span class="fl ok">Agendada ${dm(s.agendada.data_prevista)}</span>`;
+    return `<span class="fl ok">Vence ${dm(iso(s.vence))}</span>`;
+  };
+  const tel=p=>{ const f=fones(p.telefone)[0]; if(!f) return ""; const i=f.length<=11?"55"+f:f; return `<a class="btn small ghost wa" href="https://wa.me/${i}" target="_blank" rel="noopener">WhatsApp</a>`; };
+  const linhas = urg.map(([c,s])=>{ const p=pacOf(c); return `<div class="inj-row ${s.estado}">
+    <div class="inj-sit">${sit(c,s)}</div>
+    <div class="inj-nome"><button class="linklike" data-pac="${p.id}">${esc(nomeCurto(p.nome))}</button><small>${TIPO_LABEL[c.tipo]}${c.olho?" "+esc(c.olho):""} · ${Math.min(s.feitas.length+1,s.total)}ª de ${s.total} · ${esc(pagLabel(c))}${c.local?" · "+esc(c.local):""}${s.ultima?` · última ${dm(s.ultima)}`:""}</small></div>
+    <div class="inj-acts">${tel(p)}${s.estado==="agendado"?"":`<button class="btn small ghost" data-act="agendar" data-id="${c.id}">Agendar</button>`}<button class="btn small okb" data-act="aplicar" data-id="${c.id}">Registrar</button></div>
+  </div>`; }).join("");
+  return `<div class="inj-box">
+    <div class="panel-h"><h3>💉 Injeções e laser a vencer</h3><button class="linkbtn" data-goto="trat">Ver todas →</button></div>
+    <div class="resumo-hoje"><span class="fl late">${n("late")} vencidas</span><span class="fl warn">${n("lembrar")} vencem em até 10 dias</span><span class="fl warn">${n("primeira")} 1ª a agendar</span><span class="fl ok">${n("agendado")} agendadas</span><span class="fl ok">${emdia} em dia</span></div>
+    <div class="inj-list">${linhas||'<div class="empty">Nenhuma injeção vencendo nos próximos 10 dias. 👏</div>'}</div>
+  </div>`;
+}
 function telaPainel(){
   const h=hoje(); const F=fasesPainel();
-  if(!S.fase || !F.find(f=>f.id===S.fase)){ const top=[...F].sort((a,b)=>(b.red*100+b.amb)-(a.red*100+a.amb))[0]; S.fase=(top.red||top.amb)?top.id:"c1"; }
+  if(!S.fase || !F.find(f=>f.id===S.fase)){ const top=[...F].sort((a,b)=>(b.red*100+b.amb)-(a.red*100+a.amb))[0]; S.fase=(top.red||top.amb)?top.id:"i4"; }
   const sel=F.find(f=>f.id===S.fase);
   const totRed=F.reduce((s,f)=>s+f.red,0), totAmb=F.reduce((s,f)=>s+f.amb,0);
   const tile=f=>`<button class="fase ${f.id===S.fase?"sel":""}" data-fase="${f.id}"><b>${f.casos.length}</b><span class="fn1">${f.nome}</span><span class="fn2">${f.sub}</span>${f.red?`<em class="fl late">${f.red} atrasado${f.red>1?"s":""}</em>`:""}${f.amb?`<em class="fl warn">${f.amb} pedindo ação</em>`:""}${!f.red&&!f.amb?`<em class="fl ok">em dia</em>`:""}</button>`;
-  const abertas = S.casos.filter(c=>ABERTAS.includes(c.etapa));
+  const abertas = S.casos.filter(c=>ABERTAS.includes(c.etapa) && noLocal(c));
   const conv = abertas.filter(ehConv), part = abertas.filter(c=>!ehConv(c));
   const porConv = [["Particular",part.length,"ind"],...CONVENIOS.map(cv=>[cv,conv.filter(c=>(c.convenio||"").toUpperCase()===cv).length,"ind"]),["Outros convênios",conv.filter(c=>!CONVENIOS.includes((c.convenio||"").toUpperCase())).length,"ind"]];
   const porLocal = [...LOCAIS.map(l=>[l,abertas.filter(c=>c.local===l).length,"ind"]),["Sem local",abertas.filter(c=>!c.local).length,"ind"]];
@@ -494,11 +535,13 @@ function telaPainel(){
   const apMes = S.sessoes.filter(s=>s.data_realizada && parse(s.data_realizada)>=mesIni).map(s=>[s,S.casos.find(c=>c.id===s.caso_id)]).filter(([,c])=>c).sort((a,b)=>b[0].data_realizada.localeCompare(a[0].data_realizada));
   const d = new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"});
   return `<div class="sec-head"><div><h2>Painel</h2><div class="sub">${d}</div></div><button class="btn" data-act="novo">+ Nova indicação</button></div>
-  <div class="resumo-hoje">${totRed||totAmb?`${totRed?`<span class="fl late">${totRed} atrasado${totRed===1?"":"s"}</span>`:""}${totAmb?`<span class="fl warn">${totAmb} pedindo ação</span>`:""}<span class="sub">toque numa fase para ver quem é</span>`:`<span class="fl ok">Tudo em dia</span>`}</div>
-  <div class="trilha-t">👁️ Cirurgias</div>
-  <div class="fases">${F.filter(f=>f.trilha==="cir").map(tile).join("")}</div>
-  <div class="trilha-t">💉 Injeção e laser · ciclo de 3 aplicações</div>
+  <div class="loc-chips">${[["","Todos",S.casos.length],...LOCAIS.map(l=>[l,l,S.casos.filter(c=>c.local===l).length]),["sem","Sem local",S.casos.filter(c=>!c.local).length]].map(([v,tx,n])=>`<button class="lchip ${(S.fLocal||"")===v?"on":""}" data-floc="${v}">${tx} <small>${n}</small></button>`).join("")}</div>
+  ${blocoInjecoes()}
+  <div class="trilha-t">Fases · toque para ver os pacientes</div>
+  <div class="trilha-t sm">💉 Injeção e laser · ciclo de 3 aplicações</div>
   <div class="fases">${F.filter(f=>f.trilha==="inj").map(tile).join("")}</div>
+  <div class="trilha-t sm">👁️ Cirurgias</div>
+  <div class="fases">${F.filter(f=>f.trilha==="cir").map(tile).join("")}</div>
   <div class="group-title">${sel.trilha==="cir"?"Cirurgias":"Injeção e laser"} · ${sel.nome} <span class="count">${sel.casos.length}</span></div>
   <div class="list">${sel.ord.map(([c])=>sel.card(c)).join("")||'<div class="empty">Ninguém nesta fase.</div>'}</div>
   <details class="panel resumo"><summary><b>Resumo</b> · aplicações do mês, convênios e locais</summary>
@@ -734,8 +777,9 @@ async function ciclarInteresse(id){
 }
 
 document.addEventListener("click", e=>{
-  const t=e.target.closest("[data-fase],[data-tab],[data-goto],[data-act],[data-pac],[data-ft],[data-fi],[data-int]"); if(!t) return;
+  const t=e.target.closest("[data-floc],[data-fase],[data-tab],[data-goto],[data-act],[data-pac],[data-ft],[data-fi],[data-int]"); if(!t) return;
   if(t.dataset.int){ ciclarInteresse(t.dataset.int); return; }
+  if(t.dataset.floc!==undefined){ S.fLocal=t.dataset.floc; S.fase=null; render(); return; }
   if(t.dataset.fase){ S.fase=t.dataset.fase; render(); return; }
   if(t.dataset.tab||t.dataset.goto){ S.tab=t.dataset.tab||t.dataset.goto; if(t.dataset.f) S.fInd=t.dataset.f; fechar(); render(); window.scrollTo(0,0); return; }
   if(t.dataset.act){ acao(t.dataset.act,t); return; }
