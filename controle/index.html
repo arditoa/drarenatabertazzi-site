@@ -992,6 +992,10 @@ function confirmar(t){ try { return window.confirm(t); } catch(e){ return true; 
 function radios(name, opts, val){ return `<div class="radios">${opts.map(([v,t])=>`<label class="rd"><input type="radio" name="${name}" value="${v}" ${v===val?"checked":""}><span>${t}</span></label>`).join("")}</div>`; }
 
 // Formulário de indicação: novo paciente ou novo procedimento de um paciente existente
+const SUBS_CIR=["FACO","PTG","VVPP","FACO + VVPP","Outra"];
+function subDe(p){ p=(p||"").toUpperCase(); if(!p) return ""; const f=/FACO|FACECT/.test(p), v=/VVPP|VITRECT/.test(p); if(f&&v) return "FACO + VVPP"; if(f) return "FACO"; if(v) return "VVPP"; if(/PTG|PTERIG/.test(p)) return "PTG"; return "Outra"; }
+function detalheDe(p){ if(!p) return ""; const s=subDe(p); if(s==="Outra") return p; const m=p.split(" · "); return m.length>1&&SUBS_CIR.includes(m[0])?m.slice(1).join(" · "):p.toUpperCase()===s?"":p; }
+function montaProc(tipo, sub, det){ if(tipo!=="cirurgia") return det||null; if(!sub||sub==="Outra") return det||null; if(det && det.toUpperCase().includes(sub.split(" ")[0])) return det; return det?`${sub} · ${det}`:sub; }
 function folhaIndicacao(caso, pacienteId){
   const c = caso || {tipo:"cirurgia", etapa:"indicado", interesse:"medio", pagamento:"particular", data_indicacao: iso(hoje()), paciente_id:pacienteId};
   const novoPac = !c.paciente_id;
@@ -1007,8 +1011,10 @@ function folhaIndicacao(caso, pacienteId){
     <fieldset id="fsConv" class="${c.pagamento==="convenio"?"":"hidden"}"><legend>Convênio</legend>${radios("conv", [...CONVENIOS.map(x=>[x,x==="SERVIR"?"Servir":x==="CASSI"?"Cassi":"Caixa"]),["OUTROS","Outros"]], convSel)}
       <input id="iConvOutro" class="${convSel==="OUTROS"?"":"hidden"}" placeholder="Qual convênio? (ex.: IPASGU, Município)" value="${convSel==="OUTROS"?esc(c.convenio||""):""}"></fieldset>
     <fieldset><legend>Procedimento</legend>${radios("tipo", [["cirurgia","Cirurgia"],["injecao","Injeção"],["laser","Laser"]], c.tipo)}</fieldset>
-    <div class="grid2"><label>Detalhe<input id="iProc" value="${esc(c.procedimento||"")}" placeholder="Ex.: FACO OD, VVPP, anti-VEGF"></label>
-      <label>Olho<select id="iOlho">${[["","—"],["OD","OD"],["OE","OE"],["AO","AO"]].map(([v,t])=>`<option value="${v}" ${v===(c.olho||"")?"selected":""}>${t}</option>`).join("")}</select></label></div>
+    <fieldset id="fsCir" class="${c.tipo==="cirurgia"?"":"hidden"}"><legend>Tipo de cirurgia</legend>${radios("sub", SUBS_CIR.map(s=>[s,s]), subDe(c.procedimento)||(caso?"Outra":""))}<span class="err" id="eSub"></span></fieldset>
+    <label>Detalhe <small>(opcional)</small><input id="iProc" value="${esc(detalheDe(c.procedimento)||"")}" placeholder="Ex.: trifocal, tórica, peeling, gás, calázio"></label>
+    <fieldset><legend>Olho</legend>${radios("olho", [["OD","OD"],["OE","OE"],["AO","Ambos"]], (c.olho||"").replace(/.*(OD|OE|AO).*/,"$1")||"")}</fieldset>
+    ${caso?"":`<fieldset id="fsPrimOlho" class="hidden"><legend>Ambos os olhos são feitos em dois tempos · qual primeiro?</legend>${radios("prim", [["OD","OD primeiro"],["OE","OE primeiro"]], "OD")}<div class="meta">Vão ser criadas duas indicações (1º e 2º olho), cada uma com o seu andamento.</div></fieldset>`}
     <fieldset><legend>Interesse</legend>${radios("int", [["baixo","Baixo"],["medio","Médio"],["alto","Alto"],["fechado","Fechado"]], c.interesse||"medio")}</fieldset>
     <label id="lValor" class="${c.pagamento==="convenio"?"hidden":""}">Valor do orçamento (opcional)<input id="iValor" inputmode="decimal" placeholder="R$" value="${c.valor??""}"></label>
     ${caso?`<label>Etapa<select id="iEtapa">${Object.entries(ETAPA_LABEL).map(([k,t])=>`<option value="${k}" ${k===c.etapa?"selected":""}>${t}</option>`).join("")}</select></label>
@@ -1018,16 +1024,20 @@ function folhaIndicacao(caso, pacienteId){
     ${caso?`<button class="btn ghost" type="button" id="iDel" style="color:var(--late)">Excluir</button>`:""}
   </form>`);
   const form=$("#fi");
+  const val=n=>form.querySelector(`input[name="${n}"]:checked`)?.value;
   form.addEventListener("change", e=>{
     if(e.target.name==="pag"){ const conv=e.target.value==="convenio"; $("#fsConv").classList.toggle("hidden",!conv); $("#lValor").classList.toggle("hidden",conv); }
     if(e.target.name==="conv"){ $("#iConvOutro").classList.toggle("hidden", e.target.value!=="OUTROS"); }
     if(e.target.name==="local") $("#eLocal").textContent="";
+    if(e.target.name==="tipo") $("#fsCir").classList.toggle("hidden", e.target.value!=="cirurgia");
+    if(e.target.name==="sub") $("#eSub").textContent="";
+    if(["tipo","olho"].includes(e.target.name) && $("#fsPrimOlho")) $("#fsPrimOlho").classList.toggle("hidden", !(val("tipo")==="cirurgia" && val("olho")==="AO"));
   });
   form.addEventListener("input", e=>{ if(e.target.id==="iNome") $("#eNome").textContent=""; });
   form.addEventListener("submit", async e=>{
     e.preventDefault();
-    const val=n=>form.querySelector(`input[name="${n}"]:checked`)?.value;
     let ok=true;
+    if(val("tipo")==="cirurgia" && !val("sub")){ $("#eSub").textContent="Escolha o tipo de cirurgia."; ok=false; }
     if(novoPac && !$("#iNome").value.trim()){ $("#eNome").textContent="Digite o nome do paciente."; ok=false; }
     if(!val("local")){ $("#eLocal").textContent="Escolha o local de atendimento."; ok=false; }
     if(!ok) return;
@@ -1040,7 +1050,7 @@ function folhaIndicacao(caso, pacienteId){
     const pag=val("pag"), tipo=val("tipo"), interesse=val("int");
     const conv = pag==="convenio" ? (val("conv")==="OUTROS" ? ($("#iConvOutro").value.trim().toUpperCase()||"OUTROS") : val("conv")) : null;
     const row={paciente_id:pid, tipo, local:val("local"), pagamento:pag, convenio:conv, interesse,
-      procedimento:$("#iProc").value.trim()||null, olho:$("#iOlho").value||null, data_indicacao:$("#iData").value||iso(hoje()),
+      procedimento:montaProc(tipo, val("sub"), $("#iProc").value.trim()), olho:val("olho")||null, data_indicacao:$("#iData").value||iso(hoje()),
       valor: pag==="particular" && $("#iValor").value ? Number($("#iValor").value.replace(/\./g,"").replace(",",".")) || null : null,
       obs:$("#iObs").value.trim()||null };
     if(tipo!=="cirurgia"){ row.total_sessoes=c.total_sessoes||3; row.intervalo_dias=c.intervalo_dias||VENCE_DIAS; }
@@ -1048,6 +1058,11 @@ function folhaIndicacao(caso, pacienteId){
     else row.etapa = "indicado";
     if(interesse==="fechado" && ABERTAS.includes(row.etapa)) row.etapa = tipo==="cirurgia" ? "fechado" : "em_tratamento";
     fechar();
+    if(!caso && tipo==="cirurgia" && row.olho==="AO"){
+      const p1=val("prim")||"OD", p2=p1==="OD"?"OE":"OD", base=row.obs?" · "+row.obs:"";
+      await salvar(sb.from("casos").insert([{...row, olho:p1, obs:`1º olho (ambos em dois tempos)${base}`},{...row, olho:p2, obs:`2º olho (depois do ${p1})${base}`}]), `Criadas 2 indicações: 1º ${p1} e 2º ${p2} ✔`);
+      return;
+    }
     await salvar(caso? sb.from("casos").update(row).eq("id",c.id) : sb.from("casos").insert(row), caso?"Salvo ✔":"Indicação criada ✔");
   });
   if(caso) $("#iDel").addEventListener("click", async ()=>{ if(!confirmar("Excluir esta indicação e o histórico dela?")) return; fechar(); await salvar(sb.from("casos").delete().eq("id",c.id),"Excluído"); });
