@@ -258,3 +258,5 @@ a.more:hover { text-decoration: underline; }
   .page-hero .wrap.has-photo, .surg, .foot-grid { grid-template-columns: 1fr; }
   .page-photo { order: -1; max-width: 280px; }
 }
+
+.art .dot { di.art .dot { display: none; }splay: none; }
