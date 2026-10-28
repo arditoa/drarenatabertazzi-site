@@ -152,6 +152,11 @@ main{max-width:1480px;margin:0 auto;padding:16px 14px 24px}
 .pos-st{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
 .pos-box{border-left-color:var(--sage);margin-top:14px}
 .sheet select,.form select{width:100%}
+.acao-box{background:#fff5f2;border:1px solid #f1c7bc;border-left:5px solid var(--late);border-radius:16px;padding:14px;display:grid;gap:8px;margin:4px 0 14px}
+.acao-box h3{color:var(--late);display:flex;gap:8px;align-items:center}
+.acao-box.ok{background:var(--ok-soft);border-color:#bfe0cc;border-left-color:var(--ok);color:var(--ok);font-size:.9rem}
+.loc-sel{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-weight:700;font-size:.9rem;color:var(--deep);margin:4px 0 14px}
+.loc-sel select{width:auto;min-width:240px;font:inherit;font-size:1rem;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink)}
 /* Painel por fases */
 .trilha-t{font-weight:700;font-size:.9rem;color:var(--soft);margin:14px 0 8px}
 .fases{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
@@ -640,6 +645,32 @@ function telaSemana(){
   ${W.pausa.length?`<details class="panel resumo"><summary><b>⏸️ Em pausa</b> · ${W.pausa.length} pacientes há mais de ${PAUSA_DIAS} dias sem aplicação</summary>${W.pausa.sort((a,b)=>a.st.dU-b.st.dU).map(({c,st})=>linhaTarefa({c,g:"pausa",txt:`${st.dU} dias sem aplicar · última ${br(st.ultima)} · ${st.feitas.length}/${st.total} feitas${c.local?" · "+c.local:""}`})).join("").replace(/data-act="menu" data-id="([^"]+)">Atualizar/g,'data-act="agendar" data-id="$1">Retomar</button><button class="btn small ghost" data-act="finalizar" data-id="$1">Encerrar')}</details>`:""}`;
 }
 
+function acaoImediata(){
+  const out=[];
+  for(const c of S.casos){
+    if(!noLocal(c) || !ehConv(c) || ["finalizado","desistiu"].includes(c.etapa)) continue;
+    if(ABERTAS.includes(c.etapa)){
+      const idade=desde(c.etapa_desde||c.data_indicacao||c.criado_em)??0, si=situacaoInd(c);
+      if(idade<=PAUSA_DIAS && si.nivel && !(c.ultimo_contato&&desde(c.ultimo_contato)<7)) out.push({c,g:"cobrar",txt:si.txt,peso:si.nivel==="late"?2:1});
+      continue;
+    }
+    if(c.tipo==="cirurgia"){ if(c.etapa==="fechado"&&(desde(c.etapa_desde)??0)>7) out.push({c,g:"ciragendar",txt:`Convênio liberado/fechado há ${desde(c.etapa_desde)} dias e sem data`,peso:2}); continue; }
+    const st=statusTrat(c), prox=`${Math.min(st.feitas.length+1,st.total)}ª de ${st.total}`;
+    if(st.estado==="late") out.push({c,g:"atrasada",txt:`Vencida · ${st.dU} dias da última (${dm(st.ultima)}) · ${prox}`,peso:3,st});
+    else if(st.estado==="agendado"&&parse(st.agendada.data_prevista)<hoje()) out.push({c,g:"atrasada",txt:`Estava marcada para ${br(st.agendada.data_prevista)} e não foi registrada · ${prox}`,peso:3,st});
+    else if(st.estado==="primeira"&&(desde(c.etapa_desde)??0)>7) out.push({c,g:"primeira",txt:`Fechado há ${desde(c.etapa_desde)} dias e a 1ª ainda não foi agendada`,peso:2,st});
+  }
+  return out.sort((a,b)=>b.peso-a.peso);
+}
+function blocoAcaoImediata(){
+  const L=acaoImediata(); if(!L.length) return `<div class="acao-box ok"><b>✔ Convênio em dia</b> · nenhuma injeção, cirurgia ou guia de convênio atrasada${S.fLocal?" neste local":""}.</div>`;
+  const tudo=S.acaoAberta===true, mostra=tudo?L:L.slice(0,5);
+  const n=g=>L.filter(x=>x.g===g).length;
+  return `<div class="acao-box"><div class="panel-h"><h3>🚨 Ação imediata · convênio <span class="count">${L.length}</span></h3></div>
+  <div class="resumo-hoje">${n("atrasada")?`<span class="fl late">${n("atrasada")} injeções vencidas</span>`:""}${n("primeira")?`<span class="fl warn">${n("primeira")} 1ª aplicação sem data</span>`:""}${n("ciragendar")?`<span class="fl warn">${n("ciragendar")} cirurgias sem data</span>`:""}${n("cobrar")?`<span class="fl warn">${n("cobrar")} guias paradas</span>`:""}</div>
+  <div class="inj-list">${mostra.map(linhaTarefa).join("")}</div>
+  ${L.length>5?`<button class="linkbtn" data-acaotg="1">${tudo?"Mostrar só os 5 mais urgentes ▲":`Ver todos os ${L.length} ▼`}</button>`:""}</div>`;
+}
 function telaPainel(){
   const h=hoje(); const F=fasesPainel();
   const sel=S.fase?F.find(f=>f.id===S.fase):null;
@@ -652,14 +683,18 @@ function telaPainel(){
   const apMes = S.sessoes.filter(s=>s.data_realizada && parse(s.data_realizada)>=mesIni).map(s=>[s,S.casos.find(c=>c.id===s.caso_id)]).filter(([,c])=>c&&noLocal(c)).sort((a,b)=>b[0].data_realizada.localeCompare(a[0].data_realizada));
   const d = new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"});
   return `<div class="sec-head"><div><h2>Painel</h2><div class="sub">${d}</div></div><button class="btn" data-act="novo">+ Nova indicação</button></div>
-  <div class="loc-chips">${[["","Todos",S.casos.length],...LOCAIS.map(l=>[l,l,S.casos.filter(c=>c.local===l).length]),["sem","Sem local",S.casos.filter(c=>!c.local).length]].map(([v,tx,n])=>`<button class="lchip ${(S.fLocal||"")===v?"on":""}" data-floc="${v}">${tx} <small>${n}</small></button>`).join("")}</div>
+  <label class="loc-sel">📍 Local de atendimento<select id="selLocal">${[["","Todos os locais",S.casos.length],...LOCAIS.map(l=>[l,l,S.casos.filter(c=>c.local===l).length]),["sem","Sem local",S.casos.filter(c=>!c.local).length]].filter(([v,,n])=>v!=="sem"||n).map(([v,tx,n])=>`<option value="${v}" ${(S.fLocal||"")===v?"selected":""}>${tx} (${n})</option>`).join("")}</select></label>
+  ${blocoAcaoImediata()}
   <div class="trilha-t">Fases · toque para ver os pacientes</div>
   <div class="trilha-t sm">💉 Injeção e laser · ciclo de 3 aplicações</div>
   <div class="fases">${F.filter(f=>f.trilha==="inj").map(tile).join("")}</div>
   <div class="trilha-t sm">👁️ Cirurgias</div>
   <div class="fases">${F.filter(f=>f.trilha==="cir").map(tile).join("")}</div>
-  ${sel?`<div class="group-title">${sel.trilha==="cir"?"Cirurgias":"Injeção e laser"} · ${sel.nome} <span class="count">${sel.casos.length}</span><button class="linkbtn" data-fase="${sel.id}">Fechar ✕</button></div>
-  <div class="list">${sel.ord.map(([c])=>sel.card(c)).join("")||'<div class="empty">Ninguém nesta fase.</div>'}</div>`:""}
+  ${sel?(()=>{ const fp=S.fPag||""; const ord=sel.ord.filter(([c])=>!fp||(fp==="convenio"?ehConv(c):!ehConv(c)));
+    const pc=(k,tx,n)=>`<button class="lchip ${fp===k?"on":""}" data-fpag="${k}">${tx} <small>${n}</small></button>`;
+    return `<div class="group-title">${sel.trilha==="cir"?"Cirurgias":"Injeção e laser"} · ${sel.nome} <span class="count">${ord.length}</span><button class="linkbtn" data-fase="${sel.id}">Fechar ✕</button></div>
+  <div class="loc-chips">${pc("","Todos",sel.ord.length)}${pc("convenio","Convênio",sel.ord.filter(([c])=>ehConv(c)).length)}${pc("particular","Particular",sel.ord.filter(([c])=>!ehConv(c)).length)}</div>
+  <div class="list">${ord.map(([c])=>sel.card(c)).join("")||'<div class="empty">Ninguém aqui.</div>'}</div>`; })():""}
   <div style="height:14px"></div>
   ${blocoInjecoes()}
   ${blocoPos()}
@@ -981,11 +1016,13 @@ async function ciclarInteresse(id){
 }
 
 document.addEventListener("click", e=>{
-  const t=e.target.closest("[data-finj],[data-fpos],[data-dia],[data-floc],[data-fase],[data-tab],[data-goto],[data-act],[data-pac],[data-ft],[data-fi],[data-int]"); if(!t) return;
+  const t=e.target.closest("[data-acaotg],[data-fpag],[data-finj],[data-fpos],[data-dia],[data-floc],[data-fase],[data-tab],[data-goto],[data-act],[data-pac],[data-ft],[data-fi],[data-int]"); if(!t) return;
   if(t.dataset.int){ ciclarInteresse(t.dataset.int); return; }
   if(t.dataset.dia!==undefined){ S.dia=+t.dataset.dia; render(); return; }
   if(t.dataset.floc!==undefined){ S.fLocal=t.dataset.floc; S.fase=null; render(); return; }
   if(t.dataset.fase){ S.fase = S.fase===t.dataset.fase ? null : t.dataset.fase; render(); return; }
+  if(t.dataset.acaotg){ S.acaoAberta = S.acaoAberta!==true; render(); return; }
+  if(t.dataset.fpag!==undefined){ S.fPag=t.dataset.fpag; render(); return; }
   if(t.dataset.finj!==undefined){ S.fInj = S.fInj===t.dataset.finj ? null : t.dataset.finj; render(); return; }
   if(t.dataset.fpos!==undefined){ S.fPos=t.dataset.fpos; render(); return; }
   if(t.dataset.tab||t.dataset.goto){ S.tab=t.dataset.tab||t.dataset.goto; if(t.dataset.f) S.fInd=t.dataset.f; fechar(); render(); window.scrollTo(0,0); return; }
@@ -994,6 +1031,7 @@ document.addEventListener("click", e=>{
   if(t.dataset.ft!==undefined){ S.fTrat=t.dataset.ft; render(); return; }
   if(t.dataset.fi!==undefined){ S.fInd=t.dataset.fi; render(); return; }
 });
+document.addEventListener("change", e=>{ if(e.target.id==="selLocal"){ S.fLocal=e.target.value; S.fase=null; render(); } });
 document.addEventListener("input", e=>{ if(e.target.id==="busca"){ S.busca=e.target.value; const pos=e.target.selectionStart; render(); const b=$("#busca"); b.focus(); b.setSelectionRange(pos,pos); } });
 $("#fab").addEventListener("click", ()=>folhaIndicacao());
 document.addEventListener("keydown", e=>{ if(e.key==="Escape") fechar(); });
