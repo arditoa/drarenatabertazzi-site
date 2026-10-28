@@ -683,7 +683,7 @@ function telaPainel(){
   const apMes = S.sessoes.filter(s=>s.data_realizada && parse(s.data_realizada)>=mesIni).map(s=>[s,S.casos.find(c=>c.id===s.caso_id)]).filter(([,c])=>c&&noLocal(c)).sort((a,b)=>b[0].data_realizada.localeCompare(a[0].data_realizada));
   const d = new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"});
   return `<div class="sec-head"><div><h2>Painel</h2><div class="sub">${d}</div></div><button class="btn" data-act="novo">+ Nova indicação</button></div>
-  <label class="loc-sel">📍 Local de atendimento<select id="selLocal">${[["","Todos os locais",S.casos.length],...LOCAIS.map(l=>[l,l,S.casos.filter(c=>c.local===l).length]),["sem","Sem local",S.casos.filter(c=>!c.local).length]].filter(([v,,n])=>v!=="sem"||n).map(([v,tx,n])=>`<option value="${v}" ${(S.fLocal||"")===v?"selected":""}>${tx} (${n})</option>`).join("")}</select></label>
+  ${selLocal()}
   ${blocoAcaoImediata()}
   <div class="trilha-t">Fases · toque para ver os pacientes</div>
   <div class="trilha-t sm">💉 Injeção e laser · ciclo de 3 aplicações</div>
@@ -794,23 +794,30 @@ function filtroInd(c){
   if(f==="alto") return c.interesse==="alto";
   return true;
 }
+function selLocal(base){
+  base=base||S.casos;
+  return `<label class="loc-sel">📍 Local de atendimento<select id="selLocal">${[["","Todos os locais",base.length],...LOCAIS.map(l=>[l,l,base.filter(c=>c.local===l).length]),["sem","Sem local",base.filter(c=>!c.local).length]].filter(([v,,n])=>v!=="sem"||n).map(([v,tx,n])=>`<option value="${v}" ${(S.fLocal||"")===v?"selected":""}>${tx} (${n})</option>`).join("")}</select></label>`;
+}
 function telaInd(){
-  const base=S.casos.filter(c=>[...ABERTAS,"fechado"].includes(c.etapa) && (c.etapa!=="fechado" || c.tipo==="cirurgia" || (c.fechado_em && desde(c.fechado_em)<=7))).filter(filtroInd);
+  const todos=S.casos.filter(c=>[...ABERTAS,"fechado"].includes(c.etapa) && (c.etapa!=="fechado" || c.tipo==="cirurgia" || (c.fechado_em && desde(c.fechado_em)<=7)));
+  const base=todos.filter(noLocal).filter(filtroInd);
   const cols = ETAPAS_IND.map(([k,t,desc,prazo])=>{
     const items=base.filter(c=>c.etapa===k).sort((a,b)=>({alto:0,medio:1,baixo:2,fechado:3}[a.interesse||"medio"]-{alto:0,medio:1,baixo:2,fechado:3}[b.interesse||"medio"])||(a.etapa_desde||"").localeCompare(b.etapa_desde||""));
     const n=items.filter(c=>situacaoInd(c).nivel).length;
     return `<section class="col" data-drop="${k}" data-board="ind"><h3><span>${t}</span><span class="count">${items.length}</span></h3><div class="col-desc">${desc}${n?` · <b style="color:var(--warn)">${n} pedindo ação</b>`:""}</div>${items.map(cardInd).join("")||'<div class="empty drop-hint">Solte um card aqui</div>'}</section>`;
   }).join("");
-  const perdidos=S.casos.filter(c=>c.etapa==="desistiu").length;
+  const perdidos=S.casos.filter(c=>c.etapa==="desistiu"&&noLocal(c)).length;
   const fb=(k,t)=>`<button data-fi="${k}" aria-pressed="${S.fInd===k}">${t}</button>`;
   return `<div class="sec-head"><div><h2>Indicações</h2><div class="sub">Arraste pela alça ⠿ · toque no selo de interesse para mudar · no celular use “→” ou “⋯”</div></div><button class="btn" data-act="novo">+ Nova indicação</button></div>
+  ${selLocal(todos)}
   <div class="seg">${fb("todos","Todas")}${fb("atencao","Pedindo ação")}${fb("travados","Convênio parado")}${fb("convenio","Convênio")}${fb("particular","Particular")}${fb("alto","Interesse alto")}${fb("cirurgia","Cirurgia")}${fb("injecao","Injeção")}${fb("laser","Laser")}</div>
   <div class="board" id="board">${cols}</div>
   <section class="col col-out" data-drop="desistiu" data-board="ind"><h3><span>Perdido / não fará</span><span class="count">${perdidos}</span></h3><div class="col-desc">Solte aqui quem desistiu. O card sai do quadro, mas fica no histórico do paciente.</div></section>`;
 }
 
 function telaCir(){
-  const list=S.casos.filter(c=>c.tipo==="cirurgia");
+  const todasCir=S.casos.filter(c=>c.tipo==="cirurgia"&&ETAPAS_EXE.some(([k])=>k===c.etapa));
+  const list=todasCir.filter(noLocal);
   const cols=ETAPAS_EXE.map(([k,t,desc,prazo])=>{
     let items=list.filter(c=>c.etapa===k);
     if(k==="finalizado") items=items.filter(c=>desde(c.etapa_desde)<=60);
@@ -818,12 +825,14 @@ function telaCir(){
     return `<section class="col" data-drop="${k}" data-board="exe"><h3><span>${t}</span><span class="count">${items.length}</span></h3><div class="col-desc">${desc}${prazo?` · meta ${prazo} dias`:""}</div>${items.map(cardExe).join("")||'<div class="empty drop-hint">Solte um card aqui</div>'}</section>`;
   }).join("");
   return `<div class="sec-head"><div><h2>Cirurgias fechadas</h2><div class="sub">Do fechamento até a alta · altas dos últimos 60 dias</div></div></div>
+  ${selLocal(todasCir)}
   <div class="board" id="board">${cols}</div>`;
 }
 
 function telaTrat(){
   const f=S.fTrat;
-  let list = S.casos.filter(c=>c.tipo!=="cirurgia" && !ABERTAS.includes(c.etapa));
+  const todasTrat = S.casos.filter(c=>c.tipo!=="cirurgia" && !ABERTAS.includes(c.etapa));
+  let list = todasTrat.filter(noLocal);
   list = f==="finalizados" ? list.filter(c=>["finalizado","desistiu"].includes(c.etapa)) : list.filter(c=>!["finalizado","desistiu"].includes(c.etapa));
   if(f==="pausa") list=list.filter(c=>statusTrat(c).estado==="pausa");
   else if(f!=="finalizados") list=list.filter(c=>statusTrat(c).estado!=="pausa");
@@ -834,6 +843,7 @@ function telaTrat(){
   const fb=(k,t)=>`<button data-ft="${k}" aria-pressed="${f===k}">${t}</button>`;
   return `<div class="sec-head"><div><h2>Injeções e laser</h2><div class="sub">Ciclos de 3 aplicações · agendar a partir de D+14 · vence em D+30 · pausa após 60 dias</div></div></div>
   <div class="legend"><span class="chip late">D+30 vencida</span><span class="chip warn">D+14 agendar</span><span class="chip ok">em dia / agendada</span><span class="chip blue">ciclo completo</span></div>
+  ${selLocal(todasTrat)}
   <div class="seg">${fb("ativos","Em tratamento")}${fb("convenio","Convênio")}${fb("particular","Particular")}${fb("pausa","Em pausa")}${fb("finalizados","Finalizados")}</div>
   <div class="list">${list.map(cardTrat).join("")||'<div class="empty">Nada por aqui.</div>'}</div>`;
 }
