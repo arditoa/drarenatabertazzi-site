@@ -454,5 +454,5 @@ today = date.today().isoformat()
 urls = [("index", "1.0")] + [(p["slug"], "0.8") for p in PAGES]
 open("sitemap.xml", "w").write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + "".join(
     f"  <url><loc>{url(sl)}</loc><lastmod>{today}</lastmod><priority>{pr}</priority></url>\n" for sl, pr in urls) + "</urlset>\n")
-open("robots.txt", "w").write(f"User-agent: *\nAllow: /\n\nSitemap: {SITE}/sitemap.xml\n")
+open("robots.txt", "w").write(f"User-agent: *\nAllow: /\nDisallow: /controle/\n\nSitemap: {SITE}/sitemap.xml\n")
 print("ok")
