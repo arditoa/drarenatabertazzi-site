@@ -157,6 +157,14 @@ main{max-width:1480px;margin:0 auto;padding:16px 14px 24px}
 .acao-box.ok{background:var(--ok-soft);border-color:#bfe0cc;border-left-color:var(--ok);color:var(--ok);font-size:.9rem}
 .loc-sel{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-weight:700;font-size:.9rem;color:var(--deep);margin:4px 0 14px}
 .loc-sel select{width:auto;min-width:240px;font:inherit;font-size:1rem;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink)}
+.ck{display:flex;gap:8px;align-items:flex-start;font-size:.92rem;padding:4px 0;cursor:pointer}
+.ck input{margin-top:3px;width:18px;height:18px;flex:none}
+.ck.opc{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff}
+.ck small{color:var(--soft)}
+.tp-row{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:8px;align-items:end;padding:8px 0;border-top:1px solid var(--line);font-size:.88rem}
+.tp-row label{font-size:.72rem;color:var(--soft);display:grid;gap:2px}
+.tp-row input{padding:8px;border:1px solid var(--line);border-radius:8px;font:inherit;width:100%}
+@media(max-width:600px){.tp-row{grid-template-columns:1fr 1fr 1fr}.tp-row>div{grid-column:1/-1}}
 /* Painel por fases */
 .trilha-t{font-weight:700;font-size:.9rem;color:var(--soft);margin:14px 0 8px}
 .fases{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
@@ -352,11 +360,11 @@ const ETAPAS_EXE = [
 const ETAPA_LABEL = {indicado:"Nova indicação",orcamento:"Orçamento/guia enviado",aguardando:"Aguardando resposta",fechado:"Fechado",agendado:"Agendado",realizado:"Realizado",pos_op:"Pós-operatório",finalizado:"Alta",em_tratamento:"Em tratamento",desistiu:"Perdido / não fará"};
 const ABERTAS = ["indicado","orcamento","aguardando"];
 // Prazo para considerar convênio "travado" (dias desde o envio da guia sem fechar)
-const PRAZO_CONVENIO = 15, PRAZO_PARTICULAR = 7;
+const PRAZO_CONVENIO = 15, PRAZO_PARTICULAR = 3;
 // Injeções/laser: lembrete D+20, vencimento D+30
 const LEMBRAR_DIAS = 14, VENCE_DIAS = 30, PAUSA_DIAS = 60;
 
-const S = { tab:"painel", pacientes:[], casos:[], sessoes:[], pos:[], modelos:[], user:null, fInd:"todos", fTrat:"ativos", busca:"" };
+const S = { tab:"painel", pacientes:[], casos:[], sessoes:[], pos:[], modelos:[], precos:[], orcs:[], user:null, fInd:"todos", fTrat:"ativos", busca:"" };
 
 /* ================= Utilidades ================= */
 const $ = (s, el=document) => el.querySelector(s);
@@ -431,8 +439,8 @@ async function carregar(){
     sb.from("casos").select("*").order("criado_em"),
     sb.from("sessoes").select("*").order("numero"),
   ]);
-  const [ps,md] = await Promise.all([sb.from("pos_contatos").select("*"), sb.from("modelos").select("*").order("tipo").order("nome")]);
-  S.pos=ps.data||[]; S.modelos=md.data||[];
+  const [ps,md,tp,oc] = await Promise.all([sb.from("pos_contatos").select("*"), sb.from("modelos").select("*").order("tipo").order("nome"), sb.from("tabela_precos").select("*").order("ordem"), sb.from("orcamentos").select("*")]);
+  S.pos=ps.data||[]; S.modelos=md.data||[]; S.precos=tp.data||[]; S.orcs=oc.data||[];
   const err = p.error||c.error||s.error; if (err) { toast("Erro ao carregar: "+err.message); return; }
   S.pacientes=p.data; S.casos=c.data; S.sessoes=s.data;
 }
@@ -448,8 +456,9 @@ function cardInd(c){
     <div class="row meta"><span class="chip blue">${TIPO_LABEL[c.tipo]}</span>${chipPag(c)}${c.local?`<span class="chip">${esc(c.local)}</span>`:""}</div>
     ${c.procedimento||c.olho?`<div class="meta"><b style="color:var(--ink)">${esc(c.procedimento||"")}</b>${c.olho?" · "+esc(c.olho):""}${c.valor?` · ${moeda(c.valor)}`:""}</div>`:""}
     ${st.txt?`<div class="row"><span class="chip ${st.nivel==="late"?"late":st.nivel==="warn"?"warn":""}">${esc(st.txt)}</span></div>`:""}
+    ${(()=>{ const o=orcDoCaso(c); return o?`<div class="meta">💰 Orçamento ${o.enviado_em?"enviado "+dm(o.enviado_em):"salvo"} · ${o.opcoes.length} opç${o.opcoes.length>1?"ões":"ão"} · ${moeda(Math.min(...o.opcoes.map(x=>x.vista)))}–${moeda(Math.max(...o.opcoes.map(x=>x.vista)))}/olho${o.escolhida?` · escolheu ${esc(o.escolhida)}`:""}</div>`:""; })()}
     <div class="row" style="justify-content:space-between">${contato(p.telefone)}
-      <span class="actions">${prox&&c.etapa!=="fechado"?`<button class="btn small" data-act="mover-ind" data-id="${c.id}" data-to="${prox[0]}">→ ${prox[0]==="orcamento"?(ehConv(c)?"Guia enviada":"Orçamento enviado"):prox[1]}</button>`:""}<button class="btn small ghost" data-act="menu" data-id="${c.id}" aria-label="Mais opções">⋯</button></span></div>
+      <span class="actions">${!ehConv(c)||c.tipo==="cirurgia"?`<button class="btn small ghost" data-act="orcamento" data-id="${c.id}">💰 ${orcDoCaso(c)?"Novo orçamento":"Orçamento"}</button>`:""}${prox&&c.etapa!=="fechado"&&!(prox[0]==="orcamento"&&!ehConv(c))?`<button class="btn small" data-act="mover-ind" data-id="${c.id}" data-to="${prox[0]}">→ ${prox[0]==="orcamento"?(ehConv(c)?"Guia enviada":"Orçamento enviado"):prox[1]}</button>`:""}<button class="btn small ghost" data-act="menu" data-id="${c.id}" aria-label="Mais opções">⋯</button></span></div>
   </div>`;
 }
 
@@ -784,6 +793,120 @@ function folhaModelos(){
     if(await salvar(sb.from("modelos").insert(row),"Modelo salvo ✔")) folhaModelos(); });
 }
 
+/* ===== Orçamentos ===== */
+const ORIENTACOES = [
+  "Oriento sobre riscos de anestesia",
+  "Oriento risco de complicações cirúrgicas",
+  "Oriento sobre LIO monofocal e óculos para perto",
+  "Oriento sobre LIO multifocal e halos e glare",
+  "Oriento sobre continuar tratamento de doenças pré-existentes",
+  "Oriento sobre necessidade de lentes tóricas para diminuir astigmatismo",
+  "Oriento material hidrofílico de lente do plano / risco de opacificar e não corrigir grau",
+  "Oriento sobre uso de LIO EDOF e possível óculos de leitura para letras muito pequenas",
+];
+const MOTIVOS_PERDA = ["Preço","Vai pensar / sem retorno","Foi a outro médico","Convênio não autorizou","Medo / insegurança","Saúde / contraindicação","Outro"];
+function tabelaDoLocal(local){ const k=(local||"").startsWith("ICOG")?"ICOG":null; const t=S.precos.filter(p=>p.ativo!==false&&(p.local||null)===k); return t.length?t:S.precos.filter(p=>p.ativo!==false&&!p.local); }
+function orcDoCaso(c){ return S.orcs.filter(o=>o.caso_id===c.id).sort((a,b)=>(b.criado_em||"").localeCompare(a.criado_em||""))[0]||null; }
+function textoOrc(c,o){
+  const p=pacOf(c), olho=o.olhos==="AO"?`AMBOS OS OLHOS - 1º ${o.primeiro_olho||"OD"} 2º ${o.primeiro_olho==="OE"?"OD":"OE"}`:`OLHO ${o.olhos}`;
+  const linhas=o.opcoes.map((x,i)=>`${i+1}ª opção: ${x.nome}${x.plano?` (${x.plano==="com"?"com plano":"sem plano"})`:""} — à vista ${moeda(x.vista)} ou ${moeda(x.parcelado)} em até ${x.parcelas}x`).join("\n");
+  const tor = c.tipo==="cirurgia" && (o.torica_od||o.torica_oe||/FACO|FACECT|CATARAT/i.test(c.procedimento||"")||!c.procedimento) ? `\nIndicação de lente tórica: OD ${o.torica_od?"SIM":"NÃO"} · OE ${o.torica_oe?"SIM":"NÃO"}` : "";
+  return `Orçamento${o.numero?" "+o.numero:""} · ${br(iso(hoje()))}
+Paciente: ${p.nome}
+Dra. Renata Bertazzi · CRM-TO 7132${c.local?" · "+c.local:""}
+
+${(c.procedimento||(c.tipo==="cirurgia"?"Facectomia com implante de lente intraocular":TIPO_LABEL[c.tipo])).toUpperCase()}
+${olho}${tor}
+
+Valores por olho:
+${linhas}
+${o.olhos==="AO"?"\n(Valores por olho — para os dois olhos, considerar o dobro.)\n":""}${(o.orientacoes||[]).length?"\n"+o.orientacoes.map(x=>"• "+x).join("\n")+"\n":""}
+Orçamento válido por 15 dias. Qualquer dúvida, estamos à disposição.`;
+}
+function folhaOrcamento(c){
+  const p=pacOf(c), tab=tabelaDoLocal(c.local), conv=ehConv(c);
+  const cir=c.tipo==="cirurgia", faco=!cir||!c.procedimento||/FACO|FACECT|CATARAT/i.test(c.procedimento);
+  const linhasTab=tab.filter(x=>cir?x.grupo!=="Injeção":x.grupo==="Injeção").filter(()=>faco);
+  const extras=[];
+  const ref=(c.olho||"")+" "+(c.procedimento||"");
+  const olhoPad=/AO|AMBOS/i.test(ref)?"AO":ref.match(/OD|OE/)?.[0]||"AO";
+  abrir(`<header><div><h2>Orçamento · ${esc(nomeCurto(p.nome))}</h2><div class="sub">${esc(c.procedimento||TIPO_LABEL[c.tipo])} · ${esc(c.local||"sem local")} · tabela ${(c.local||"").startsWith("ICOG")?"ICOG":"padrão"}</div></div><button class="close" data-close aria-label="Fechar">×</button></header>
+  <form id="fo" class="form">
+    <label>Nº do orçamento (opcional)<input id="oNum" placeholder="Ex.: OR 3357525"></label>
+    <fieldset><legend>Olhos</legend>${radios("oOlhos",[["OD","OD"],["OE","OE"],["AO","Ambos"]],olhoPad)}</fieldset>
+    <fieldset id="fsPrim"><legend>Primeiro olho</legend>${radios("oPrim",[["OD","OD primeiro"],["OE","OE primeiro"]],"OD")}</fieldset>
+    ${cir&&faco?`<fieldset><legend>Indicação de lente tórica</legend><label class="ck"><input type="checkbox" id="oTOD"> OD</label><label class="ck"><input type="checkbox" id="oTOE"> OE</label></fieldset>
+    <fieldset><legend>Plano de saúde</legend>${radios("oPlano",[["sem","Sem plano"],["com","Com plano"]],conv?"com":"sem")}</fieldset>`:""}
+    <fieldset><legend>Opções que vão no orçamento <small>(marque as que quer oferecer)</small></legend><div id="oOpcoes"></div>
+      <details ${faco?"":"open"}><summary>${faco?"+ Adicionar opção com outro valor":"Sem tabela para este procedimento · digite o valor"}</summary>
+      <div class="tp-row" style="grid-template-columns:1.6fr 1fr 1fr auto"><label>Descrição<input id="xNome" placeholder="${esc(c.procedimento||"Procedimento")}"></label><label>À vista<input id="xV" inputmode="decimal"></label><label>Parcelado 10x<input id="xP" inputmode="decimal"></label><button type="button" class="btn small" id="xAdd">Adicionar</button></div></details></fieldset>
+    ${cir&&faco?`<details><summary><b>Orientações</b> · ${ORIENTACOES.length} itens marcados</summary>${ORIENTACOES.map((x,i)=>`<label class="ck"><input type="checkbox" class="oOri" value="${i}" checked> ${esc(x)}</label>`).join("")}</details>`:""}
+    <label>Texto que vai sair (pode editar)<textarea id="oTxt" rows="12"></textarea></label>
+    <div class="err" id="oErr"></div>
+    <button class="btn okb" type="submit">Salvar e enviar no WhatsApp</button>
+    <button class="btn ghost" type="button" id="oSo">Salvar sem enviar</button>
+    <button class="linkbtn" type="button" data-act="precos">Editar tabela de preços →</button>
+  </form>`);
+  const val=n=>document.querySelector(`input[name="${n}"]:checked`)?.value;
+  const opcoesVis=()=>{ const pl=val("oPlano"); const tor=$("#oTOD")?.checked||$("#oTOE")?.checked;
+    return [...linhasTab.filter(x=>!x.plano||!cir||x.plano===pl).filter(x=>!cir||!x.torica||tor), ...extras]; };
+  const desenha=()=>{ const vis=opcoesVis();
+    $("#oOpcoes").innerHTML=vis.map(x=>`<label class="ck opc"><input type="checkbox" class="oOpc" value="${x.id}" checked><span><b>${esc(x.nome)}</b>${x.plano?` <small>${x.plano==="com"?"com plano":"sem plano"}</small>`:""}<br><small>à vista ${moeda(x.vista)} · ${moeda(x.parcelado)} em ${x.parcelas}x${x.preco_minimo?` · mínimo ${moeda(x.preco_minimo)}`:""}${x.obs?` · ${esc(x.obs)}`:""}</small></span></label>`).join("")||'<div class="empty">Nenhum valor cadastrado para este caso.</div>';
+    monta(); };
+  const coleta=()=>{ const ids=[...document.querySelectorAll(".oOpc:checked")].map(i=>i.value);
+    return {numero:$("#oNum").value.trim()||null, olhos:val("oOlhos"), primeiro_olho:val("oOlhos")==="AO"?val("oPrim"):null,
+      torica_od:!!$("#oTOD")?.checked, torica_oe:!!$("#oTOE")?.checked, com_plano:val("oPlano")==="com",
+      opcoes:[...linhasTab,...extras].filter(x=>ids.includes(x.id)).map(x=>({id:x.id,nome:x.nome,plano:x.plano,vista:+x.vista,parcelado:+x.parcelado,parcelas:x.parcelas})),
+      orientacoes:[...document.querySelectorAll(".oOri:checked")].map(i=>ORIENTACOES[+i.value])}; };
+  const monta=()=>{ $("#fsPrim").style.display=val("oOlhos")==="AO"?"":"none"; $("#oTxt").value=textoOrc(c,coleta()); };
+  $("#fo").addEventListener("change",e=>{ if(e.target.id==="oTxt") return; if(["oTOD","oTOE"].includes(e.target.id)||e.target.name==="oPlano") desenha(); else monta(); });
+  $("#oNum").addEventListener("input",monta);
+  $("#xAdd").addEventListener("click",()=>{ const n=v=>parseFloat(String(v).replace(/\./g,"").replace(",","."))||0; const v=n($("#xV").value), pa=n($("#xP").value)||v;
+    if(!v){ $("#oErr").textContent="Digite o valor à vista da opção."; return; } $("#oErr").textContent="";
+    extras.push({id:"x"+extras.length,nome:$("#xNome").value.trim()||c.procedimento||"Procedimento",plano:null,vista:v,parcelado:pa,parcelas:10}); $("#xNome").value=$("#xV").value=$("#xP").value=""; desenha(); });
+  desenha();
+  const grava=async(enviar)=>{ const o=coleta(); if(!o.opcoes.length){ $("#oErr").textContent="Marque pelo menos uma opção."; return; }
+    const f=fones(p.telefone)[0];
+    if(enviar&&f){ const intl=f.length<=11?"55"+f:f; window.open(`https://wa.me/${intl}?text=${encodeURIComponent($("#oTxt").value)}`,"_blank","noopener"); }
+    const row={caso_id:c.id,numero:o.numero,olhos:o.olhos,primeiro_olho:o.primeiro_olho,torica_od:o.torica_od,torica_oe:o.torica_oe,com_plano:o.com_plano,opcoes:o.opcoes,texto:$("#oTxt").value,enviado_em:enviar?iso(hoje()):null,criado_por:S.user?.email||null};
+    fechar();
+    if(await salvar(sb.from("orcamentos").insert(row), enviar?(f?"Orçamento salvo e WhatsApp aberto ✔":"Orçamento salvo ✔ (paciente sem telefone)"):"Orçamento salvo ✔") && enviar && c.etapa==="indicado")
+      await salvar(sb.from("casos").update({etapa:"orcamento",orcamento_em:iso(hoje()),valor:o.opcoes[0]?.parcelado||null}).eq("id",c.id),"Movido para Orçamento enviado ✔");
+  };
+  $("#fo").addEventListener("submit",e=>{ e.preventDefault(); grava(true); });
+  $("#oSo").addEventListener("click",()=>grava(false));
+}
+function folhaFecharOrc(c, depois){
+  const o=orcDoCaso(c);
+  abrir(`<header><div><h2>Fechou! Qual opção?</h2><div class="sub">${esc(nomeCurto(pacOf(c).nome))}</div></div><button class="close" data-close aria-label="Fechar">×</button></header>
+  <form id="ff" class="form">${o?`<fieldset><legend>Lente / opção escolhida</legend>${radios("fEsc",o.opcoes.map(x=>[x.nome+(x.plano?` (${x.plano} plano)`:""),`${x.nome} · ${moeda(x.vista)}`]),"")}</fieldset>`:""}
+    <label>Valor fechado (total)<input id="fVal" inputmode="decimal" placeholder="Ex.: 15500"></label>
+    <button class="btn okb" type="submit">Salvar e mover para Fechado</button></form>`);
+  document.querySelectorAll('input[name="fEsc"]').forEach(r=>r.addEventListener("change",()=>{ const x=o.opcoes.find(z=>(z.nome+(z.plano?` (${z.plano} plano)`:""))===r.value); if(x&&!$("#fVal").value) $("#fVal").value=x.vista*(o.olhos==="AO"?2:1); }));
+  $("#ff").addEventListener("submit",async e=>{ e.preventDefault(); const esc_=document.querySelector('input[name="fEsc"]:checked')?.value||null; const v=parseFloat(String($("#fVal").value).replace(/\./g,"").replace(",","."))||null; fechar();
+    if(o) await sb.from("orcamentos").update({escolhida:esc_,valor_fechado:v}).eq("id",o.id);
+    if(v) await sb.from("casos").update({valor:v}).eq("id",c.id);
+    depois(); });
+}
+function folhaPerdido(c){
+  abrir(`<header><div><h2>Perdido · por quê?</h2><div class="sub">${esc(nomeCurto(pacOf(c).nome))}</div></div><button class="close" data-close aria-label="Fechar">×</button></header>
+  <form id="fpd" class="form"><fieldset><legend>Motivo</legend>${radios("pMot",MOTIVOS_PERDA.map(m=>[m,m]),"")}</fieldset><div class="err" id="pErr"></div><button class="btn" type="submit">Marcar como perdido</button></form>`);
+  $("#fpd").addEventListener("submit",e=>{ e.preventDefault(); const m=document.querySelector('input[name="pMot"]:checked')?.value; if(!m){ $("#pErr").textContent="Escolha um motivo."; return; } fechar();
+    salvar(sb.from("casos").update({etapa:"desistiu",motivo_perda:m}).eq("id",c.id),"Marcado como perdido · motivo: "+m); });
+}
+function folhaPrecos(){
+  const grupos=[["ICOG","Tabela ICOG"],[null,"Tabela padrão (OA, OPUS)"]];
+  const linha=x=>`<div class="tp-row" data-tp="${x.id}"><div><b>${esc(x.nome)}</b>${x.plano?` <small>${x.plano} plano</small>`:""}${x.obs?`<br><small>${esc(x.obs)}</small>`:""}</div>
+    <label>À vista<input class="tpV" inputmode="decimal" value="${x.vista??""}"></label><label>Parcelado<input class="tpP" inputmode="decimal" value="${x.parcelado??""}"></label><label>Mínimo<input class="tpM" inputmode="decimal" value="${x.preco_minimo??""}"></label></div>`;
+  abrir(`<header><div><h2>Tabela de preços</h2><div class="sub">Valores por olho · altere e toque em Salvar</div></div><button class="close" data-close aria-label="Fechar">×</button></header>
+  ${grupos.map(([k,t])=>`<h3 style="margin:12px 0 6px">${t}</h3>${S.precos.filter(x=>(x.local||null)===k).sort((a,b)=>a.ordem-b.ordem).map(linha).join("")}`).join("")}
+  <button class="btn" id="tpSalvar" style="margin-top:14px">Salvar alterações</button>`);
+  $("#tpSalvar").addEventListener("click",async()=>{ const n=v=>v.trim()===""?null:parseFloat(v.replace(/\./g,"").replace(",","."));
+    const ups=[...document.querySelectorAll("[data-tp]")].map(r=>{ const x=S.precos.find(p=>p.id===r.dataset.tp); const nv={vista:n(r.querySelector(".tpV").value),parcelado:n(r.querySelector(".tpP").value),preco_minimo:n(r.querySelector(".tpM").value)};
+      return (+x.vista!==nv.vista||+x.parcelado!==nv.parcelado||(x.preco_minimo==null?null:+x.preco_minimo)!==nv.preco_minimo)?sb.from("tabela_precos").update(nv).eq("id",x.id):null; }).filter(Boolean);
+    fechar(); for(const u of ups){ const {error}=await u; if(error){ toast("Erro: "+error.message); break; } } toast(ups.length?`${ups.length} valor(es) atualizado(s) ✔`:"Nada mudou"); await carregar(); render(); });
+}
+
 function filtroInd(c){
   const f=S.fInd;
   if(f==="convenio") return ehConv(c);
@@ -974,7 +1097,8 @@ async function moverPara(c, to){
   if(to==="agendado") return folhaData("Agendar cirurgia","Data da cirurgia", c.data_agendada||iso(hoje()), v=>salvar(sb.from("casos").update({etapa:"agendado",data_agendada:v}).eq("id",id),"Cirurgia agendada ✔"));
   if(to==="realizado") return folhaData("Cirurgia realizada","Data da cirurgia", c.data_agendada||iso(hoje()), v=>salvar(sb.from("casos").update({etapa:"realizado",data_realizado:v}).eq("id",id),"Cirurgia realizada ✔"));
   if(to==="orcamento") return folhaData(ehConv(c)?"Guia / pedido enviado ao convênio":"Orçamento enviado", "Data do envio", iso(hoje()), v=>salvar(sb.from("casos").update({etapa:"orcamento",orcamento_em:v}).eq("id",id), ehConv(c)?"Guia enviada ✔ · o prazo do convênio começa a contar":"Orçamento enviado ✔"));
-  if(to==="desistiu" && !confirmar("Marcar como perdido / não fará?")) return;
+  if(to==="desistiu") return folhaPerdido(c);
+  if(to==="fechado" && c.tipo==="cirurgia" && !c._ok && (orcDoCaso(c)||!ehConv(c))) return folhaFecharOrc(c, ()=>moverPara({...c,_ok:true},"fechado"));
   await salvar(sb.from("casos").update({etapa:to}).eq("id",id), `Movido para ${ETAPA_LABEL[to]} ✔`);
 }
 
@@ -991,6 +1115,8 @@ async function acao(act, el){
   if(act==="pos-whats") return folhaWhats(el.dataset.key);
   if(act==="modelos") return folhaModelos();
   if(act==="mod-del"){ if(confirmar("Excluir este modelo?")){ if(await salvar(sb.from("modelos").delete().eq("id",el.dataset.mid),"Modelo excluído")) folhaModelos(); } return; }
+  if(act==="orcamento") return folhaOrcamento(c);
+  if(act==="precos") return folhaPrecos();
   if(act==="cobrei") return salvar(sb.from("casos").update({ultimo_contato:iso(hoje())}).eq("id",id),"Cobrança registrada ✔ · sai da lista por 7 dias");
   if(act==="avisei") return salvar(sb.from("casos").update({ultimo_contato:iso(hoje())}).eq("id",id),"Marcado: paciente avisado ✔");
   if(act==="aplicar"){
