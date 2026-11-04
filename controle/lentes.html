@@ -95,7 +95,7 @@ h1{font-family:var(--display);font-weight:500;font-size:clamp(1.7rem,3.4vw,2.4re
 .dots.h i.f{background:#d08a2a}
 
 /* valores */
-.prices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:8px}
+.prices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:8px}
 @media(max-width:700px){.prices{grid-template-columns:1fr}}
 .price{border:1px solid var(--line);border-radius:14px;padding:12px}
 .price span{display:block;font-size:.78rem;color:var(--soft);font-weight:600}
@@ -260,7 +260,6 @@ h1{font-family:var(--display);font-weight:500;font-size:clamp(1.7rem,3.4vw,2.4re
         <div class="prices" id="pGrid">
           <div class="price"><span>À vista</span><b id="pV"></b><small>por olho</small></div>
           <div class="price"><span>No cartão</span><b id="pP"></b><small id="pParc">em até 10x</small></div>
-          <div class="price"><span>Os dois olhos à vista</span><b id="pA"></b><small id="pDia"></small></div>
         </div>
         <p class="foot" id="pTor" style="margin-top:8px"></p>
         <p class="foot" id="pObs" style="margin-top:4px"></p>
@@ -384,8 +383,7 @@ function render(){
   $("#pGrid").classList.toggle("hidden",!b); $("#pTor").classList.toggle("hidden",!b);
   $("#pVazio").textContent=!PRECOS.length?"Abra este simulador pelo portal (botão 👁 Lentes) para ver os valores da tabela de preços.":!b?"Esta opção não tem valor cadastrado nesta tabela. Cadastre em Indicações → 💰 Orçamento → Editar tabela de preços.":"";
   if(b){ const v=+b.vista, pa=+b.parcelado;
-    $("#pV").textContent=brl(v); $("#pP").textContent=brl(pa); $("#pParc").textContent=`em até ${b.parcelas||10}x`; $("#pA").textContent=brl(v*2);
-    $("#pDia").textContent=`≈ ${brl(Math.round(v*2/(10*365)))} por dia ao longo de 10 anos`;
+    $("#pV").textContent=brl(v); $("#pP").textContent=brl(pa); $("#pParc").textContent=`em até ${b.parcelas||10}x`;
     $("#pTor").textContent=pr.base&&pr.tor?`Com astigmatismo, versão tórica (${pr.tor.nome}): ${brl(+pr.tor.vista)} à vista ou ${brl(+pr.tor.parcelado)} em ${pr.tor.parcelas||10}x, por olho.`:!pr.base?`Valor da versão tórica (${b.nome}).`:"Esta opção não tem versão tórica nesta tabela.";
     $("#pObs").textContent=[b.preco_minimo?`Mínimo para negociação: ${brl(+b.preco_minimo)} à vista.`:"", b.obs||""].filter(Boolean).join(" · "); }
   else $("#pObs").textContent="";
