@@ -133,8 +133,8 @@ h1{font-family:var(--display);font-weight:500;font-size:clamp(1.7rem,3.4vw,2.4re
 
   <section class="scenes" aria-label="Simulação de visão">
     <figure class="scene">
-      <svg viewBox="0 0 300 200" role="img" aria-label="Visão de longe: estrada com placa">
-        <g class="view" id="vLonge">
+      <div class="view" id="vLonge" style="overflow:hidden"><svg viewBox="0 0 300 200" role="img" aria-label="Visão de longe: estrada com placa">
+        <g id="vLonge_g">
           <g id="longeDia">
             <rect width="300" height="200" fill="#bfe0f7"/>
             <circle cx="248" cy="38" r="16" fill="#fff6c8"/>
@@ -162,14 +162,14 @@ h1{font-family:var(--display);font-weight:500;font-size:clamp(1.7rem,3.4vw,2.4re
             <circle cx="60" cy="112" r="2.4" fill="#ffd27a"/><circle cx="96" cy="108" r="2.4" fill="#ffd27a"/>
           </g>
         </g>
-      </svg>
+      </svg></div>
       <figcaption class="cap"><div><b>Longe</b><br><span>dirigir, TV, rosto das pessoas</span></div><span class="pill" id="tLonge"></span></figcaption>
     </figure>
     <figure class="scene">
-      <svg viewBox="0 0 300 200" role="img" aria-label="Visão intermediária: tela de computador">
+      <div class="view" id="vInter" style="overflow:hidden"><svg viewBox="0 0 300 200" role="img" aria-label="Visão intermediária: tela de computador">
         <rect width="300" height="200" fill="#efe9e1"/>
         <rect y="150" width="300" height="50" fill="#c9a983"/>
-        <g class="view" id="vInter">
+        <g id="vInter_g">
           <rect x="62" y="34" width="176" height="112" rx="6" fill="#2b3442"/>
           <rect x="70" y="42" width="160" height="96" rx="2" fill="#fff"/>
           <rect x="70" y="42" width="160" height="14" fill="#1f5aa6"/>
@@ -184,13 +184,13 @@ h1{font-family:var(--display);font-weight:500;font-size:clamp(1.7rem,3.4vw,2.4re
           <rect x="120" y="146" width="60" height="6" fill="#2b3442"/>
           <rect x="98" y="152" width="104" height="6" rx="2" fill="#3a4556"/>
         </g>
-      </svg>
+      </svg></div>
       <figcaption class="cap"><div><b>Intermediário</b><br><span>computador, painel do carro, cozinhar</span></div><span class="pill" id="tInter"></span></figcaption>
     </figure>
     <figure class="scene">
-      <svg viewBox="0 0 300 200" role="img" aria-label="Visão de perto: celular e bula de remédio">
+      <div class="view" id="vPerto" style="overflow:hidden"><svg viewBox="0 0 300 200" role="img" aria-label="Visão de perto: celular e bula de remédio">
         <rect width="300" height="200" fill="#e7edf3"/>
-        <g class="view" id="vPerto">
+        <g id="vPerto_g">
           <rect x="34" y="18" width="104" height="170" rx="14" fill="#1d2430"/>
           <rect x="40" y="28" width="92" height="150" rx="6" fill="#f7f9fb"/>
           <rect x="46" y="40" width="74" height="30" rx="6" fill="#dcf3df"/>
@@ -213,7 +213,7 @@ h1{font-family:var(--display);font-weight:500;font-size:clamp(1.7rem,3.4vw,2.4re
             <text x="168" y="146">Validade após aberto: 28 dias.</text>
           </g>
         </g>
-      </svg>
+      </svg></div>
       <figcaption class="cap"><div><b>Perto</b><br><span>celular, leitura, bula, costura</span></div><span class="pill" id="tPerto"></span></figcaption>
     </figure>
   </section>
