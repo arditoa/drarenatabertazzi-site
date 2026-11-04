@@ -165,7 +165,7 @@ main{max-width:1480px;margin:0 auto;padding:16px 14px 24px}
 .tp-row label{font-size:.72rem;color:var(--soft);display:grid;gap:2px}
 .tp-row input{padding:8px;border:1px solid var(--line);border-radius:8px;font:inherit;width:100%}
 @media(max-width:600px){.tp-row{grid-template-columns:1fr 1fr 1fr}.tp-row>div{grid-column:1/-1}}
-.kpis.rep{grid-template-columns:repeat(2,1fr)} @media(min-width:760px){.kpis.rep{grid-template-columns:repeat(3,1fr)}} @media(min-width:1000px){.kpis.rep{grid-template-columns:repeat(5,1fr)}}
+.kpis.rep{grid-template-columns:repeat(auto-fit,minmax(165px,1fr))}
 .kpi.warn{border-left-color:var(--warn)} .kpi.warn b{color:var(--warn)}
 .insight ul{margin:0;padding-left:18px;display:grid;gap:6px;font-size:.92rem}
 .panel.alerta{border-left:5px solid var(--warn)}
@@ -185,8 +185,27 @@ button.kpi{font:inherit;color:inherit;cursor:pointer} button.kpi:hover{box-shado
 .rp-pac{border-top:1px solid var(--line);padding:8px 0}
 .rp-pac summary{display:flex;justify-content:space-between;gap:10px;cursor:pointer;list-style:none}
 .rp-pac summary small{display:block;color:var(--soft);font-size:.78rem}
-.tbl.dia tfoot td{text-transform:none;letter-spacing:0;font-size:inherit;color:inherit;background:#f3f7fc;border-top:2px solid var(--line)} .tbl.dia td small{display:block;color:var(--soft);font-size:.72rem} .tbl.dia td.clk{cursor:pointer} .tbl.dia td.clk:hover{background:#eef4fc} .tbl.dia td.vazio{color:#c3cbd6}
+.tbl.pdia tfoot td{text-transform:none;letter-spacing:0;font-size:inherit;color:inherit;background:#f3f7fc;border-top:2px solid var(--line)} .tbl.pdia td small{display:block;color:var(--soft);font-size:.72rem} .tbl.pdia td.clk{cursor:pointer} .tbl.pdia td.clk:hover{background:#eef4fc} .tbl.pdia td.vazio{color:#c3cbd6}
 .loc-sel input[type=date]{padding:9px 10px;border:1px solid var(--line);border-radius:12px;font:inherit;background:var(--surface)}
+.rep-bar{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin:4px 0 16px;display:grid;gap:12px}
+.rb-row{display:grid;grid-template-columns:120px 1fr;gap:10px;align-items:center}
+@media(max-width:700px){.rb-row{grid-template-columns:1fr;gap:6px}}
+.rb-lab{font-weight:600;color:var(--brand,#1d4f91);font-size:.9rem}
+.rb-sel{max-width:320px;width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:12px;font:inherit;background:#fff}
+.rb-chips{display:flex;flex-wrap:wrap;gap:8px}
+.rchip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 14px;font:inherit;font-size:.88rem;cursor:pointer;color:inherit}
+.rchip[aria-pressed="true"]{background:#1d4f91;border-color:#1d4f91;color:#fff;font-weight:600}
+.rb-datas{display:flex;gap:10px;flex-wrap:wrap}.rb-datas label{display:flex;gap:6px;align-items:center;font-size:.88rem;color:var(--soft)}
+.rb-datas input{padding:8px 10px;border:1px solid var(--line);border-radius:10px;font:inherit;background:#fff}
+.rb-of{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+.of-loc{display:flex;align-items:center;gap:8px;font-size:.88rem}.of-loc>span{font-weight:600}
+.of-dias{display:flex;gap:3px}.of-d{width:28px;height:28px;border-radius:8px;border:1px solid var(--line);background:#fff;font:inherit;font-size:.78rem;cursor:pointer;color:var(--soft)}
+.of-d[aria-pressed="true"]{background:#e8a33d;border-color:#e8a33d;color:#fff;font-weight:700}
+.of-chk input{width:auto!important;margin:0;flex:none} .of-chk{flex-basis:100%;justify-content:flex-start;text-align:left;display:flex;gap:6px;align-items:center;font-size:.85rem;color:var(--soft)}
+.rb-cobre{font-size:.8rem;color:var(--soft);border-top:1px dashed var(--line);padding-top:10px}.rb-cobre span{display:inline-block;background:#f1f4f8;border-radius:6px;padding:2px 8px;margin:0 6px 4px 6px}.rb-cobre em{font-style:normal}
+.tbl.pdia td.of{box-shadow:inset 3px 0 0 #e8a33d}.tbl.pdia td.fora{background:repeating-linear-gradient(135deg,#fafafa 0 6px,#f1f1f1 6px 12px);color:#8a94a3}.tbl.pdia td.fora b{color:#6b7480}
+.lg{display:inline-block;width:10px;height:10px;border-radius:3px;vertical-align:-1px}.lg.of{background:#e8a33d}.lg.fora{background:#ddd}
+button.kpi.fora{border-left-color:#bbb;background:#fafafa}
 /* Painel por fases */
 .trilha-t{font-weight:700;font-size:.9rem;color:var(--soft);margin:14px 0 8px}
 .fases{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
@@ -597,6 +616,13 @@ function blocoInjecoes(){
   </div>`;
 }
 const AGENDA = {1:[["OA Palmas","Manhã e tarde"]],2:[["OA Paraíso","Dia todo"]],3:[["ICOG Palmas","Manhã"],["OPUS","Tarde"]],4:[["ICOG Porto","Dia todo"]],5:[["OPUS","Manhã"],["OA Palmas","Tarde"]]};
+// Dias oficiais de atendimento por clínica (para o Repasse). Editável na tela; guardado no aparelho.
+const DIAS_OF_PADRAO={"OA Palmas":[1,5],"OA Paraíso":[2],"ICOG Palmas":[3],"OPUS":[3,5],"ICOG Porto":[4]};
+function diasOficiais(){ try{ const s=JSON.parse(localStorage.getItem("repDiasOf")||"null"); if(s) return s; }catch(e){} return DIAS_OF_PADRAO; }
+function salvaDiasOf(o){ try{ localStorage.setItem("repDiasOf",JSON.stringify(o)); }catch(e){} }
+function locItem(i){ return S.reps.find(r=>r.id===i.repasse_id)?.local; }
+function ehOficial(local,data){ if(!data) return true; const d=diasOficiais()[local]; if(!d) return true; return d.includes(parse(data).getDay()); }
+function itOficial(i){ return ehOficial(locItem(i),i.data); }
 const GRUPOS = [
   ["atrasada","🔴 Atrasadas","passaram de 30 dias sem aplicar"],
   ["aplicar","💉 Aplicações marcadas para este dia",""],
@@ -1050,7 +1076,7 @@ function rl(f){ return `data-rlist="${esc(JSON.stringify(f))}"`; }
 function barrasR(lista,fmt){ fmt=fmt||moeda; const max=Math.max(1,...lista.map(x=>x[1])); return `<div class="funnel">${lista.map(([t,n,sub,f])=>`<button class="fn rp" ${f?rl(f):""}><span>${esc(t)}${sub?`<small>${esc(sub)}</small>`:""}</span><i style="width:${Math.max(3,Math.round(n/max*100))}%"></i><b>${fmt(n)}</b></button>`).join("")}</div>`; }
 function folhaRepLista(f){
   const {reps,itens}=repFiltrados(); const locDe=id=>reps.find(r=>r.id===id)?.local;
-  let its=itens.filter(i=>(!f.local||locDe(i.repasse_id)===f.local)&&(!f.conv||(i.convenio||"—").toUpperCase()===f.conv)&&(!f.cat||(Array.isArray(f.cat)?f.cat.includes(i.categoria):i.categoria===f.cat))&&(!f.pac||normNome(i.paciente)===f.pac)&&(!f.dia||i.data===f.dia));
+  let its=itens.filter(i=>(!f.local||locDe(i.repasse_id)===f.local)&&(!f.conv||(i.convenio||"—").toUpperCase()===f.conv)&&(!f.cat||(Array.isArray(f.cat)?f.cat.includes(i.categoria):i.categoria===f.cat))&&(!f.pac||normNome(i.paciente)===f.pac)&&(!f.dia||i.data===f.dia)&&(!f.fora||!itOficial(i)));
   const g={}; its.forEach(i=>{ const k=normNome(i.paciente)+"|"+locDe(i.repasse_id); (g[k]=g[k]||{nome:i.paciente,loc:locDe(i.repasse_id),conv:new Set(),its:[],v:0}); g[k].its.push(i); g[k].v+=Number(i.valor||0); g[k].conv.add(i.convenio||""); if(String(i.paciente).length>g[k].nome.length) g[k].nome=i.paciente; });
   const lista=Object.values(g).sort((a,b)=>b.v-a.v), tot=its.reduce((s,i)=>s+Number(i.valor||0),0);
   const pacPortal=n=>S.pacientes.find(p=>mesmoPaciente(p.nome,n));
@@ -1072,13 +1098,15 @@ const DIAS_SEM=["dom","seg","ter","qua","qui","sex","sáb"];
 function metricasLocal(itens){
   const total=itens.reduce((s,i)=>s+Number(i.valor||0),0);
   const pac=new Set(itens.map(i=>normNome(i.paciente)).filter(Boolean));
-  const diasCons=new Set(itens.filter(i=>["consulta","retorno"].includes(i.categoria)).map(i=>i.data));
-  const dias=diasCons.size||new Set(itens.map(i=>i.data)).size;
+  const so=S.repSoOf!==false, base=so?itens.filter(itOficial):itens, chave=i=>locItem(i)+"|"+i.data;
+  const diasCons=new Set(base.filter(i=>["consulta","retorno"].includes(i.categoria)).map(chave));
+  const dias=diasCons.size||new Set(base.map(chave)).size;
+  const fora=itens.filter(i=>!itOficial(i)), foraV=fora.reduce((s,i)=>s+Number(i.valor||0),0), foraP=new Set(fora.map(i=>normNome(i.paciente))).size;
   const exames=itens.filter(i=>i.categoria==="exame").reduce((s,i)=>s+(i.qtd||1),0);
   const part=itens.filter(i=>/PARTIC/i.test(i.convenio||"")).reduce((s,i)=>s+Number(i.valor||0),0);
   const proc=itens.filter(i=>["cirurgia","injecao","laser"].includes(i.categoria)).reduce((s,i)=>s+Number(i.valor||0),0);
-  const atend=new Set(itens.filter(i=>i.paciente&&i.data).map(i=>normNome(i.paciente)+"|"+i.data)).size;
-  return {total, pacientes:pac.size, atend, pacDia:dias?atend/dias:0, dias, porDia:dias?total/dias:0, porPac:pac.size?total/pac.size:0, exames, exPac:pac.size?exames/pac.size:0, pPart:total?part/total:0, pProc:total?proc/total:0};
+  const atend=new Set(base.filter(i=>i.paciente&&i.data).map(i=>normNome(i.paciente)+"|"+i.data)).size;
+  return {total, fora:fora.length, foraV, foraP, pacientes:pac.size, atend, pacDia:dias?atend/dias:0, dias, porDia:dias?total/dias:0, porPac:pac.size?total/pac.size:0, exames, exPac:pac.size?exames/pac.size:0, pPart:total?part/total:0, pProc:total?proc/total:0};
 }
 function conferenciaRep(r){
   const it=S.repItens.filter(i=>i.repasse_id===r.id);
@@ -1104,20 +1132,36 @@ function telaRepasse(){
   const nomeMes=m=>{ const [a,b]=m.split("-"); return new Date(+a,+b-1,1).toLocaleDateString("pt-BR",{month:"long",year:"numeric"}); };
   const head=`<div class="sec-head"><div><h2>Repasse</h2><div class="sub">O que cada clínica repassou · conferência dos extratos</div></div><button class="btn" data-act="rep-import">+ Importar extrato ou planilha</button></div>`;
   if(!S.reps.length) return head+`<div class="empty" style="padding:30px">Nenhum repasse importado ainda. Toque em <b>Importar extrato ou planilha</b> e escolha o arquivo (PDF do EyecareBI ou planilha Excel).</div>`;
-  const filtros=`<div class="row" style="gap:10px;flex-wrap:wrap;margin:4px 0 14px">
-    <label class="loc-sel" style="margin:0">📍 Clínica<select id="selRepLocal"><option value="">Todas</option>${locais.map(l=>`<option ${S.repLocal===l?"selected":""}>${esc(l)}</option>`).join("")}</select></label>
-    <label class="loc-sel" style="margin:0">🗓️ De<input type="date" id="repDe" value="${S.repDe||""}"></label>
-    <label class="loc-sel" style="margin:0">até<input type="date" id="repAte" value="${S.repAte||""}"></label>
-    <div class="seg">${(()=>{ const pc=periodoComum(); const b=(de,ate,tx)=>`<button data-rper="${de||""}|${ate||""}" aria-pressed="${(S.repDe||"")===(de||"")&&(S.repAte||"")===(ate||"")}">${tx}</button>`;
-      return b("","","Tudo")+(pc?b(pc[0],pc[1],`Período em comum (${dm(pc[0])}–${dm(pc[1])})`):"")+meses.map(m=>{ const [a,mm]=m.split("-"); const fim=new Date(+a,+mm,0).getDate(); return b(`${m}-01`,`${m}-${String(fim).padStart(2,"0")}`,nomeMes(m).replace(/ de \d{4}/,"")); }).join(""); })()}</div></div>
-  ${(S.repDe||S.repAte)?`<div class="sub" style="margin:-6px 0 12px">Mostrando atendimentos de <b>${S.repDe?br(S.repDe):"início"}</b> a <b>${S.repAte?br(S.repAte):"hoje"}</b>. Os extratos cobrem: ${S.reps.map(r=>`${esc(r.local)} ${r.periodo_ini?dm(r.periodo_ini):""}–${r.periodo_fim?dm(r.periodo_fim):""}`).join(" · ")}</div>`:`<div class="sub" style="margin:-6px 0 12px">Os extratos cobrem períodos diferentes: ${S.reps.map(r=>`${esc(r.local)} ${r.periodo_ini?dm(r.periodo_ini):""}–${r.periodo_fim?dm(r.periodo_fim):""}`).join(" · ")}. Use "Período em comum" para comparar as clínicas de forma justa.</div>`}`;
+  const pc=periodoComum(); const chips=[["","","Tudo"]].concat(pc?[[pc[0],pc[1],`Período em comum · ${dm(pc[0])} a ${dm(pc[1])}`]]:[]).concat(meses.map(m=>{ const [a,mm]=m.split("-"); const fim=new Date(+a,+mm,0).getDate(); return [`${m}-01`,`${m}-${String(fim).padStart(2,"0")}`,nomeMes(m).replace(/ de \d{4}/,"").replace(/^./,c=>c.toUpperCase())]; }));
+  const casa=chips.some(([de,ate])=>(S.repDe||"")===de&&(S.repAte||"")===ate);
+  const custom=S.repCustom||!casa;
+  const DOf=diasOficiais(), SEM=["D","S","T","Q","Q","S","S"];
+  const locsVis=locais.filter(l=>!S.repLocal||l===S.repLocal);
+  const filtros=`<div class="rep-bar">
+    <div class="rb-row">
+      <div class="rb-lab">📍 Clínica</div>
+      <select id="selRepLocal" class="rb-sel"><option value="">Todas as clínicas</option>${locais.map(l=>`<option ${S.repLocal===l?"selected":""}>${esc(l)}</option>`).join("")}</select>
+    </div>
+    <div class="rb-row">
+      <div class="rb-lab">🗓️ Período</div>
+      <div class="rb-chips">${chips.map(([de,ate,tx])=>`<button class="rchip" data-rper="${de}|${ate}" aria-pressed="${!S.repCustom&&(S.repDe||"")===de&&(S.repAte||"")===ate}">${tx}</button>`).join("")}<button class="rchip" data-act="rep-custom" aria-pressed="${custom}">Escolher datas…</button></div>
+    </div>
+    ${custom?`<div class="rb-row"><div class="rb-lab"></div><div class="rb-datas"><label>de <input type="date" id="repDe" value="${S.repDe||""}"></label><label>até <input type="date" id="repAte" value="${S.repAte||""}"></label></div></div>`:""}
+    <div class="rb-row">
+      <div class="rb-lab">⭐ Dias oficiais</div>
+      <div class="rb-of">${locsVis.map(l=>`<div class="of-loc"><span>${esc(l)}</span><div class="of-dias">${[1,2,3,4,5,6].map(w=>`<button class="of-d" data-ofloc="${esc(l)}" data-ofw="${w}" aria-pressed="${(DOf[l]||[]).includes(w)}" title="${["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][w]}">${SEM[w]}</button>`).join("")}</div></div>`).join("")}
+        <label class="of-chk"><input type="checkbox" id="repSoOf" ${S.repSoOf!==false?"checked":""}> Médias por dia só com os dias oficiais</label></div>
+    </div>
+    <div class="rb-cobre">Extratos: ${S.reps.map(r=>`<span>${esc(r.local)} ${r.periodo_ini?dm(r.periodo_ini):""}–${r.periodo_fim?dm(r.periodo_fim):""}</span>`).join("")}${!S.repDe&&!S.repAte&&pc?` <em>· cobrem períodos diferentes; use "Período em comum" para comparar.</em>`:""}</div>
+  </div>`;
   const M=metricasLocal(itens);
   const kpis=`<div class="kpis rep">
     <button class="kpi" ${rl({})}><b>${moeda0(M.total)}</b><span>Repasse no período · ver pacientes</span></button>
     <button class="kpi" ${rl({cat:["cirurgia","injecao","laser"]})}><b>${itens.filter(i=>["cirurgia","injecao","laser"].includes(i.categoria)).reduce((s,i)=>s+Number(i.valor||0),0).toLocaleString("pt-BR",{style:"currency",currency:"BRL",maximumFractionDigits:0})}</b><span>Cirurgias, injeções e laser · ${new Set(itens.filter(i=>["cirurgia","injecao","laser"].includes(i.categoria)).map(i=>normNome(i.paciente))).size} pacientes</span></button>
     <button class="kpi" ${rl({})}><b>${M.pacientes}</b><span>Pacientes atendidos · ${M.atend} atendimentos</span></button>
     <div class="kpi"><b>${M.pacDia.toFixed(1).replace(".",",")}</b><span>Pacientes por dia de atendimento (média)</span></div>
-    <div class="kpi"><b>${moeda0(M.porDia)}</b><span>Por dia de atendimento (${M.dias} dias)</span></div>
+    <div class="kpi"><b>${moeda0(M.porDia)}</b><span>Por dia de atendimento (${M.dias} dia${M.dias===1?"":"s"}${S.repSoOf!==false?" oficiais":""})</span></div>
+    ${M.fora?`<button class="kpi fora" ${rl({fora:true,titulo:"Fora dos dias oficiais"})}><b>${moeda0(M.foraV)}</b><span>Fora dos dias oficiais · ${M.foraP} paciente(s), provável pós/retorno</span></button>`:""}
     </div>`;
   // por clínica
   const porLoc=locais.filter(l=>!S.repLocal||l===S.repLocal).map(l=>{ const its=itens.filter(i=>reps.find(r=>r.id===i.repasse_id)?.local===l); return [l,metricasLocal(its)]; }).filter(([,m])=>m.total>0).sort((a,b)=>b[1].porDia-a[1].porDia);
@@ -1159,13 +1203,13 @@ function telaRepasse(){
   ${(()=>{ const datas=[...new Set(itens.map(i=>i.data).filter(Boolean))].sort().reverse(); const locs=porLoc.map(([l])=>l);
      if(!datas.length) return "";
      const locDe=id=>reps.find(r=>r.id===id)?.local;
-     const cel=(d,l)=>{ const its=itens.filter(i=>i.data===d&&locDe(i.repasse_id)===l); const v=its.reduce((s,i)=>s+Number(i.valor||0),0); const pc=new Set(its.map(i=>normNome(i.paciente))).size; return v||its.length?`<td class="clk" ${rl({local:l,dia:d,titulo:br(d)})}><b>${moeda0(v)}</b><small>${pc} pac.</small></td>`:`<td class="vazio">—</td>`; };
-     return `<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>Repasse por dia</h3><span class="sub">toque num valor para ver os pacientes do dia</span></div>
-     <div class="tbl-wrap"><table class="tbl dia"><thead><tr><th>Dia</th>${locs.map(l=>`<th>${esc(l)}</th>`).join("")}<th>Total</th></tr></thead><tbody>${datas.map(d=>{ const dt=parse(d); const tot=itens.filter(i=>i.data===d).reduce((s,i)=>s+Number(i.valor||0),0);
-       return `<tr><td><b>${br(d)}</b> <small>${DIAS_SEM[dt.getDay()]}</small></td>${locs.map(l=>cel(d,l)).join("")}<td class="clk" ${rl({dia:d,titulo:br(d)})}><b>${moeda0(tot)}</b></td></tr>`; }).join("")}</tbody><tfoot>${(()=>{ const f=v=>v.toFixed(1).replace(".",","); const med=its=>{ const ds=[...new Set(its.map(i=>i.data))]; const n=ds.length; const at=new Set(its.map(i=>normNome(i.paciente)+"|"+i.data)).size; const v=its.reduce((s,i)=>s+Number(i.valor||0),0); return n?`<b>${f(at/n)} pac.</b><small>${moeda0(v/n)} · ${n} dia(s)</small>`:"—"; };
+     const cel=(d,l)=>{ const its=itens.filter(i=>i.data===d&&locDe(i.repasse_id)===l); const v=its.reduce((s,i)=>s+Number(i.valor||0),0); const pc=new Set(its.map(i=>normNome(i.paciente))).size; const of=ehOficial(l,d); return v||its.length?`<td class="clk ${of?"of":"fora"}" ${rl({local:l,dia:d,titulo:br(d)+(of?"":" · fora da agenda")})}><b>${moeda0(v)}</b><small>${pc} pac.${of?"":" · fora da agenda"}</small></td>`:`<td class="vazio">—</td>`; };
+     return `<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>Repasse por dia</h3><span class="sub"><span class="lg of"></span> dia oficial · <span class="lg fora"></span> fora da agenda · toque para ver os pacientes</span></div>
+     <div class="tbl-wrap"><table class="tbl pdia"><thead><tr><th>Dia</th>${locs.map(l=>`<th>${esc(l)}</th>`).join("")}<th>Total</th></tr></thead><tbody>${datas.map(d=>{ const dt=parse(d); const tot=itens.filter(i=>i.data===d).reduce((s,i)=>s+Number(i.valor||0),0);
+       return `<tr><td><b>${br(d)}</b> <small>${DIAS_SEM[dt.getDay()]}</small></td>${locs.map(l=>cel(d,l)).join("")}<td class="clk" ${rl({dia:d,titulo:br(d)})}><b>${moeda0(tot)}</b></td></tr>`; }).join("")}</tbody><tfoot>${(()=>{ const f=v=>v.toFixed(1).replace(".",","); const med=its=>{ if(S.repSoOf!==false) its=its.filter(itOficial); const ds=[...new Set(its.map(i=>i.data))]; const n=ds.length; const at=new Set(its.map(i=>normNome(i.paciente)+"|"+i.data)).size; const v=its.reduce((s,i)=>s+Number(i.valor||0),0); return n?`<b>${f(at/n)} pac.</b><small>${moeda0(v/n)} · ${n} dia(s)</small>`:"—"; };
        return `<tr class="media"><td><b>Média por dia</b></td>${locs.map(l=>`<td>${med(itens.filter(i=>locDe(i.repasse_id)===l))}</td>`).join("")}<td>${med(itens)}</td></tr>`; })()}</tfoot></table></div>
-     ${(()=>{ const f=v=>v.toFixed(1).replace(".",","); const linhas=[1,2,3,4,5,6,0].map(w=>{ const cels=locs.map(l=>{ const its=itens.filter(i=>locDe(i.repasse_id)===l&&parse(i.data).getDay()===w); const ds=new Set(its.map(i=>i.data)).size; if(!ds) return `<td class="vazio">—</td>`; const at=new Set(its.map(i=>normNome(i.paciente)+"|"+i.data)).size; const v=its.reduce((s,i)=>s+Number(i.valor||0),0); return `<td><b>${f(at/ds)} pac.</b><small>${moeda0(v/ds)} · ${ds} dia(s)</small></td>`; }); return cels.some(c=>!c.includes("vazio"))?`<tr><td><b>${["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"][w]}</b></td>${cels.join("")}</tr>`:""; }).join("");
-       return linhas?`<h4 style="margin:16px 0 6px;font-size:.95rem">Média por dia da semana</h4><div class="sub" style="margin-bottom:6px">pacientes e repasse médios em cada dia em que houve atendimento</div><div class="tbl-wrap"><table class="tbl dia"><thead><tr><th>Dia</th>${locs.map(l=>`<th>${esc(l)}</th>`).join("")}</tr></thead><tbody>${linhas}</tbody></table></div>`:""; })()}</div>`; })()}
+     ${(()=>{ const f=v=>v.toFixed(1).replace(".",","); const linhas=[1,2,3,4,5,6,0].map(w=>{ const cels=locs.map(l=>{ const its=itens.filter(i=>locDe(i.repasse_id)===l&&parse(i.data).getDay()===w); const ds=new Set(its.map(i=>i.data)).size; if(!ds) return `<td class="vazio">—</td>`; const of=ehOficial(l,its[0].data); const at=new Set(its.map(i=>normNome(i.paciente)+"|"+i.data)).size; const v=its.reduce((s,i)=>s+Number(i.valor||0),0); return `<td class="${of?"of":"fora"}"><b>${f(at/ds)} pac.</b><small>${moeda0(v/ds)} · ${ds} dia(s)${of?" · ⭐ oficial":" · fora da agenda"}</small></td>`; }); return cels.some(c=>!c.includes("vazio"))?`<tr><td><b>${["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"][w]}</b></td>${cels.join("")}</tr>`:""; }).join("");
+       return linhas?`<h4 style="margin:16px 0 6px;font-size:.95rem">Média por dia da semana</h4><div class="sub" style="margin-bottom:6px">pacientes e repasse médios em cada dia em que houve atendimento</div><div class="tbl-wrap"><table class="tbl pdia"><thead><tr><th>Dia</th>${locs.map(l=>`<th>${esc(l)}</th>`).join("")}</tr></thead><tbody>${linhas}</tbody></table></div>`:""; })()}</div>`; })()}
   <div class="group-title">Relatórios importados <span class="count">${reps.length}</span></div>
   <div class="list">${reps.sort((a,b)=>(b.periodo_fim||"").localeCompare(a.periodo_fim||"")).map(cardRep).join("")}</div>`;
 }
@@ -1522,12 +1566,14 @@ async function ciclarInteresse(id){
 }
 
 document.addEventListener("click", e=>{
-  const t=e.target.closest("[data-rper],[data-rlist],[data-rfil],[data-acaotg],[data-fpag],[data-finj],[data-fpos],[data-dia],[data-floc],[data-fase],[data-tab],[data-goto],[data-act],[data-pac],[data-ft],[data-fi],[data-int]"); if(!t) return;
+  const t=e.target.closest("[data-ofw],[data-rper],[data-rlist],[data-rfil],[data-acaotg],[data-fpag],[data-finj],[data-fpos],[data-dia],[data-floc],[data-fase],[data-tab],[data-goto],[data-act],[data-pac],[data-ft],[data-fi],[data-int]"); if(!t) return;
   if(t.dataset.int){ ciclarInteresse(t.dataset.int); return; }
   if(t.dataset.dia!==undefined){ S.dia=+t.dataset.dia; render(); return; }
   if(t.dataset.floc!==undefined){ S.fLocal=t.dataset.floc; S.fase=null; render(); return; }
   if(t.dataset.fase){ S.fase = S.fase===t.dataset.fase ? null : t.dataset.fase; render(); return; }
-  if(t.dataset.rper!==undefined){ const [a,b]=t.dataset.rper.split("|"); S.repDe=a||""; S.repAte=b||""; render(); return; }
+  if(t.dataset.ofw){ const o=JSON.parse(JSON.stringify(diasOficiais())); const l=t.dataset.ofloc, w=+t.dataset.ofw; const a=o[l]||[]; o[l]=a.includes(w)?a.filter(x=>x!==w):[...a,w].sort(); salvaDiasOf(o); render(); return; }
+  if(t.dataset.act==="rep-custom"){ S.repCustom=!S.repCustom; render(); return; }
+  if(t.dataset.rper!==undefined){ S.repCustom=false; const [a,b]=t.dataset.rper.split("|"); S.repDe=a||""; S.repAte=b||""; render(); return; }
   if(t.dataset.rlist){ folhaRepLista(JSON.parse(t.dataset.rlist)); return; }
   if(t.dataset.rfil){ S.repFiltro=t.dataset.rfil; render(); return; }
   if(t.dataset.acaotg){ S.acaoAberta = S.acaoAberta!==true; render(); return; }
@@ -1542,6 +1588,7 @@ document.addEventListener("click", e=>{
 });
 document.addEventListener("change", e=>{ if(e.target.id==="selLocal"){ S.fLocal=e.target.value; S.fase=null; render(); }
   if(e.target.id==="selRepLocal"){ S.repLocal=e.target.value; render(); }
+  if(e.target.id==="repSoOf"){ S.repSoOf=e.target.checked; render(); }
   if(e.target.id==="repDe"){ S.repDe=e.target.value; render(); }
   if(e.target.id==="repAte"){ S.repAte=e.target.value; render(); }
   if(e.target.dataset&&e.target.dataset.rck){ marcaConferido([e.target.dataset.rck], e.target.checked); } });
