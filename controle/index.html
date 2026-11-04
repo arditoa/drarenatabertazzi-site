@@ -165,7 +165,7 @@ main{max-width:1480px;margin:0 auto;padding:16px 14px 24px}
 .tp-row label{font-size:.72rem;color:var(--soft);display:grid;gap:2px}
 .tp-row input{padding:8px;border:1px solid var(--line);border-radius:8px;font:inherit;width:100%}
 @media(max-width:600px){.tp-row{grid-template-columns:1fr 1fr 1fr}.tp-row>div{grid-column:1/-1}}
-.kpis.rep{grid-template-columns:repeat(2,1fr)} @media(min-width:760px){.kpis.rep{grid-template-columns:repeat(4,1fr)}}
+.kpis.rep{grid-template-columns:repeat(2,1fr)} @media(min-width:760px){.kpis.rep{grid-template-columns:repeat(3,1fr)}} @media(min-width:1000px){.kpis.rep{grid-template-columns:repeat(5,1fr)}}
 .kpi.warn{border-left-color:var(--warn)} .kpi.warn b{color:var(--warn)}
 .insight ul{margin:0;padding-left:18px;display:grid;gap:6px;font-size:.92rem}
 .panel.alerta{border-left:5px solid var(--warn)}
@@ -185,7 +185,7 @@ button.kpi{font:inherit;color:inherit;cursor:pointer} button.kpi:hover{box-shado
 .rp-pac{border-top:1px solid var(--line);padding:8px 0}
 .rp-pac summary{display:flex;justify-content:space-between;gap:10px;cursor:pointer;list-style:none}
 .rp-pac summary small{display:block;color:var(--soft);font-size:.78rem}
-.tbl.dia td small{display:block;color:var(--soft);font-size:.72rem} .tbl.dia td.clk{cursor:pointer} .tbl.dia td.clk:hover{background:#eef4fc} .tbl.dia td.vazio{color:#c3cbd6}
+.tbl.dia tfoot td{text-transform:none;letter-spacing:0;font-size:inherit;color:inherit;background:#f3f7fc;border-top:2px solid var(--line)} .tbl.dia td small{display:block;color:var(--soft);font-size:.72rem} .tbl.dia td.clk{cursor:pointer} .tbl.dia td.clk:hover{background:#eef4fc} .tbl.dia td.vazio{color:#c3cbd6}
 .loc-sel input[type=date]{padding:9px 10px;border:1px solid var(--line);border-radius:12px;font:inherit;background:var(--surface)}
 /* Painel por fases */
 .trilha-t{font-weight:700;font-size:.9rem;color:var(--soft);margin:14px 0 8px}
@@ -1077,7 +1077,8 @@ function metricasLocal(itens){
   const exames=itens.filter(i=>i.categoria==="exame").reduce((s,i)=>s+(i.qtd||1),0);
   const part=itens.filter(i=>/PARTIC/i.test(i.convenio||"")).reduce((s,i)=>s+Number(i.valor||0),0);
   const proc=itens.filter(i=>["cirurgia","injecao","laser"].includes(i.categoria)).reduce((s,i)=>s+Number(i.valor||0),0);
-  return {total, pacientes:pac.size, dias, porDia:dias?total/dias:0, porPac:pac.size?total/pac.size:0, exames, exPac:pac.size?exames/pac.size:0, pPart:total?part/total:0, pProc:total?proc/total:0};
+  const atend=new Set(itens.filter(i=>i.paciente&&i.data).map(i=>normNome(i.paciente)+"|"+i.data)).size;
+  return {total, pacientes:pac.size, atend, pacDia:dias?atend/dias:0, dias, porDia:dias?total/dias:0, porPac:pac.size?total/pac.size:0, exames, exPac:pac.size?exames/pac.size:0, pPart:total?part/total:0, pProc:total?proc/total:0};
 }
 function conferenciaRep(r){
   const it=S.repItens.filter(i=>i.repasse_id===r.id);
@@ -1114,12 +1115,13 @@ function telaRepasse(){
   const kpis=`<div class="kpis rep">
     <button class="kpi" ${rl({})}><b>${moeda0(M.total)}</b><span>Repasse no período · ver pacientes</span></button>
     <button class="kpi" ${rl({cat:["cirurgia","injecao","laser"]})}><b>${itens.filter(i=>["cirurgia","injecao","laser"].includes(i.categoria)).reduce((s,i)=>s+Number(i.valor||0),0).toLocaleString("pt-BR",{style:"currency",currency:"BRL",maximumFractionDigits:0})}</b><span>Cirurgias, injeções e laser · ${new Set(itens.filter(i=>["cirurgia","injecao","laser"].includes(i.categoria)).map(i=>normNome(i.paciente))).size} pacientes</span></button>
-    <button class="kpi" ${rl({})}><b>${M.pacientes}</b><span>Pacientes atendidos</span></button>
+    <button class="kpi" ${rl({})}><b>${M.pacientes}</b><span>Pacientes atendidos · ${M.atend} atendimentos</span></button>
+    <div class="kpi"><b>${M.pacDia.toFixed(1).replace(".",",")}</b><span>Pacientes por dia de atendimento (média)</span></div>
     <div class="kpi"><b>${moeda0(M.porDia)}</b><span>Por dia de atendimento (${M.dias} dias)</span></div>
     </div>`;
   // por clínica
   const porLoc=locais.filter(l=>!S.repLocal||l===S.repLocal).map(l=>{ const its=itens.filter(i=>reps.find(r=>r.id===i.repasse_id)?.local===l); return [l,metricasLocal(its)]; }).filter(([,m])=>m.total>0).sort((a,b)=>b[1].porDia-a[1].porDia);
-  const tabLoc=`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Clínica</th><th>Repasse</th><th>Dias</th><th>R$ por dia</th><th>Pacientes</th><th>R$ por paciente</th><th>Exames por paciente</th><th>% particular</th><th>% procedimentos</th></tr></thead><tbody>${porLoc.map(([l,m],i)=>`<tr class="clk${i===0&&porLoc.length>1?" best":""}" ${rl({local:l})}><td><b>${esc(l)}</b> ›</td><td>${moeda0(m.total)}</td><td>${m.dias}</td><td><b>${moeda0(m.porDia)}</b></td><td>${m.pacientes}</td><td>${moeda0(m.porPac)}</td><td>${m.exPac.toFixed(1)}</td><td>${Math.round(m.pPart*100)}%</td><td>${Math.round(m.pProc*100)}%</td></tr>`).join("")}</tbody></table></div>`;
+  const tabLoc=`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Clínica</th><th>Repasse</th><th>Dias</th><th>R$ por dia</th><th>Pacientes</th><th>Pac. por dia</th><th>R$ por paciente</th><th>Exames por paciente</th><th>% particular</th><th>% procedimentos</th></tr></thead><tbody>${porLoc.map(([l,m],i)=>`<tr class="clk${i===0&&porLoc.length>1?" best":""}" ${rl({local:l})}><td><b>${esc(l)}</b> ›</td><td>${moeda0(m.total)}</td><td>${m.dias}</td><td><b>${moeda0(m.porDia)}</b></td><td>${m.pacientes}</td><td><b>${m.pacDia.toFixed(1).replace(".",",")}</b></td><td>${moeda0(m.porPac)}</td><td>${m.exPac.toFixed(1)}</td><td>${Math.round(m.pPart*100)}%</td><td>${Math.round(m.pProc*100)}%</td></tr>`).join("")}</tbody></table></div>`;
   // por convênio
   const convs={}; itens.forEach(i=>{ const k=(i.convenio||"—").toUpperCase(); (convs[k]=convs[k]||{v:0,cons:[],pac:new Set()}); convs[k].v+=Number(i.valor||0); convs[k].pac.add(normNome(i.paciente)); if(i.categoria==="consulta"&&Number(i.valor)>0) convs[k].cons.push(Number(i.valor)); });
   const convList=Object.entries(convs).sort((a,b)=>b[1].v-a[1].v);
@@ -1131,7 +1133,7 @@ function telaRepasse(){
   const topPac=Object.values(pacs).sort((a,b)=>b.v-a.v).slice(0,10);
   // insights
   const ins=[];
-  if(porLoc.length>1){ const [a,b]=[porLoc[0],porLoc[porLoc.length-1]]; ins.push(`<b>${esc(a[0])}</b> rende <b>${moeda0(a[1].porDia)} por dia</b> de atendimento, contra ${moeda0(b[1].porDia)} em ${esc(b[0])}${b[1].porDia?` (${(a[1].porDia/b[1].porDia).toFixed(1)}×)`:""}.`); }
+  if(porLoc.length>1){ const [a,b]=[porLoc[0],porLoc[porLoc.length-1]]; ins.push(`<b>${esc(a[0])}</b> rende <b>${moeda0(a[1].porDia)} por dia</b> de atendimento, contra ${moeda0(b[1].porDia)} em ${esc(b[0])}${b[1].porDia?` (${(a[1].porDia/b[1].porDia).toFixed(1)}×)`:""}.`); const pd=[...porLoc].sort((x,y)=>y[1].pacDia-x[1].pacDia); ins.push(`Média de pacientes por dia: ${pd.map(([l,m])=>`<b>${esc(l)}</b> ${m.pacDia.toFixed(1).replace(".",",")}`).join(" · ")}.`); }
   if(consulta.length>1) ins.push(`Consulta que mais paga: <b>${esc(consulta[0][0])}</b> (${moeda(consulta[0][1])}); a que menos paga: <b>${esc(consulta[consulta.length-1][0])}</b> (${moeda(consulta[consulta.length-1][1])}).`);
   const ex=itens.filter(i=>i.categoria==="exame").reduce((s,i)=>s+Number(i.valor||0),0); if(M.total) ins.push(`Exames representam <b>${Math.round(ex/M.total*100)}%</b> do repasse, com média de <b>${M.exPac.toFixed(1)} exames por paciente</b>.`);
   if(M.pProc) ins.push(`Cirurgias, injeções e laser somam <b>${Math.round(M.pProc*100)}%</b> do repasse: são o que mais pesa por atendimento.`);
@@ -1160,7 +1162,10 @@ function telaRepasse(){
      const cel=(d,l)=>{ const its=itens.filter(i=>i.data===d&&locDe(i.repasse_id)===l); const v=its.reduce((s,i)=>s+Number(i.valor||0),0); const pc=new Set(its.map(i=>normNome(i.paciente))).size; return v||its.length?`<td class="clk" ${rl({local:l,dia:d,titulo:br(d)})}><b>${moeda0(v)}</b><small>${pc} pac.</small></td>`:`<td class="vazio">—</td>`; };
      return `<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>Repasse por dia</h3><span class="sub">toque num valor para ver os pacientes do dia</span></div>
      <div class="tbl-wrap"><table class="tbl dia"><thead><tr><th>Dia</th>${locs.map(l=>`<th>${esc(l)}</th>`).join("")}<th>Total</th></tr></thead><tbody>${datas.map(d=>{ const dt=parse(d); const tot=itens.filter(i=>i.data===d).reduce((s,i)=>s+Number(i.valor||0),0);
-       return `<tr><td><b>${br(d)}</b> <small>${DIAS_SEM[dt.getDay()]}</small></td>${locs.map(l=>cel(d,l)).join("")}<td class="clk" ${rl({dia:d,titulo:br(d)})}><b>${moeda0(tot)}</b></td></tr>`; }).join("")}</tbody></table></div></div>`; })()}
+       return `<tr><td><b>${br(d)}</b> <small>${DIAS_SEM[dt.getDay()]}</small></td>${locs.map(l=>cel(d,l)).join("")}<td class="clk" ${rl({dia:d,titulo:br(d)})}><b>${moeda0(tot)}</b></td></tr>`; }).join("")}</tbody><tfoot>${(()=>{ const f=v=>v.toFixed(1).replace(".",","); const med=its=>{ const ds=[...new Set(its.map(i=>i.data))]; const n=ds.length; const at=new Set(its.map(i=>normNome(i.paciente)+"|"+i.data)).size; const v=its.reduce((s,i)=>s+Number(i.valor||0),0); return n?`<b>${f(at/n)} pac.</b><small>${moeda0(v/n)} · ${n} dia(s)</small>`:"—"; };
+       return `<tr class="media"><td><b>Média por dia</b></td>${locs.map(l=>`<td>${med(itens.filter(i=>locDe(i.repasse_id)===l))}</td>`).join("")}<td>${med(itens)}</td></tr>`; })()}</tfoot></table></div>
+     ${(()=>{ const f=v=>v.toFixed(1).replace(".",","); const linhas=[1,2,3,4,5,6,0].map(w=>{ const cels=locs.map(l=>{ const its=itens.filter(i=>locDe(i.repasse_id)===l&&parse(i.data).getDay()===w); const ds=new Set(its.map(i=>i.data)).size; if(!ds) return `<td class="vazio">—</td>`; const at=new Set(its.map(i=>normNome(i.paciente)+"|"+i.data)).size; const v=its.reduce((s,i)=>s+Number(i.valor||0),0); return `<td><b>${f(at/ds)} pac.</b><small>${moeda0(v/ds)} · ${ds} dia(s)</small></td>`; }); return cels.some(c=>!c.includes("vazio"))?`<tr><td><b>${["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"][w]}</b></td>${cels.join("")}</tr>`:""; }).join("");
+       return linhas?`<h4 style="margin:16px 0 6px;font-size:.95rem">Média por dia da semana</h4><div class="sub" style="margin-bottom:6px">pacientes e repasse médios em cada dia em que houve atendimento</div><div class="tbl-wrap"><table class="tbl dia"><thead><tr><th>Dia</th>${locs.map(l=>`<th>${esc(l)}</th>`).join("")}</tr></thead><tbody>${linhas}</tbody></table></div>`:""; })()}</div>`; })()}
   <div class="group-title">Relatórios importados <span class="count">${reps.length}</span></div>
   <div class="list">${reps.sort((a,b)=>(b.periodo_fim||"").localeCompare(a.periodo_fim||"")).map(cardRep).join("")}</div>`;
 }
