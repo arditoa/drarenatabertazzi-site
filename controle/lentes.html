@@ -71,7 +71,8 @@ h1{font-family:var(--display);font-weight:500;font-size:clamp(1.7rem,3.4vw,2.4re
 .track{height:12px;border-radius:999px;background:#eef2f7;overflow:hidden}
 .fill{height:100%;border-radius:999px;background:var(--accent);transition:width .5s}
 .fill.halo{background:#d08a2a}
-.team{border-top:1px dashed var(--line);margin-top:12px;padding-top:10px;font-size:.88rem;color:var(--soft)}
+.team{margin-top:12px;padding:10px 12px;border-radius:12px;background:var(--accent-soft);font-size:.92rem;color:var(--ink)}
+.lens .mk{margin-top:4px;font-size:.74rem;font-weight:700;color:var(--brand);line-height:1.25}
 .team b{color:var(--ink)}
 
 /* quiz */
@@ -271,7 +272,7 @@ h1{font-family:var(--display);font-weight:500;font-size:clamp(1.7rem,3.4vw,2.4re
     <div class="label">Comparativo das 5 opções</div>
     <div class="cmpwrap">
       <table class="cmp">
-        <thead><tr><th>Lente</th><th>Longe</th><th>Intermediário</th><th>Perto</th><th>Halos à noite</th><th>Óculos depois</th></tr></thead>
+        <thead><tr><th>Lente</th><th>Longe</th><th>Intermediário</th><th>Perto</th><th>Halos à noite</th><th>Óculos depois</th><th>Lentes que usamos</th></tr></thead>
         <tbody id="cmp"></tbody>
       </table>
     </div>
@@ -331,6 +332,7 @@ function precoDe(k){
   const base=rows.find(r=>!r.torica && re.test(r.nome)), tor=rows.find(r=>r.torica && re.test(r.nome));
   return base||tor?{base,tor}:null;
 }
+const MARCAS={tri:"Odyssey · PanOptix Pro",edof:"PureSee · Vivity",bif:"ZLB · Biotech Roya",prem:"Eyhance · Impress",top:"Clareon · CT Lucia",bas:"Leedsay · Sensar · MA60"};
 const ORDEM=["cat","tri","bif","prem","top","bas"];
 let S={lente:"tri", sub:"tri", noite:false, preco:true, rec:null, tabela:"ICOG", plano:"sem"};
 const $=s=>document.querySelector(s);
@@ -341,7 +343,7 @@ const atual=()=>S.lente==="tri"?S.sub:S.lente;
 
 function botoes(){
   $("#lenses").innerHTML=ORDEM.map(k=>{ const d=L[k]; const nome=k==="tri"?"Trifocal / EDOF":d.nome;
-    return `<button class="lens ${k==="cat"?"cat":""} ${S.rec===k?"rec":""}" data-k="${k}" aria-pressed="${S.lente===k}"><span class="n">${d.n}</span><b>${nome}</b><small>${k==="tri"?"longe, computador e perto":d.curta}</small></button>`; }).join("");
+    return `<button class="lens ${k==="cat"?"cat":""} ${S.rec===k?"rec":""}" data-k="${k}" aria-pressed="${S.lente===k}"><span class="n">${d.n}</span><b>${nome}</b><small>${k==="tri"?"longe, computador e perto":d.curta}</small>${MARCAS[k]?`<span class="mk">${k==="tri"?MARCAS.tri+" · "+MARCAS.edof:MARCAS[k]}</span>`:""}</button>`; }).join("");
 }
 const vis=(b,cat)=>cat?b*0.95:(b<2?b*0.45:0.9+(b-2)*0.9);
 function filtro(b,cat){ return `blur(${vis(b,cat).toFixed(2)}px)${cat?" sepia(.55) saturate(.7) contrast(.78) brightness(1.04)":""}`; }
@@ -389,7 +391,7 @@ function render(){
   else $("#pObs").textContent="";
   $("#cmp").innerHTML=["tri","edof","bif","prem","top","bas"].map(x=>{ const v=L[x];
     const dots=(b,h)=>{ const n=h?Math.round(b/3*5):Math.max(0,Math.min(5,Math.round(nitidez(b)/20))); return `<span class="dots ${h?"h":""}" aria-label="${n} de 5">${[0,1,2,3,4].map(i=>`<i class="${i<n?"f":""}"></i>`).join("")}</span>`; };
-    return `<tr class="${x===k?"on":""}"><td><b>${v.n}</b> · ${v.nome}</td><td>${dots(v.L)}</td><td>${dots(v.I)}</td><td>${dots(v.P)}</td><td>${dots(v.H,true)}</td><td>${v.oculos}</td></tr>`; }).join("");
+    return `<tr class="${x===k?"on":""}"><td><b>${v.n}</b> · ${v.nome}</td><td>${dots(v.L)}</td><td>${dots(v.I)}</td><td>${dots(v.P)}</td><td>${dots(v.H,true)}</td><td>${v.oculos}</td><td><b>${MARCAS[x]||""}</b></td></tr>`; }).join("");
 }
 function recomenda(){
   const q=[...document.querySelectorAll("#quiz input:checked")].map(i=>i.value);
