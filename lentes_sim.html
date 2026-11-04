@@ -184,20 +184,20 @@
 (function(){
 const L={
  cat:{n:"Hoje, com catarata",nome:"Catarata",curta:"visão embaçada e amarelada",L:3,I:3.4,P:4.4,H:3,cat:true,frase:"É assim que a catarata costuma deixar a visão: mais apagada, amarelada e com ofuscamento nas luzes.",oc:"Os óculos já não resolvem bem.",id:"—",at:"A catarata tende a piorar com o tempo. A cirurgia troca o cristalino opaco por uma lente artificial."},
- tri:{n:"Multifocal",nome:"Lente trifocal",curta:"longe, computador e perto",L:0,I:0.15,P:0.6,H:2.2,frase:"Três focos na mesma lente: longe, intermediário e perto. Para quem quer usar óculos o mínimo possível.",oc:"Raramente. A maioria faz quase tudo sem óculos.",id:"Quem quer ler o celular, usar o computador e dirigir sem óculos.",at:"Pode haver halos (anéis) em volta das luzes à noite, que costumam diminuir com a adaptação. Não é indicada para todos os olhos."},
- edof:{n:"Multifocal",nome:"Lente de foco estendido",curta:"longe e computador; perto bom",L:0,I:0.1,P:1.7,H:0.7,frase:"Um foco contínuo do longe ao intermediário, com boa visão de perto na maior parte do dia. Menos halos que a trifocal.",oc:"Às vezes, para letras muito pequenas.",id:"Quem dirige muito à noite e quer depender pouco dos óculos.",at:"Para letras muito pequenas (bula, contrato), pode precisar de óculos de leitura."},
- bif:{n:"Multifocal",nome:"Lente bifocal",curta:"longe e perto",L:0,I:2.6,P:0.45,H:2.6,frase:"Dois focos: longe e perto. Lê bem e enxerga bem de longe; o computador fica menos nítido.",oc:"Para computador e distância de braço.",id:"Quem lê muito e usa pouco o computador.",at:"Halos à noite parecidos com os da trifocal."},
- prem:{n:"Monofocal",nome:"Monofocal premium",curta:"longe nítido + um pouco de meio",L:0,I:1.2,P:3.8,H:0,frase:"Um foco, com ótima nitidez e contraste de longe e um ganho na distância do computador.",oc:"Para ler e usar o celular.",id:"Quem quer a melhor qualidade de longe e não se importa com óculos de leitura.",at:"Sem halos. Para perto, óculos de leitura."},
- top:{n:"Monofocal",nome:"Monofocal",curta:"longe nítido",L:0,I:2.4,P:4.2,H:0,frase:"Um foco de longe, com material de boa qualidade e estável ao longo dos anos.",oc:"Para ler, celular e às vezes computador.",id:"Quem quer enxergar bem de longe e já usa óculos para perto.",at:"Sem halos. Perto e computador com óculos."},
+ tri:{n:"Multifocal",nome:"Lente trifocal",curta:"longe, computador e perto",L:0,I:0.11,P:0.6,H:2.2,frase:"Três focos na mesma lente: longe, intermediário e perto. Para quem quer usar óculos o mínimo possível.",oc:"Raramente. A maioria faz quase tudo sem óculos.",id:"Quem quer ler o celular, usar o computador e dirigir sem óculos.",at:"Pode haver halos (anéis) em volta das luzes à noite, que costumam diminuir com a adaptação. Não é indicada para todos os olhos."},
+ edof:{n:"Multifocal",nome:"Lente de foco estendido",curta:"longe e computador; perto bom",L:0,I:0.08,P:1.7,H:0.7,frase:"Um foco contínuo do longe ao intermediário, com boa visão de perto na maior parte do dia. Menos halos que a trifocal.",oc:"Às vezes, para letras muito pequenas.",id:"Quem dirige muito à noite e quer depender pouco dos óculos.",at:"Para letras muito pequenas (bula, contrato), pode precisar de óculos de leitura."},
+ bif:{n:"Multifocal",nome:"Lente bifocal",curta:"longe e perto",L:0,I:2.2,P:0.45,H:2.6,frase:"Dois focos: longe e perto. Lê bem e enxerga bem de longe; o computador fica menos nítido.",oc:"Para computador e distância de braço.",id:"Quem lê muito e usa pouco o computador.",at:"Halos à noite parecidos com os da trifocal."},
+ prem:{n:"Monofocal",nome:"Monofocal premium",curta:"longe nítido + um pouco de meio",L:0,I:0.9,P:3.8,H:0,frase:"Um foco, com ótima nitidez e contraste de longe e um ganho na distância do computador.",oc:"Para ler e usar o celular.",id:"Quem quer a melhor qualidade de longe e não se importa com óculos de leitura.",at:"Sem halos. Para perto, óculos de leitura."},
+ top:{n:"Monofocal",nome:"Monofocal",curta:"longe nítido",L:0,I:2.0,P:4.2,H:0,frase:"Um foco de longe, com material de boa qualidade e estável ao longo dos anos.",oc:"Para ler, celular e às vezes computador.",id:"Quem quer enxergar bem de longe e já usa óculos para perto.",at:"Sem halos. Perto e computador com óculos."},
 };
 const ORD=["cat","tri","bif","prem","top"];
 let S={lente:"cat",sub:"tri",noite:false,rec:null};
 const $=id=>document.getElementById(id);
-const vis=b=>b<2?b*0.45:b*0.95;           // desfoque exibido: "Bom" fica quase nítido
+const vis=(b,cat)=>cat?b*0.95:(b<2?b*0.45:0.9+(b-2)*0.9);
 const nit=b=>Math.max(0,Math.round(100-b*21));
 const rot=b=>b<0.5?["Nítido","sim-p-ok"]:b<1.9?["Bom","sim-p-warn"]:["Embaçado","sim-p-late"];
 const atual=()=>S.lente==="tri"?S.sub:S.lente;
-function filtro(b,cat){return `blur(${vis(b).toFixed(2)}px)${cat?" sepia(.55) saturate(.7) contrast(.78) brightness(1.04)":""}`;}
+function filtro(b,cat){return `blur(${vis(b,cat).toFixed(2)}px)${cat?" sepia(.55) saturate(.7) contrast(.78) brightness(1.04)":""}`;}
 function halos(h,cat){const g=$("simHalos");g.innerHTML="";if(h<=0)return;
  [[140,128,3.2],[158,128,3.2],[60,112,2.4],[96,108,2.4]].forEach(([x,y,r])=>{for(let i=1;i<=3;i++){const c=document.createElementNS("http://www.w3.org/2000/svg","circle");
   c.setAttribute("cx",x);c.setAttribute("cy",y);c.setAttribute("r",r+i*h*2.6);c.setAttribute("fill","none");c.setAttribute("stroke",cat?"#ffe9b0":"#fff3cf");
