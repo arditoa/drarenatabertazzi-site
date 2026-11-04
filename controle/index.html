@@ -165,6 +165,19 @@ main{max-width:1480px;margin:0 auto;padding:16px 14px 24px}
 .tp-row label{font-size:.72rem;color:var(--soft);display:grid;gap:2px}
 .tp-row input{padding:8px;border:1px solid var(--line);border-radius:8px;font:inherit;width:100%}
 @media(max-width:600px){.tp-row{grid-template-columns:1fr 1fr 1fr}.tp-row>div{grid-column:1/-1}}
+.kpis.rep{grid-template-columns:repeat(2,1fr)} @media(min-width:760px){.kpis.rep{grid-template-columns:repeat(4,1fr)}}
+.kpi.warn{border-left-color:var(--warn)} .kpi.warn b{color:var(--warn)}
+.insight ul{margin:0;padding-left:18px;display:grid;gap:6px;font-size:.92rem}
+.panel.alerta{border-left:5px solid var(--warn)}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;align-items:end}
+.grid3 label{display:grid;gap:4px;font-size:.82rem;font-weight:700;color:var(--soft)}
+.grid3 input,.grid3 select{padding:10px;border:1px solid var(--line);border-radius:10px;font:inherit;background:#fff}
+.tbl.conf td{font-size:.84rem} .tbl.conf tr.ok td{background:#f1f8f4} .tbl.conf tr.al td{background:var(--late-soft)}
+.tbl.conf input[type=checkbox]{width:18px;height:18px}
+.tbl tr.best td{background:var(--ok-soft)}
+.fn.rp{grid-template-columns:150px 1fr 90px;cursor:default} .fn.rp small{display:block;font-weight:600;font-size:.72rem;color:var(--soft)}
+.rep-card .name b{font-size:1rem}
+.grid-panels .panel{align-content:start}
 /* Painel por fases */
 .trilha-t{font-weight:700;font-size:.9rem;color:var(--soft);margin:14px 0 8px}
 .fases{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
@@ -316,6 +329,7 @@ legend{font-size:.86rem;font-weight:700;color:var(--soft);padding:0;margin-botto
     <img src="../img/simbolo.png" alt="">
     <div class="t"><b>Controle de Pacientes</b><span id="who"></span></div>
     <button class="out" data-tab="lentes" title="Simulador de lentes com valores">👁 Lentes</button>
+    <button class="out" data-tab="repasse" title="Repasse das clínicas">💰 Repasse</button>
     <button class="out" id="bOut">Sair</button>
   </header>
   <nav class="tabs" aria-label="Seções">
@@ -365,7 +379,7 @@ const PRAZO_CONVENIO = 15, PRAZO_PARTICULAR = 3;
 // Injeções/laser: lembrete D+20, vencimento D+30
 const LEMBRAR_DIAS = 14, VENCE_DIAS = 30, PAUSA_DIAS = 60;
 
-const S = { tab:"painel", pacientes:[], casos:[], sessoes:[], pos:[], modelos:[], precos:[], orcs:[], user:null, fInd:"todos", fTrat:"ativos", busca:"" };
+const S = { tab:"painel", pacientes:[], casos:[], sessoes:[], pos:[], modelos:[], precos:[], orcs:[], reps:[], repItens:[], repSel:null, repLocal:"", repMes:"", repFiltro:"todos", repBusca:"", user:null, fInd:"todos", fTrat:"ativos", busca:"" };
 
 /* ================= Utilidades ================= */
 const $ = (s, el=document) => el.querySelector(s);
@@ -442,6 +456,8 @@ async function carregar(){
   ]);
   const [ps,md,tp,oc] = await Promise.all([sb.from("pos_contatos").select("*"), sb.from("modelos").select("*").order("tipo").order("nome"), sb.from("tabela_precos").select("*").order("ordem"), sb.from("orcamentos").select("*")]);
   S.pos=ps.data||[]; S.modelos=md.data||[]; S.precos=tp.data||[]; S.orcs=oc.data||[];
+  const rp=await sb.from("repasses").select("*").order("periodo_fim",{ascending:false}); S.reps=rp.data||[];
+  let ri=[]; for(let k=0;k<50;k++){ const r=await sb.from("repasse_itens").select("*").range(k*1000,k*1000+999); if(r.error||!r.data) break; ri=ri.concat(r.data); if(r.data.length<1000) break; } S.repItens=ri;
   const err = p.error||c.error||s.error; if (err) { toast("Erro ao carregar: "+err.message); return; }
   S.pacientes=p.data; S.casos=c.data; S.sessoes=s.data;
 }
@@ -508,7 +524,8 @@ function cardTrat(c){
 function render(){
   document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-current", b.dataset.tab===S.tab?"page":"false"));
   const m=$("#main");
-  m.innerHTML = ({lentes:telaLentes, painel:telaPainel, semana:telaSemana, ind:telaInd, cir:telaCir, trat:telaTrat, pac:telaPac}[S.tab])();
+  m.innerHTML = ({repasse:telaRepasse, lentes:telaLentes, painel:telaPainel, semana:telaSemana, ind:telaInd, cir:telaCir, trat:telaTrat, pac:telaPac}[S.tab])();
+  if(S.tab==="repasse"&&$("#fRep")) $("#fRep").addEventListener("submit",async e=>{ e.preventDefault(); const v=$("#rVl").value.trim(); await salvar(sb.from("repasses").update({status:$("#rSt").value,recebido_em:$("#rDt").value||null,valor_recebido:v?parseFloat(v.replace(/\./g,"").replace(",",".")):null}).eq("id",S.repSel),"Repasse atualizado ✔"); });
   if(S.tab==="lentes"){ const f=$("#frLentes"); const envia=()=>{ try{ f.contentWindow.postMessage({tipo:"precos",rows:S.precos,tabela:(S.fLocal||"").startsWith("ICOG")||!S.fLocal?"ICOG":"padrao"},"*"); }catch(e){} }; f.addEventListener("load",envia); envia(); }
   m.insertAdjacentHTML("beforeend", `<p class="footnote">Dados protegidos · acesso restrito à equipe · ${S.pacientes.length} pacientes cadastrados</p>`);
 }
@@ -909,6 +926,289 @@ function folhaPrecos(){
     fechar(); for(const u of ups){ const {error}=await u; if(error){ toast("Erro: "+error.message); break; } } toast(ups.length?`${ups.length} valor(es) atualizado(s) ✔`:"Nada mudou"); await carregar(); render(); });
 }
 
+/* Leitura de repasses. Usado no portal (navegador) e testado no Node.
+   Formatos: (1) extrato PDF do EyecareBI, (2) planilha de repasse (Data, Paciente, Convênio, Procedimentos, Valor, Repasse). */
+const REP = (() => {
+  const num = s => { if (s == null) return null; if (typeof s === "number") return s; s = String(s).replace(/R\$|\s|…|\.\.\./g, ""); if (!s) return null;
+    if (/,/.test(s)) s = s.replace(/\./g, "").replace(",", "."); const v = parseFloat(s); return isNaN(v) ? null : v; };
+  const dataISO = s => { const m = String(s).match(/(\d{2})\/(\d{2})\/(\d{4})/); return m ? `${m[3]}-${m[2]}-${m[1]}` : null; };
+  const limpa = s => String(s || "").replace(/\s+/g, " ").replace(/\s*…$/, "…").trim();
+
+  function categoria(proc) {
+    const p = String(proc || "").toUpperCase();
+    if (/RETORNO/.test(p) && !/CONSULTA/.test(p)) return "retorno";
+    if (/FACECTOMIA|FACO|VITRECTOMIA|VVPP|IMPLANTE DE LENTE|PTERIG|TRABECULEC|CIRURGIA|IMPLANTE SECUND/.test(p)) return "cirurgia";
+    if (/LUCENTIS|AVASTIN|EYLIA|VABYSMO|INTRAV|ANTI-?ANGIO|QUIMIOTER|PCT-HM|TRATAMENTO OCULAR/.test(p)) return "injecao";
+    if (/FOTOCOAG|YAG|CAPSULOTOMIA|LASER|IRIDOTOMIA/.test(p)) return "laser";
+    if (/CONSULTA/.test(p)) return "consulta";
+    return "exame";
+  }
+
+  /* ---------- PDF EyecareBI ----------
+     pages: [{items:[{str,x,y}]}] (y cresce para cima, como no pdf.js) */
+  function pdfEyecare(pages) {
+    const out = { formato: "EyecareBI", numero: null, periodo_ini: null, periodo_fim: null, total_informado: null, subtotais: {}, itens: [] };
+    let secao = null;
+    for (const pg of pages) {
+      // agrupa em linhas
+      const its = pg.items.filter(i => i.str && i.str.trim()).sort((a, b) => b.y - a.y || a.x - b.x);
+      const linhas = [];
+      for (const it of its) { const l = linhas.find(L => Math.abs(L.y - it.y) < 2.2); if (l) l.its.push(it); else linhas.push({ y: it.y, its: [it] }); }
+      linhas.forEach(l => l.its.sort((a, b) => a.x - b.x));
+      // colunas a partir do cabeçalho da página
+      let col = null;
+      for (const l of linhas) {
+        const t = l.its.map(i => i.str).join(" ");
+        const ach = re => (l.its.find(i => re.test(i.str)) || {}).x;
+        if (/Data aten/.test(t) && /Paciente/.test(t)) {
+          col = { proc: ach(/Proced/), pac: ach(/^Paciente/), perfil: ach(/^Perfil/), conv: ach(/^Convênio/), met: ach(/^Mét/) };
+        }
+      }
+      for (const l of linhas) {
+        const t = l.its.map(i => i.str).join(" ").replace(/\s+/g, " ").trim();
+        let m;
+        if (!out.numero && (m = t.match(/Nº\s*(\d+)/))) out.numero = m[1];
+        if (!out.periodo_ini && (m = t.match(/(\d{2}\/\d{2}\/\d{4})\s*-\s*(\d{2}\/\d{2}\/\d{4})/))) { out.periodo_ini = dataISO(m[1]); out.periodo_fim = dataISO(m[2]); }
+        if ((m = t.match(/Valor total de repasse\s*R\$\s*([\d.,]+)/))) { out.total_informado = num(m[1]); continue; }
+        if ((m = t.match(/^Subtotal (.+?)\s+R\$\s*([\d.,]+)/))) { out.subtotais[m[1].trim()] = num(m[2]); continue; }
+        if (/^\d{2}\/\d{2}\/\d{4}/.test(t) && col) {
+          const c = { proc: [], pac: [], perfil: [], conv: [], met: [], resto: [] };
+          for (const it of l.its) {
+            if (/^\d{2}\/\d{2}\/\d{4}$/.test(it.str.trim())) continue;
+            const x = it.x;
+            if (x < col.pac - 1) c.proc.push(it.str);
+            else if (x < col.perfil - 1) c.pac.push(it.str);
+            else if (x < col.conv - 1) c.perfil.push(it.str);
+            else if (x < col.met - 1) c.conv.push(it.str);
+            else c.resto.push(it.str);
+          }
+          const resto = c.resto.join(" ");
+          const vm = resto.match(/R\$\s*([\d.]+,\d{1,2})/);
+          const met = resto.replace(/R\$.*$/, "").replace(/\s+-\s*$/, "").trim();
+          const parc = (met.match(/(\d+\/\d+x)\s*$/) || [])[1] || null;
+          const pag = met.replace(/\s*\d+\/\d+x\s*$/, "").replace(/^-\s*/, "").trim();
+          out.itens.push({
+            data: dataISO(t), procedimento: limpa(c.proc.join(" ")), paciente: limpa(c.pac.join(" ")),
+            convenio: secao || limpa(c.conv.join(" ")), valor: vm ? num(vm[1]) : 0,
+            pagamento: pag && pag !== "-" ? pag + (parc ? " " + parc : "") : null,
+          });
+          continue;
+        }
+        // título de seção (nome do convênio em linha própria)
+        if (/^[A-ZÀ-Ú][A-ZÀ-Ú0-9 .\-\/]{1,40}$/.test(t) && !/^Itens|^Data|^Subtotal|^Sistema|^FAVORECIDO/.test(t) && !/R\$/.test(t)) secao = t.replace(/\s+/g, " ");
+      }
+    }
+    out.itens.forEach(i => { i.categoria = categoria(i.procedimento); i.qtd = 1; });
+    return out;
+  }
+
+  /* ---------- Planilha (linhas = arrays) ---------- */
+  function planilha(rows) {
+    const out = { formato: "Planilha", numero: null, periodo_ini: null, periodo_fim: null, total_informado: null, subtotais: {}, itens: [] };
+    const h = rows.findIndex(r => r && r.some(c => /^paciente$/i.test(String(c || "").trim())));
+    if (h < 0) throw new Error("Não achei a coluna 'Paciente' na planilha.");
+    const cab = rows[h].map(c => String(c || "").trim().toLowerCase());
+    const ci = re => cab.findIndex(c => re.test(c));
+    const cD = ci(/^data/), cP = ci(/^paciente/), cC = ci(/conv/), cPr = ci(/proced/), cV = ci(/^valor/);
+    let cR = ci(/repasse/); if (cR < 0) cR = cV + 1;
+    for (const r of rows.slice(h + 1)) {
+      if (!r || !r[cP]) { if (r && r[cV] != null && !r[cP]) out.total_informado = num(r[cR]) ?? out.total_informado; continue; }
+      const d = r[cD]; let data = null;
+      if (d instanceof Date) data = d.toISOString().slice(0, 10);
+      else if (typeof d === "number") data = new Date(Math.round((d - 25569) * 864e5)).toISOString().slice(0, 10);
+      else data = dataISO(d);
+      const proc = limpa(r[cPr]), procs = proc.split(/\s*,\s*/).filter(Boolean);
+      const conv = limpa(String(r[cC] || "").split(",")[0]);
+      const bruto = num(r[cV]), rep = num(r[cR]);
+      const cats = procs.map(categoria);
+      const cat = cats.includes("cirurgia") ? "cirurgia" : cats.includes("injecao") ? "injecao" : cats.includes("laser") ? "laser" : cats.includes("consulta") ? "consulta" : cats.every(c => c === "retorno") ? "retorno" : "exame";
+      out.itens.push({ data, paciente: limpa(r[cP]), convenio: conv, procedimento: proc, categoria: cat, qtd: cat === "exame" ? procs.length : 1,
+        valor_bruto: bruto, valor: rep != null ? rep : 0, pagamento: null });
+    }
+    const ds = out.itens.map(i => i.data).filter(Boolean).sort();
+    out.periodo_ini = ds[0] || null; out.periodo_fim = ds[ds.length - 1] || null;
+    return out;
+  }
+  return { pdfEyecare, planilha, categoria, num };
+})();
+
+
+/* ===================== REPASSE ===================== */
+const CAT_LABEL={consulta:"Consultas",exame:"Exames",cirurgia:"Cirurgias",injecao:"Injeções",laser:"Laser",retorno:"Retornos"};
+const normNome=s=>String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toUpperCase().replace(/…|\.\.\./g,"").replace(/[^A-Z ]/g," ").replace(/\s+/g," ").trim();
+function mesmoPaciente(a,b){ const x=normNome(a), y=normNome(b); if(!x||!y) return false; const c=x.length<y.length?x:y, l=x.length<y.length?y:x; return c.length>=8 && l.startsWith(c); }
+function barrasR(lista,fmt){ fmt=fmt||moeda; const max=Math.max(1,...lista.map(x=>x[1])); return `<div class="funnel">${lista.map(([t,n,sub])=>`<div class="fn rp"><span>${esc(t)}${sub?`<small>${esc(sub)}</small>`:""}</span><i style="width:${Math.max(3,Math.round(n/max*100))}%"></i><b>${fmt(n)}</b></div>`).join("")}</div>`; }
+const moeda0=v=>Number(v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL",maximumFractionDigits:0});
+
+function repFiltrados(){
+  const reps=S.reps.filter(r=>!S.repLocal||r.local===S.repLocal).filter(r=>!S.repMes||((r.periodo_fim||r.periodo_ini||"").slice(0,7)===S.repMes));
+  const ids=new Set(reps.map(r=>r.id));
+  return {reps, itens:S.repItens.filter(i=>ids.has(i.repasse_id))};
+}
+function metricasLocal(itens){
+  const total=itens.reduce((s,i)=>s+Number(i.valor||0),0);
+  const pac=new Set(itens.map(i=>normNome(i.paciente)).filter(Boolean));
+  const diasCons=new Set(itens.filter(i=>["consulta","retorno"].includes(i.categoria)).map(i=>i.data));
+  const dias=diasCons.size||new Set(itens.map(i=>i.data)).size;
+  const exames=itens.filter(i=>i.categoria==="exame").reduce((s,i)=>s+(i.qtd||1),0);
+  const part=itens.filter(i=>/PARTIC/i.test(i.convenio||"")).reduce((s,i)=>s+Number(i.valor||0),0);
+  const proc=itens.filter(i=>["cirurgia","injecao","laser"].includes(i.categoria)).reduce((s,i)=>s+Number(i.valor||0),0);
+  return {total, pacientes:pac.size, dias, porDia:dias?total/dias:0, porPac:pac.size?total/pac.size:0, exames, exPac:pac.size?exames/pac.size:0, pPart:total?part/total:0, pProc:total?proc/total:0};
+}
+function conferenciaRep(r){
+  const it=S.repItens.filter(i=>i.repasse_id===r.id);
+  const soma=it.reduce((s,i)=>s+Number(i.valor||0),0);
+  const dif=r.total_informado!=null?soma-Number(r.total_informado):null;
+  const zeros=it.filter(i=>Number(i.valor||0)===0&&["cirurgia","injecao","laser"].includes(i.categoria));
+  // procedimentos do portal no mesmo local e período que não aparecem no repasse
+  const ini=r.periodo_ini, fim=r.periodo_fim, falt=[];
+  if(ini&&fim){
+    const tem=(nome,data)=>it.some(i=>i.data===data&&mesmoPaciente(i.paciente,nome));
+    S.casos.filter(c=>c.local===r.local&&c.tipo==="cirurgia"&&c.data_realizado&&c.data_realizado>=ini&&c.data_realizado<=fim).forEach(c=>{ const p=pacOf(c); if(!tem(p.nome,c.data_realizado)) falt.push({c,data:c.data_realizado,txt:`Cirurgia ${c.procedimento||""} ${c.olho||""}`}); });
+    S.sessoes.filter(s=>s.data_realizada&&s.data_realizada>=ini&&s.data_realizada<=fim).forEach(s=>{ const c=S.casos.find(x=>x.id===s.caso_id); if(!c||c.local!==r.local) return; const p=pacOf(c); if(!tem(p.nome,s.data_realizada)) falt.push({c,data:s.data_realizada,txt:`${TIPO_LABEL[c.tipo]} ${c.olho||""} · ${s.numero}ª aplicação`}); });
+  }
+  const conf=it.filter(i=>i.conferido).length;
+  return {it,soma,dif,zeros,falt,conf,ok:dif!=null&&Math.abs(dif)<0.05};
+}
+
+function telaRepasse(){
+  if(S.repSel) return telaConferencia(S.repSel);
+  const {reps,itens}=repFiltrados();
+  const locais=[...new Set(S.reps.map(r=>r.local))].sort();
+  const meses=[...new Set(S.reps.map(r=>(r.periodo_fim||r.periodo_ini||"").slice(0,7)).filter(Boolean))].sort().reverse();
+  const nomeMes=m=>{ const [a,b]=m.split("-"); return new Date(+a,+b-1,1).toLocaleDateString("pt-BR",{month:"long",year:"numeric"}); };
+  const head=`<div class="sec-head"><div><h2>Repasse</h2><div class="sub">O que cada clínica repassou · conferência dos extratos</div></div><button class="btn" data-act="rep-import">+ Importar extrato ou planilha</button></div>`;
+  if(!S.reps.length) return head+`<div class="empty" style="padding:30px">Nenhum repasse importado ainda. Toque em <b>Importar extrato ou planilha</b> e escolha o arquivo (PDF do EyecareBI ou planilha Excel).</div>`;
+  const filtros=`<div class="row" style="gap:10px;flex-wrap:wrap;margin:4px 0 14px">
+    <label class="loc-sel" style="margin:0">📍 Clínica<select id="selRepLocal"><option value="">Todas</option>${locais.map(l=>`<option ${S.repLocal===l?"selected":""}>${esc(l)}</option>`).join("")}</select></label>
+    <label class="loc-sel" style="margin:0">🗓️ Mês<select id="selRepMes"><option value="">Todos</option>${meses.map(m=>`<option value="${m}" ${S.repMes===m?"selected":""}>${nomeMes(m)}</option>`).join("")}</select></label></div>`;
+  const M=metricasLocal(itens);
+  const kpis=`<div class="kpis rep">
+    <div class="kpi"><b>${moeda0(M.total)}</b><span>Repasse no período</span></div>
+    <div class="kpi"><b>${M.pacientes}</b><span>Pacientes atendidos</span></div>
+    <div class="kpi"><b>${moeda0(M.porDia)}</b><span>Por dia de atendimento (${M.dias} dias)</span></div>
+    <div class="kpi"><b>${moeda0(M.porPac)}</b><span>Por paciente</span></div></div>`;
+  // por clínica
+  const porLoc=locais.filter(l=>!S.repLocal||l===S.repLocal).map(l=>{ const its=itens.filter(i=>reps.find(r=>r.id===i.repasse_id)?.local===l); return [l,metricasLocal(its)]; }).filter(([,m])=>m.total>0).sort((a,b)=>b[1].porDia-a[1].porDia);
+  const tabLoc=`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Clínica</th><th>Repasse</th><th>Dias</th><th>R$ por dia</th><th>Pacientes</th><th>R$ por paciente</th><th>Exames por paciente</th><th>% particular</th><th>% procedimentos</th></tr></thead><tbody>${porLoc.map(([l,m],i)=>`<tr${i===0&&porLoc.length>1?' class="best"':""}><td><b>${esc(l)}</b></td><td>${moeda0(m.total)}</td><td>${m.dias}</td><td><b>${moeda0(m.porDia)}</b></td><td>${m.pacientes}</td><td>${moeda0(m.porPac)}</td><td>${m.exPac.toFixed(1)}</td><td>${Math.round(m.pPart*100)}%</td><td>${Math.round(m.pProc*100)}%</td></tr>`).join("")}</tbody></table></div>`;
+  // por convênio
+  const convs={}; itens.forEach(i=>{ const k=(i.convenio||"—").toUpperCase(); (convs[k]=convs[k]||{v:0,cons:[],pac:new Set()}); convs[k].v+=Number(i.valor||0); convs[k].pac.add(normNome(i.paciente)); if(i.categoria==="consulta"&&Number(i.valor)>0) convs[k].cons.push(Number(i.valor)); });
+  const convList=Object.entries(convs).sort((a,b)=>b[1].v-a[1].v);
+  const consulta=convList.filter(([,c])=>c.cons.length).map(([k,c])=>[k,c.cons.reduce((s,x)=>s+x,0)/c.cons.length,`${c.cons.length} consultas`]).sort((a,b)=>b[1]-a[1]);
+  // por tipo
+  const cats=Object.keys(CAT_LABEL).map(k=>{ const its=itens.filter(i=>i.categoria===k); return [CAT_LABEL[k],its.reduce((s,i)=>s+Number(i.valor||0),0),`${its.reduce((s,i)=>s+(k==="exame"?(i.qtd||1):1),0)} ${k==="exame"?"exames":"itens"}`]; }).filter(x=>x[1]>0||/Retorno/.test(x[0])&&x[2][0]!=="0");
+  // pacientes
+  const pacs={}; itens.forEach(i=>{ const k=normNome(i.paciente); if(!k) return; (pacs[k]=pacs[k]||{nome:i.paciente,v:0,ex:0,loc:reps.find(r=>r.id===i.repasse_id)?.local,conv:i.convenio}); pacs[k].v+=Number(i.valor||0); if(i.categoria==="exame") pacs[k].ex+=(i.qtd||1); if(String(i.paciente).length>pacs[k].nome.length) pacs[k].nome=i.paciente; });
+  const topPac=Object.values(pacs).sort((a,b)=>b.v-a.v).slice(0,10);
+  // insights
+  const ins=[];
+  if(porLoc.length>1){ const [a,b]=[porLoc[0],porLoc[porLoc.length-1]]; ins.push(`<b>${esc(a[0])}</b> rende <b>${moeda0(a[1].porDia)} por dia</b> de atendimento, contra ${moeda0(b[1].porDia)} em ${esc(b[0])}${b[1].porDia?` (${(a[1].porDia/b[1].porDia).toFixed(1)}×)`:""}.`); }
+  if(consulta.length>1) ins.push(`Consulta que mais paga: <b>${esc(consulta[0][0])}</b> (${moeda(consulta[0][1])}); a que menos paga: <b>${esc(consulta[consulta.length-1][0])}</b> (${moeda(consulta[consulta.length-1][1])}).`);
+  const ex=itens.filter(i=>i.categoria==="exame").reduce((s,i)=>s+Number(i.valor||0),0); if(M.total) ins.push(`Exames representam <b>${Math.round(ex/M.total*100)}%</b> do repasse, com média de <b>${M.exPac.toFixed(1)} exames por paciente</b>.`);
+  if(M.pProc) ins.push(`Cirurgias, injeções e laser somam <b>${Math.round(M.pProc*100)}%</b> do repasse: são o que mais pesa por atendimento.`);
+  const pend=reps.map(r=>[r,conferenciaRep(r)]).filter(([r,c])=>c.zeros.length||c.falt.length||(c.dif!=null&&!c.ok));
+  if(pend.length) ins.push(`⚠️ ${pend.length} relatório(s) com pontos para conferir (valores zerados, procedimentos faltando ou total diferente). Veja abaixo.`);
+  // relatórios
+  const cardRep=r=>{ const c=conferenciaRep(r); return `<div class="item rep-card ${c.zeros.length||c.falt.length||(c.dif!=null&&!c.ok)?"warn":"okc"}">
+    <div class="row"><div class="name"><b>${esc(r.local)}</b>${r.numero?` · Nº ${esc(r.numero)}`:""}</div><span class="chip ${r.status==="pago"?"ok":r.status==="conferido"?"blue":"warn"}">${esc(r.status||"a conferir")}</span></div>
+    <div class="meta">${r.periodo_ini?br(r.periodo_ini):""} a ${r.periodo_fim?br(r.periodo_fim):""} · ${c.it.length} itens · ${esc(r.formato||"")}</div>
+    <div class="row meta"><b style="color:var(--ink);font-size:1.05rem">${moeda(c.soma)}</b>${r.total_informado!=null?(c.ok?`<span class="chip ok">✔ total confere com o extrato</span>`:`<span class="chip late">Total do extrato ${moeda(r.total_informado)} · diferença ${moeda(c.dif)}</span>`):""}${c.zeros.length?`<span class="chip late">${c.zeros.length} procedimento(s) com R$ 0</span>`:""}${c.falt.length?`<span class="chip warn">${c.falt.length} do portal não aparecem</span>`:""}<span class="chip">${c.conf}/${c.it.length} conferidos</span></div>
+    ${r.recebido_em?`<div class="meta">Recebido em ${br(r.recebido_em)}${r.valor_recebido!=null?` · ${moeda(r.valor_recebido)}`:""}</div>`:""}
+    <div class="row" style="justify-content:flex-end"><button class="btn small" data-act="rep-abrir" data-rid="${r.id}">Conferir</button></div></div>`; };
+  return head+filtros+kpis+
+  (ins.length?`<div class="panel insight"><div class="panel-h"><h3>💡 O que os números mostram</h3></div><ul>${ins.map(x=>`<li>${x}</li>`).join("")}</ul></div>`:"")+
+  `<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>Comparativo por clínica</h3><span class="sub">ordenado por R$ por dia de atendimento</span></div>${tabLoc}
+   <div class="sub" style="font-size:.78rem">Dias = dias com consulta no extrato. Compare clínicas no mesmo período: os extratos podem cobrir semanas diferentes.</div></div>
+  <div class="grid-panels" style="margin-top:14px">
+    <div class="panel"><div class="panel-h"><h3>Repasse por convênio</h3></div>${barrasR(convList.map(([k,c])=>[k,c.v,`${c.pac.size} pacientes`]),moeda0)}</div>
+    <div class="panel"><div class="panel-h"><h3>Quanto paga uma consulta</h3><span class="sub">média do repasse</span></div>${barrasR(consulta)}</div>
+    <div class="panel"><div class="panel-h"><h3>Por tipo de atendimento</h3></div>${barrasR(cats,moeda0)}</div>
+    <div class="panel"><div class="panel-h"><h3>Pacientes que mais geraram repasse</h3></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Paciente</th><th>Clínica</th><th>Exames</th><th>Repasse</th></tr></thead><tbody>${topPac.map(p=>`<tr><td>${esc(p.nome)}</td><td>${esc(p.loc||"")}</td><td>${p.ex}</td><td><b>${moeda(p.v)}</b></td></tr>`).join("")}</tbody></table></div></div>
+  </div>
+  <div class="group-title">Relatórios importados <span class="count">${reps.length}</span></div>
+  <div class="list">${reps.sort((a,b)=>(b.periodo_fim||"").localeCompare(a.periodo_fim||"")).map(cardRep).join("")}</div>`;
+}
+
+function telaConferencia(id){
+  const r=S.reps.find(x=>x.id===id); if(!r){ S.repSel=null; return telaRepasse(); }
+  const c=conferenciaRep(r);
+  const f=S.repFiltro||"todos", q=(S.repBusca||"").trim();
+  const alerta=i=>Number(i.valor||0)===0&&["cirurgia","injecao","laser"].includes(i.categoria);
+  let its=c.it.slice().sort((a,b)=>(a.data||"").localeCompare(b.data||"")||String(a.paciente).localeCompare(b.paciente));
+  if(f==="pend") its=its.filter(i=>!i.conferido); if(f==="alerta") its=its.filter(alerta); if(f==="proc") its=its.filter(i=>["cirurgia","injecao","laser"].includes(i.categoria));
+  if(q) its=its.filter(i=>normNome(i.paciente).includes(normNome(q))||normNome(i.procedimento).includes(normNome(q)));
+  const subt=r.subtotais||{}; const porConv={}; c.it.forEach(i=>{ const k=(i.convenio||"").toUpperCase(); porConv[k]=(porConv[k]||0)+Number(i.valor||0); });
+  const linhasSub=Object.entries(subt).map(([k,v])=>{ const s=porConv[k.toUpperCase()]||0; const ok=Math.abs(s-v)<0.05; return `<tr><td>${esc(k)}</td><td>${moeda(v)}</td><td>${moeda(s)}</td><td>${ok?'<span class="chip ok">✔</span>':`<span class="chip late">${moeda(s-v)}</span>`}</td></tr>`; }).join("");
+  const fb=(k,t)=>`<button data-rfil="${k}" aria-pressed="${f===k}">${t}</button>`;
+  return `<div class="sec-head"><div><button class="linkbtn" data-act="rep-voltar">← Voltar ao repasse</button><h2>${esc(r.local)}${r.numero?` · Nº ${esc(r.numero)}`:""}</h2><div class="sub">${r.periodo_ini?br(r.periodo_ini):""} a ${r.periodo_fim?br(r.periodo_fim):""} · ${c.it.length} itens · importado de ${esc(r.arquivo||r.formato||"")}</div></div>
+    <button class="btn ghost small" data-act="rep-excluir" data-rid="${r.id}" style="color:var(--late)">Excluir relatório</button></div>
+  <div class="kpis rep">
+    <div class="kpi ${c.ok?"":"late"}"><b>${moeda(c.soma)}</b><span>${r.total_informado!=null?(c.ok?"✔ igual ao total do extrato":`Extrato diz ${moeda(r.total_informado)}`):"Soma dos itens"}</span></div>
+    <div class="kpi ${c.zeros.length?"late":""}"><b>${c.zeros.length}</b><span>Procedimentos com R$ 0</span></div>
+    <div class="kpi ${c.falt.length?"warn":""}"><b>${c.falt.length}</b><span>Do portal que não aparecem</span></div>
+    <div class="kpi"><b>${c.conf}/${c.it.length}</b><span>Itens conferidos</span></div></div>
+  <div class="panel"><div class="panel-h"><h3>Status do repasse</h3></div>
+    <form id="fRep" class="grid3"><label>Situação<select id="rSt">${["a conferir","conferido","pago"].map(s=>`<option ${r.status===s?"selected":""}>${s}</option>`).join("")}</select></label>
+    <label>Recebido em<input type="date" id="rDt" value="${r.recebido_em||""}"></label>
+    <label>Valor recebido<input id="rVl" inputmode="decimal" value="${r.valor_recebido??""}" placeholder="${moeda(c.soma)}"></label>
+    <button class="btn" type="submit">Salvar</button></form>
+    ${r.valor_recebido!=null&&Math.abs(Number(r.valor_recebido)-c.soma)>=0.05?`<div class="msg err">Recebido ${moeda(r.valor_recebido)} · extrato ${moeda(c.soma)} · diferença ${moeda(Number(r.valor_recebido)-c.soma)}</div>`:""}</div>
+  ${linhasSub?`<div class="panel" style="margin-top:12px"><div class="panel-h"><h3>Subtotais por convênio</h3><span class="sub">extrato × soma dos itens</span></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Convênio</th><th>Extrato</th><th>Itens</th><th></th></tr></thead><tbody>${linhasSub}</tbody></table></div></div>`:""}
+  ${c.zeros.length?`<div class="panel alerta" style="margin-top:12px"><div class="panel-h"><h3>⚠️ Procedimentos com repasse R$ 0</h3><span class="sub">pode ser glosa, pacote ou lançamento pendente · cobre a clínica</span></div>${c.zeros.map(i=>`<div class="tk-row"><div class="inj-nome"><b>${esc(i.paciente)}</b><small>${br(i.data)} · ${esc(i.procedimento)} · ${esc(i.convenio||"")}</small></div><div class="inj-acts"><button class="btn small ghost" data-act="rep-check" data-iid="${i.id}">${i.conferido?"✔ Conferido":"Marcar conferido"}</button></div></div>`).join("")}</div>`:""}
+  ${c.falt.length?`<div class="panel alerta" style="margin-top:12px"><div class="panel-h"><h3>🔎 Registrados no portal, mas não aparecem neste extrato</h3><span class="sub">${esc(r.local)} · mesmo período</span></div>${c.falt.map(x=>`<div class="tk-row"><div class="inj-nome"><button class="linklike" data-pac="${x.c.paciente_id}">${esc(nomeCurto(pacOf(x.c).nome))}</button><small>${br(x.data)} · ${esc(x.txt)} · ${esc(pagLabel(x.c))}</small></div></div>`).join("")}<div class="sub" style="font-size:.78rem">Pode estar no próximo extrato ou com outro nome. Confira antes de cobrar.</div></div>`:""}
+  <div class="group-title">Itens do extrato <span class="count">${its.length}</span></div>
+  <div class="row" style="gap:10px;flex-wrap:wrap"><div class="seg">${fb("todos","Todos")}${fb("pend","Não conferidos")}${fb("proc","Cirurgias, injeções e laser")}${fb("alerta","R$ 0 em procedimento")}</div>
+    <input type="search" id="repBusca" placeholder="Buscar paciente ou procedimento" value="${esc(q)}" style="flex:1;min-width:200px">
+    <button class="btn small ghost" data-act="rep-check-todos">✔ Marcar visíveis como conferidos</button></div>
+  <div class="tbl-wrap" style="margin-top:8px"><table class="tbl conf"><thead><tr><th></th><th>Data</th><th>Paciente</th><th>Convênio</th><th>Procedimento</th><th>Tipo</th>${c.it.some(i=>i.valor_bruto!=null)?"<th>Faturado</th>":""}<th>Repasse</th></tr></thead><tbody>
+  ${its.map(i=>`<tr class="${i.conferido?"ok":""} ${alerta(i)?"al":""}"><td><input type="checkbox" data-rck="${i.id}" ${i.conferido?"checked":""} aria-label="Conferido"></td><td>${br(i.data)}</td><td>${esc(i.paciente)}</td><td>${esc(i.convenio||"")}</td><td>${esc(i.procedimento)}${i.pagamento?`<small style="display:block;color:var(--soft)">${esc(i.pagamento)}</small>`:""}</td><td>${CAT_LABEL[i.categoria]||i.categoria}${i.qtd>1?` (${i.qtd})`:""}</td>${c.it.some(x=>x.valor_bruto!=null)?`<td>${i.valor_bruto!=null?moeda(i.valor_bruto):""}</td>`:""}<td><b>${moeda(i.valor)}</b>${i.valor_bruto>0?`<small style="display:block;color:var(--soft)">${Math.round(i.valor/i.valor_bruto*100)}% do faturado</small>`:""}</td></tr>`).join("")}
+  </tbody></table></div>`;
+}
+
+async function carregaLib(url,glob){ if(window[glob]) return window[glob]; await new Promise((res,rej)=>{ const s=document.createElement("script"); s.src=url; s.onload=res; s.onerror=()=>rej(new Error("Não consegui carregar o leitor de arquivos. Verifique a internet.")); document.head.appendChild(s); }); return window[glob]; }
+async function lerArquivoRepasse(file){
+  const buf=await file.arrayBuffer();
+  if(/\.pdf$/i.test(file.name)){
+    const lib=await carregaLib("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js","pdfjsLib");
+    lib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    const doc=await lib.getDocument({data:new Uint8Array(buf)}).promise; const pages=[];
+    for(let i=1;i<=doc.numPages;i++){ const p=await doc.getPage(i); const tc=await p.getTextContent(); pages.push({items:tc.items.map(t=>({str:t.str,x:t.transform[4],y:t.transform[5]}))}); }
+    const r=REP.pdfEyecare(pages); if(!r.itens.length) throw new Error("Não encontrei itens neste PDF. Ele é um extrato de repasse do EyecareBI?"); return r;
+  }
+  const X=await carregaLib("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js","XLSX");
+  const wb=X.read(buf,{cellDates:true}); let last=null;
+  for(const n of wb.SheetNames){ try{ const r=REP.planilha(X.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true})); if(r.itens.length) return r; }catch(e){ last=e; } }
+  throw last||new Error("Não encontrei itens na planilha.");
+}
+function folhaImportRepasse(){
+  const guess=n=>/PARAISO|PARAÍSO/i.test(n)?"OA Paraíso":/PALMAS/i.test(n)?"OA Palmas":/ICOG/i.test(n)?(/PORTO/i.test(n)?"ICOG Porto":"ICOG Palmas"):/OPUS/i.test(n)?"OPUS":"";
+  abrir(`<header><div><h2>Importar repasse</h2><div class="sub">PDF do extrato (EyecareBI) ou planilha Excel com Data, Paciente, Convênio, Procedimentos, Valor e Repasse</div></div><button class="close" data-close aria-label="Fechar">×</button></header>
+  <form id="fImp" class="form">
+    <label>Arquivo<input type="file" id="impArq" accept=".pdf,.xlsx,.xls,.csv" required></label>
+    <fieldset><legend>Clínica</legend>${radios("impLoc",LOCAIS.map(l=>[l,l]),"")}<span class="err" id="impErrL"></span></fieldset>
+    <div id="impPrev" class="meta"></div><div class="err" id="impErr"></div>
+    <button class="btn" type="submit" id="impBtn" disabled>Salvar repasse</button></form>`);
+  let lido=null, arq=null;
+  $("#impArq").addEventListener("change",async e=>{ arq=e.target.files[0]; lido=null; $("#impBtn").disabled=true; $("#impErr").textContent=""; if(!arq) return;
+    const g=guess(arq.name); if(g){ const r=document.querySelector(`input[name="impLoc"][value="${g}"]`); if(r) r.checked=true; }
+    $("#impPrev").textContent="Lendo o arquivo…";
+    try{ lido=await lerArquivoRepasse(arq); const soma=lido.itens.reduce((s,i)=>s+Number(i.valor||0),0);
+      const ok=lido.total_informado==null||Math.abs(soma-lido.total_informado)<0.05;
+      $("#impPrev").innerHTML=`<b>${lido.itens.length} itens</b> · ${lido.periodo_ini?br(lido.periodo_ini):""} a ${lido.periodo_fim?br(lido.periodo_fim):""}${lido.numero?` · Nº ${esc(lido.numero)}`:""}<br>Soma dos itens: <b>${moeda(soma)}</b>${lido.total_informado!=null?` · total no arquivo: <b>${moeda(lido.total_informado)}</b> ${ok?"✔":"⚠️ diferente"}`:""}`;
+      $("#impBtn").disabled=false;
+    }catch(err){ $("#impPrev").textContent=""; $("#impErr").textContent=err.message; } });
+  $("#fImp").addEventListener("submit",async e=>{ e.preventDefault(); const loc=document.querySelector('input[name="impLoc"]:checked')?.value;
+    if(!loc){ $("#impErrL").textContent="Escolha a clínica."; return; } if(!lido) return;
+    const dup=S.reps.find(r=>r.local===loc&&((lido.numero&&r.numero===lido.numero)||(r.periodo_ini===lido.periodo_ini&&r.periodo_fim===lido.periodo_fim)));
+    if(dup&&!confirmar(`Já existe um repasse de ${loc} com esse número/período. Importar mesmo assim?`)) return;
+    $("#impBtn").disabled=true; $("#impBtn").textContent="Salvando…";
+    const {data,error}=await sb.from("repasses").insert({local:loc,numero:lido.numero,periodo_ini:lido.periodo_ini,periodo_fim:lido.periodo_fim,total_informado:lido.total_informado!=null?Math.round(lido.total_informado*100)/100:null,subtotais:Object.keys(lido.subtotais||{}).length?lido.subtotais:null,formato:lido.formato,arquivo:arq.name,criado_por:S.user?.email||null}).select().single();
+    if(error){ $("#impErr").textContent=error.message; $("#impBtn").disabled=false; $("#impBtn").textContent="Salvar repasse"; return; }
+    const rows=lido.itens.map(i=>({repasse_id:data.id,data:i.data,paciente:i.paciente,convenio:i.convenio,procedimento:i.procedimento,categoria:i.categoria,qtd:i.qtd||1,valor_bruto:i.valor_bruto!=null?Math.round(i.valor_bruto*100)/100:null,valor:Math.round(Number(i.valor||0)*100)/100,pagamento:i.pagamento}));
+    for(let k=0;k<rows.length;k+=200){ const {error:e2}=await sb.from("repasse_itens").insert(rows.slice(k,k+200)); if(e2){ $("#impErr").textContent=e2.message; return; } }
+    fechar(); toast(`Repasse de ${loc} importado ✔ · ${rows.length} itens`); S.repSel=data.id; await carregar(); render(); });
+}
+
 function filtroInd(c){
   const f=S.fInd;
   if(f==="convenio") return ehConv(c);
@@ -1140,6 +1440,12 @@ async function acao(act, el){
   if(act==="mod-del"){ if(confirmar("Excluir este modelo?")){ if(await salvar(sb.from("modelos").delete().eq("id",el.dataset.mid),"Modelo excluído")) folhaModelos(); } return; }
   if(act==="orcamento") return folhaOrcamento(c);
   if(act==="precos") return folhaPrecos();
+  if(act==="rep-import") return folhaImportRepasse();
+  if(act==="rep-abrir"){ S.repSel=el.dataset.rid; S.repFiltro="todos"; S.repBusca=""; render(); window.scrollTo(0,0); return; }
+  if(act==="rep-voltar"){ S.repSel=null; render(); return; }
+  if(act==="rep-excluir"){ if(confirmar("Excluir este relatório de repasse e todos os itens?")){ S.repSel=null; await salvar(sb.from("repasses").delete().eq("id",el.dataset.rid),"Relatório excluído"); } return; }
+  if(act==="rep-check"){ const i=S.repItens.find(x=>x.id===el.dataset.iid); return marcaConferido([el.dataset.iid], !(i&&i.conferido)); }
+  if(act==="rep-check-todos"){ const ids=[...document.querySelectorAll("[data-rck]")].map(x=>x.dataset.rck); return marcaConferido(ids,true); }
   if(act==="cobrei") return salvar(sb.from("casos").update({ultimo_contato:iso(hoje())}).eq("id",id),"Cobrança registrada ✔ · sai da lista por 7 dias");
   if(act==="avisei") return salvar(sb.from("casos").update({ultimo_contato:iso(hoje())}).eq("id",id),"Marcado: paciente avisado ✔");
   if(act==="aplicar"){
@@ -1175,11 +1481,12 @@ async function ciclarInteresse(id){
 }
 
 document.addEventListener("click", e=>{
-  const t=e.target.closest("[data-acaotg],[data-fpag],[data-finj],[data-fpos],[data-dia],[data-floc],[data-fase],[data-tab],[data-goto],[data-act],[data-pac],[data-ft],[data-fi],[data-int]"); if(!t) return;
+  const t=e.target.closest("[data-rfil],[data-acaotg],[data-fpag],[data-finj],[data-fpos],[data-dia],[data-floc],[data-fase],[data-tab],[data-goto],[data-act],[data-pac],[data-ft],[data-fi],[data-int]"); if(!t) return;
   if(t.dataset.int){ ciclarInteresse(t.dataset.int); return; }
   if(t.dataset.dia!==undefined){ S.dia=+t.dataset.dia; render(); return; }
   if(t.dataset.floc!==undefined){ S.fLocal=t.dataset.floc; S.fase=null; render(); return; }
   if(t.dataset.fase){ S.fase = S.fase===t.dataset.fase ? null : t.dataset.fase; render(); return; }
+  if(t.dataset.rfil){ S.repFiltro=t.dataset.rfil; render(); return; }
   if(t.dataset.acaotg){ S.acaoAberta = S.acaoAberta!==true; render(); return; }
   if(t.dataset.fpag!==undefined){ S.fPag=t.dataset.fpag; render(); return; }
   if(t.dataset.finj!==undefined){ S.fInj = S.fInj===t.dataset.finj ? null : t.dataset.finj; render(); return; }
@@ -1190,8 +1497,14 @@ document.addEventListener("click", e=>{
   if(t.dataset.ft!==undefined){ S.fTrat=t.dataset.ft; render(); return; }
   if(t.dataset.fi!==undefined){ S.fInd=t.dataset.fi; render(); return; }
 });
-document.addEventListener("change", e=>{ if(e.target.id==="selLocal"){ S.fLocal=e.target.value; S.fase=null; render(); } });
-document.addEventListener("input", e=>{ if(e.target.id==="busca"){ S.busca=e.target.value; const pos=e.target.selectionStart; render(); const b=$("#busca"); b.focus(); b.setSelectionRange(pos,pos); } });
+document.addEventListener("change", e=>{ if(e.target.id==="selLocal"){ S.fLocal=e.target.value; S.fase=null; render(); }
+  if(e.target.id==="selRepLocal"){ S.repLocal=e.target.value; render(); }
+  if(e.target.id==="selRepMes"){ S.repMes=e.target.value; render(); }
+  if(e.target.dataset&&e.target.dataset.rck){ marcaConferido([e.target.dataset.rck], e.target.checked); } });
+async function marcaConferido(ids, v){ ids.forEach(id=>{ const i=S.repItens.find(x=>x.id===id); if(i) i.conferido=v; }); render();
+  for(let k=0;k<ids.length;k+=100){ const {error}=await sb.from("repasse_itens").update({conferido:v}).in("id",ids.slice(k,k+100)); if(error){ toast("Não foi possível salvar: "+error.message); await carregar(); render(); return; } } }
+document.addEventListener("input", e=>{ if(e.target.id==="repBusca"){ S.repBusca=e.target.value; const pos=e.target.selectionStart; render(); const b=$("#repBusca"); b.focus(); b.setSelectionRange(pos,pos); return; }
+  if(e.target.id==="busca"){ S.busca=e.target.value; const pos=e.target.selectionStart; render(); const b=$("#busca"); b.focus(); b.setSelectionRange(pos,pos); } });
 $("#fab").addEventListener("click", ()=>folhaIndicacao());
 document.addEventListener("keydown", e=>{ if(e.key==="Escape") fechar(); });
 
