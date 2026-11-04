@@ -303,8 +303,8 @@
     </div>
     <div class="sim-scenes">
       <figure class="sim-scene">
-        <svg viewBox="0 0 300 200" role="img" aria-label="Visão de longe: estrada com placa">
-          <g class="sim-view" id="simVL">
+        <div class="sim-view" id="simVL" style="overflow:hidden"><svg viewBox="0 0 300 200" role="img" aria-label="Visão de longe: estrada com placa">
+          <g id="simVL_g">
             <g id="simLD">
               <rect width="300" height="200" fill="#bfe0f7"/><circle cx="248" cy="38" r="16" fill="#fff6c8"/>
               <path d="M0 120 Q60 80 120 108 T240 96 T300 104 V200 H0Z" fill="#8fbf7a"/><path d="M0 140 Q80 112 160 132 T300 126 V200 H0Z" fill="#6fa55e"/>
@@ -326,13 +326,13 @@
               <circle cx="140" cy="128" r="3.2" fill="#fffbe8"/><circle cx="158" cy="128" r="3.2" fill="#fffbe8"/><circle cx="60" cy="112" r="2.4" fill="#ffd27a"/><circle cx="96" cy="108" r="2.4" fill="#ffd27a"/>
             </g>
           </g>
-        </svg>
+        </svg></div>
         <figcaption class="sim-cap"><span><b>Longe</b>dirigir, TV, rostos</span><span class="sim-pill" id="simTL"></span></figcaption>
       </figure>
       <figure class="sim-scene">
-        <svg viewBox="0 0 300 200" role="img" aria-label="Visão intermediária: tela de computador">
+        <div class="sim-view" id="simVI" style="overflow:hidden"><svg viewBox="0 0 300 200" role="img" aria-label="Visão intermediária: tela de computador">
           <rect width="300" height="200" fill="#efe9e1"/><rect y="150" width="300" height="50" fill="#c9a983"/>
-          <g class="sim-view" id="simVI">
+          <g id="simVI_g">
             <rect x="62" y="34" width="176" height="112" rx="6" fill="#2b3442"/><rect x="70" y="42" width="160" height="96" rx="2" fill="#fff"/>
             <rect x="70" y="42" width="160" height="14" fill="#1f5aa6"/>
             <text x="78" y="52.5" font-family="sans-serif" font-size="8" font-weight="700" fill="#fff">Agenda da semana</text>
@@ -343,13 +343,13 @@
             </g>
             <rect x="120" y="146" width="60" height="6" fill="#2b3442"/><rect x="98" y="152" width="104" height="6" rx="2" fill="#3a4556"/>
           </g>
-        </svg>
+        </svg></div>
         <figcaption class="sim-cap"><span><b>Intermediário</b>computador, painel do carro</span><span class="sim-pill" id="simTI"></span></figcaption>
       </figure>
       <figure class="sim-scene">
-        <svg viewBox="0 0 300 200" role="img" aria-label="Visão de perto: celular e bula de remédio">
+        <div class="sim-view" id="simVP" style="overflow:hidden"><svg viewBox="0 0 300 200" role="img" aria-label="Visão de perto: celular e bula de remédio">
           <rect width="300" height="200" fill="#e7edf3"/>
-          <g class="sim-view" id="simVP">
+          <g id="simVP_g">
             <rect x="34" y="18" width="104" height="170" rx="14" fill="#1d2430"/><rect x="40" y="28" width="92" height="150" rx="6" fill="#f7f9fb"/>
             <rect x="46" y="40" width="74" height="30" rx="6" fill="#dcf3df"/>
             <text font-family="sans-serif" font-size="6.4" fill="#203020"><tspan x="50" y="51">Bom dia, vó! Chego</tspan><tspan x="50" y="61">às 15h com o bolo.</tspan></text>
@@ -364,7 +364,7 @@
               <text x="168" y="124">Conservar em temperatura</text><text x="168" y="132">ambiente (15 a 30 °C).</text><text x="168" y="146">Validade após aberto: 28 dias.</text>
             </g>
           </g>
-        </svg>
+        </svg></div>
         <figcaption class="sim-cap"><span><b>Perto</b>celular, leitura, bula</span><span class="sim-pill" id="simTP"></span></figcaption>
       </figure>
     </div>
