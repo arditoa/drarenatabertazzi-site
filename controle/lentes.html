@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Simulador de lentes com valores · Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Mundo único: consultório claro, azul da marca da Dra. Renata. Layout: escolher lente → ver 3 distâncias → comparar → valores */
+  --ink:#14233d; --soft:#5b6880; --line:#dbe3ee; --paper:#f4f7fb; --card:#ffffff;
+  --brand:#163f78; --accent:#1f5aa6; --accent-soft:#e6eefa;
+  --ok:#2f7a55; --ok-soft:#e1f1e8; --warn:#a86a12; --warn-soft:#fbefd9; --late:#b4412f; --late-soft:#fbe6e1;
+  --display:"Newsreader", Georgia, serif; --body:"Figtree", system-ui, -apple-system, sans-serif;
+  color-scheme: light;
+}
+*{box-sizing:border-box;margin:0}
+html,body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible+span{outline:3px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 40px;display:grid;gap:18px}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+h1{font-family:var(--display);font-weight:500;font-size:clamp(1.7rem,3.4vw,2.4rem);line-height:1.1;color:var(--brand);text-wrap:balance}
+.sub{color:var(--soft);font-size:.95rem}
+.sign{font-size:.85rem;color:var(--soft);text-align:right}
+.sign b{color:var(--brand);font-weight:600;display:block;font-size:.95rem}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px}
+.label{font-size:.78rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--soft);margin-bottom:8px}
+
+/* seletor de lentes */
+.lenses{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+@media(max-width:900px){.lenses{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:480px){.lenses{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.lens{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:10px 12px;text-align:left;display:grid;gap:2px;min-height:76px}
+.lens small{color:var(--soft);font-size:.78rem;line-height:1.25}
+.lens b{font-weight:700;font-size:.95rem;line-height:1.2}
+.lens .n{font-size:.72rem;font-weight:700;color:var(--accent)}
+.lens.cat .n{color:var(--late)}
+.lens[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 0 1px var(--accent) inset}
+.lens.rec::after{content:"★ combina com você";font-size:.7rem;font-weight:700;color:var(--ok);margin-top:2px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:999px;padding:3px;background:var(--card)}
+.seg button{border:0;background:none;border-radius:999px;padding:7px 14px;font-weight:600;font-size:.88rem;color:var(--soft)}
+.seg button[aria-pressed="true"]{background:var(--brand);color:#fff}
+
+/* cenas */
+.scenes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media(max-width:760px){.scenes{grid-template-columns:1fr}}
+.scene{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.scene svg{display:block;width:100%;height:auto;aspect-ratio:3/2}
+.scene .cap{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;gap:8px}
+.scene .cap b{font-size:.95rem}
+.scene .cap span{font-size:.78rem;color:var(--soft)}
+.view{transition:filter .5s ease}
+@media (prefers-reduced-motion: reduce){.view{transition:none}}
+.pill{display:inline-block;font-size:.78rem;font-weight:700;border-radius:999px;padding:3px 10px;white-space:nowrap}
+.p-ok{background:var(--ok-soft);color:var(--ok)} .p-warn{background:var(--warn-soft);color:var(--warn)} .p-late{background:var(--late-soft);color:var(--late)}
+
+/* resumo */
+.sum{display:grid;grid-template-columns:1.2fr 1fr;gap:12px}
+@media(max-width:860px){.sum{grid-template-columns:1fr}}
+.sum h2{font-family:var(--display);font-weight:500;font-size:1.6rem;color:var(--brand);line-height:1.15;text-wrap:balance}
+.facts{display:grid;gap:10px;margin-top:10px}
+.fact{display:grid;grid-template-columns:120px 1fr;gap:10px;font-size:.95rem}
+.fact dt{color:var(--soft);font-weight:600}
+.range{display:grid;gap:6px;margin-top:6px}
+.bar{display:grid;grid-template-columns:96px 1fr 44px;align-items:center;gap:10px;font-size:.85rem}
+.track{height:12px;border-radius:999px;background:#eef2f7;overflow:hidden}
+.fill{height:100%;border-radius:999px;background:var(--accent);transition:width .5s}
+.fill.halo{background:#d08a2a}
+.team{border-top:1px dashed var(--line);margin-top:12px;padding-top:10px;font-size:.88rem;color:var(--soft)}
+.team b{color:var(--ink)}
+
+/* quiz */
+.quiz{display:grid;gap:8px}
+.chk{display:flex;gap:10px;align-items:center;font-size:.95rem;cursor:pointer}
+.chk input{position:absolute;opacity:0;width:1px;height:1px}
+.chk span.box{width:22px;height:22px;border:1.5px solid var(--line);border-radius:7px;flex:none;display:grid;place-items:center;background:#fff;font-size:14px;color:#fff}
+.chk input:checked+span.box{background:var(--accent);border-color:var(--accent)}
+.chk input:checked+span.box::after{content:"✓"}
+.rec-out{margin-top:6px;background:var(--ok-soft);color:var(--ok);border-radius:12px;padding:10px 12px;font-weight:600;font-size:.92rem}
+
+/* comparativo */
+.cmp{width:100%;border-collapse:collapse;font-size:.9rem;min-width:720px}
+.cmpwrap{overflow-x:auto}
+.cmp th,.cmp td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+.cmp th{font-size:.74rem;text-transform:uppercase;letter-spacing:.06em;color:var(--soft)}
+.cmp tr.on td{background:var(--accent-soft)}
+.dots{display:inline-flex;gap:3px}
+.dots i{width:10px;height:10px;border-radius:50%;background:#e3e9f1;display:block}
+.dots i.f{background:var(--accent)}
+.dots.h i.f{background:#d08a2a}
+
+/* valores */
+.prices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:8px}
+@media(max-width:700px){.prices{grid-template-columns:1fr}}
+.price{border:1px solid var(--line);border-radius:14px;padding:12px}
+.price span{display:block;font-size:.78rem;color:var(--soft);font-weight:600}
+.price b{font-family:var(--display);font-weight:600;font-size:1.5rem;color:var(--brand);font-variant-numeric:tabular-nums}
+.price small{display:block;color:var(--soft);font-size:.8rem}
+.hidden{display:none!important}
+.foot{font-size:.8rem;color:var(--soft);line-height:1.5}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Como você vai enxergar com cada lente</h1>
+      <p class="sub">Toque numa lente e veja longe, no computador e no celular. De dia e à noite.</p>
+    </div>
+    <div class="sign"><b>Dra. Renata Bertazzi</b>Oftalmologia · Catarata e Retina<br>CRM-TO 7132 · RQE 3562</div>
+  </header>
+
+  <section class="panel" aria-label="Escolha a lente">
+    <div class="label">Escolha a lente</div>
+    <div class="lenses" id="lenses"></div>
+    <div class="row" style="margin-top:12px;justify-content:space-between">
+      <div class="row">
+        <div class="seg" role="group" aria-label="Período">
+          <button id="bDia" aria-pressed="true">☀ Dia</button><button id="bNoite" aria-pressed="false">☾ Noite</button>
+        </div>
+        <div class="seg hidden" role="group" aria-label="Tipo da lente multifocal" id="subSeg">
+          <button id="bTri" aria-pressed="true">Trifocal</button><button id="bEdof" aria-pressed="false">EDOF</button>
+        </div>
+      </div>
+      <span class="sub" style="font-size:.82rem">Simulação ilustrativa. O resultado de cada olho depende dos exames.</span>
+    </div>
+  </section>
+
+  <section class="scenes" aria-label="Simulação de visão">
+    <figure class="scene">
+      <svg viewBox="0 0 300 200" role="img" aria-label="Visão de longe: estrada com placa">
+        <g class="view" id="vLonge">
+          <g id="longeDia">
+            <rect width="300" height="200" fill="#bfe0f7"/>
+            <circle cx="248" cy="38" r="16" fill="#fff6c8"/>
+            <path d="M0 120 Q60 80 120 108 T240 96 T300 104 V200 H0Z" fill="#8fbf7a"/>
+            <path d="M0 140 Q80 112 160 132 T300 126 V200 H0Z" fill="#6fa55e"/>
+            <path d="M120 200 L146 118 L154 118 L180 200Z" fill="#59606b"/>
+            <path d="M150 124 V134 M150 146 V160 M150 174 V196" stroke="#f3f3f3" stroke-width="2.4"/>
+            <rect x="196" y="70" width="76" height="40" rx="4" fill="#1d7a46"/>
+            <rect x="231" y="110" width="4" height="34" fill="#666"/>
+            <text x="234" y="87" font-family="Figtree,sans-serif" font-size="12" font-weight="700" fill="#fff" text-anchor="middle">PALMAS</text>
+            <text x="234" y="102" font-family="Figtree,sans-serif" font-size="11" fill="#fff" text-anchor="middle">12 km →</text>
+            <rect x="30" y="80" width="10" height="44" fill="#7a5a3a"/><circle cx="35" cy="74" r="16" fill="#4f8a43"/>
+          </g>
+          <g id="longeNoite" class="hidden">
+            <rect width="300" height="200" fill="#0d1526"/>
+            <circle cx="40" cy="30" r="1.2" fill="#fff"/><circle cx="90" cy="18" r="1" fill="#fff"/><circle cx="200" cy="26" r="1.2" fill="#fff"/><circle cx="270" cy="14" r="1" fill="#fff"/>
+            <path d="M0 130 Q80 110 160 126 T300 120 V200 H0Z" fill="#141f33"/>
+            <path d="M120 200 L146 118 L154 118 L180 200Z" fill="#232a36"/>
+            <path d="M150 124 V134 M150 146 V160 M150 174 V196" stroke="#8c8c8c" stroke-width="2.4"/>
+            <rect x="196" y="70" width="76" height="40" rx="4" fill="#12452a"/>
+            <text x="234" y="87" font-family="Figtree,sans-serif" font-size="12" font-weight="700" fill="#cfd8cf" text-anchor="middle">PALMAS</text>
+            <text x="234" y="102" font-family="Figtree,sans-serif" font-size="11" fill="#cfd8cf" text-anchor="middle">12 km →</text>
+            <g id="halos"></g>
+            <circle cx="140" cy="128" r="3.2" fill="#fffbe8"/><circle cx="158" cy="128" r="3.2" fill="#fffbe8"/>
+            <circle cx="60" cy="112" r="2.4" fill="#ffd27a"/><circle cx="96" cy="108" r="2.4" fill="#ffd27a"/>
+          </g>
+        </g>
+      </svg>
+      <figcaption class="cap"><div><b>Longe</b><br><span>dirigir, TV, rosto das pessoas</span></div><span class="pill" id="tLonge"></span></figcaption>
+    </figure>
+    <figure class="scene">
+      <svg viewBox="0 0 300 200" role="img" aria-label="Visão intermediária: tela de computador">
+        <rect width="300" height="200" fill="#efe9e1"/>
+        <rect y="150" width="300" height="50" fill="#c9a983"/>
+        <g class="view" id="vInter">
+          <rect x="62" y="34" width="176" height="112" rx="6" fill="#2b3442"/>
+          <rect x="70" y="42" width="160" height="96" rx="2" fill="#fff"/>
+          <rect x="70" y="42" width="160" height="14" fill="#1f5aa6"/>
+          <text x="78" y="52.5" font-family="Figtree,sans-serif" font-size="8" font-weight="700" fill="#fff">Agenda da semana</text>
+          <g font-family="Figtree,sans-serif" font-size="7.4" fill="#26324a">
+            <text x="78" y="70">Seg 09h · Consulta de retorno</text>
+            <text x="78" y="82">Ter 14h · Exame de biometria</text>
+            <text x="78" y="94">Qua 10h · Pagamento da conta de luz</text>
+            <text x="78" y="106">Qui 16h · Aniversário da neta</text>
+            <text x="78" y="118">Sex 08h · Caminhada no parque</text>
+          </g>
+          <rect x="120" y="146" width="60" height="6" fill="#2b3442"/>
+          <rect x="98" y="152" width="104" height="6" rx="2" fill="#3a4556"/>
+        </g>
+      </svg>
+      <figcaption class="cap"><div><b>Intermediário</b><br><span>computador, painel do carro, cozinhar</span></div><span class="pill" id="tInter"></span></figcaption>
+    </figure>
+    <figure class="scene">
+      <svg viewBox="0 0 300 200" role="img" aria-label="Visão de perto: celular e bula de remédio">
+        <rect width="300" height="200" fill="#e7edf3"/>
+        <g class="view" id="vPerto">
+          <rect x="34" y="18" width="104" height="170" rx="14" fill="#1d2430"/>
+          <rect x="40" y="28" width="92" height="150" rx="6" fill="#f7f9fb"/>
+          <rect x="46" y="40" width="74" height="30" rx="6" fill="#dcf3df"/>
+          <text font-family="Figtree,sans-serif" font-size="6.4" fill="#203020"><tspan x="50" y="51">Bom dia, vó! Chego</tspan><tspan x="50" y="61">às 15h com o bolo.</tspan></text>
+          <rect x="52" y="78" width="74" height="30" rx="6" fill="#ffffff" stroke="#dde3ea"/>
+          <text font-family="Figtree,sans-serif" font-size="6.4" fill="#26324a"><tspan x="56" y="89">Consulta confirmada:</tspan><tspan x="56" y="99">quinta, 9h. Leve óculos.</tspan></text>
+          <rect x="46" y="116" width="74" height="22" rx="6" fill="#dcf3df"/>
+          <text x="50" y="130" font-family="Figtree,sans-serif" font-size="6.4" fill="#203020">Te amo! ❤</text>
+          <rect x="160" y="40" width="110" height="140" rx="4" fill="#ffffff" stroke="#d4dbe4"/>
+          <text x="168" y="56" font-family="Figtree,sans-serif" font-size="8" font-weight="700" fill="#26324a">COLÍRIO · Bula</text>
+          <g font-family="Figtree,sans-serif" font-size="5" fill="#3c4860">
+            <text x="168" y="70">Posologia: 1 gota no olho</text>
+            <text x="168" y="78">operado, 4 vezes ao dia,</text>
+            <text x="168" y="86">por 7 dias. Agite antes de</text>
+            <text x="168" y="94">usar. Não toque a ponta do</text>
+            <text x="168" y="102">frasco no olho. Aguarde 5</text>
+            <text x="168" y="110">minutos entre colírios.</text>
+            <text x="168" y="124">Conservar em temperatura</text>
+            <text x="168" y="132">ambiente (15 a 30 °C).</text>
+            <text x="168" y="146">Validade após aberto: 28 dias.</text>
+          </g>
+        </g>
+      </svg>
+      <figcaption class="cap"><div><b>Perto</b><br><span>celular, leitura, bula, costura</span></div><span class="pill" id="tPerto"></span></figcaption>
+    </figure>
+  </section>
+
+  <section class="sum">
+    <div class="panel">
+      <div class="label" id="sNum"></div>
+      <h2 id="sNome"></h2>
+      <p class="sub" id="sFrase" style="margin-top:6px"></p>
+      <div class="range" aria-label="Faixa de visão sem óculos">
+        <div class="bar"><span>Longe</span><div class="track"><div class="fill" id="rL"></div></div><span id="rLt"></span></div>
+        <div class="bar"><span>Intermediário</span><div class="track"><div class="fill" id="rI"></div></div><span id="rIt"></span></div>
+        <div class="bar"><span>Perto</span><div class="track"><div class="fill" id="rP"></div></div><span id="rPt"></span></div>
+        <div class="bar"><span>Halos à noite</span><div class="track"><div class="fill halo" id="rH"></div></div><span id="rHt"></span></div>
+      </div>
+      <dl class="facts">
+        <div class="fact"><dt>Óculos depois</dt><dd id="sOculos"></dd></div>
+        <div class="fact"><dt>Ideal para</dt><dd id="sIdeal"></dd></div>
+        <div class="fact"><dt>Atenção</dt><dd id="sAtencao"></dd></div>
+      </dl>
+      <div class="team" id="sTeam"></div>
+    </div>
+    <div class="panel">
+      <div class="label">O que é importante no seu dia a dia?</div>
+      <div class="quiz" id="quiz">
+        <label class="chk"><input type="checkbox" value="noite"><span class="box"></span>Dirijo à noite com frequência</label>
+        <label class="chk"><input type="checkbox" value="pc"><span class="box"></span>Uso computador ou tablet várias horas</label>
+        <label class="chk"><input type="checkbox" value="perto"><span class="box"></span>Leio muito, costuro ou uso muito o celular</label>
+        <label class="chk"><input type="checkbox" value="livre"><span class="box"></span>Quero ficar o mais livre possível dos óculos</label>
+        <label class="chk"><input type="checkbox" value="aceita"><span class="box"></span>Não me incomodo de usar óculos para ler</label>
+        <label class="chk"><input type="checkbox" value="ast"><span class="box"></span>Tenho astigmatismo</label>
+      </div>
+      <div class="rec-out" id="recOut">Marque o que vale para você e a lente que mais combina aparece com uma estrela.</div>
+      <div class="row" style="margin-top:14px;justify-content:space-between">
+        <div class="label" style="margin:0">Valores (por olho)</div>
+        <button class="seg" id="bPreco" style="padding:6px 12px;font-weight:600;font-size:.85rem" aria-pressed="false">Mostrar valores</button>
+      </div>
+      <div id="precoBox" class="hidden">
+        <div class="row" style="margin-top:8px">
+          <div class="seg" role="group" aria-label="Tabela"><button id="tbICOG" aria-pressed="true">ICOG</button><button id="tbPad" aria-pressed="false">OA / OPUS</button></div>
+          <div class="seg" role="group" aria-label="Plano"><button id="plSem" aria-pressed="true">Sem plano</button><button id="plCom" aria-pressed="false">Com plano</button></div>
+        </div>
+        <p class="foot" id="pVazio" style="margin-top:8px"></p>
+        <div class="prices" id="pGrid">
+          <div class="price"><span>À vista</span><b id="pV"></b><small>por olho</small></div>
+          <div class="price"><span>No cartão</span><b id="pP"></b><small id="pParc">em até 10x</small></div>
+          <div class="price"><span>Os dois olhos à vista</span><b id="pA"></b><small id="pDia"></small></div>
+        </div>
+        <p class="foot" id="pTor" style="margin-top:8px"></p>
+        <p class="foot" id="pObs" style="margin-top:4px"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="label">Comparativo das 5 opções</div>
+    <div class="cmpwrap">
+      <table class="cmp">
+        <thead><tr><th>Lente</th><th>Longe</th><th>Intermediário</th><th>Perto</th><th>Halos à noite</th><th>Óculos depois</th></tr></thead>
+        <tbody id="cmp"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <p class="foot">Simulação ilustrativa para ajudar na conversa da consulta. Não substitui a avaliação médica: a indicação de cada lente depende da biometria, da saúde da retina e da córnea, do astigmatismo e do estilo de vida de cada paciente. Halos e reflexos noturnos, quando aparecem, costumam diminuir com a adaptação do cérebro nos primeiros meses.</p>
+</div>
+
+<script>
+const L = {
+  cat:{n:"Antes",nome:"Catarata hoje",curta:"visão embaçada e amarelada",L:3,I:3.4,P:4.4,H:3,cat:true,
+    frase:"É assim que a catarata costuma deixar a visão: tudo mais apagado, amarelado e com ofuscamento nas luzes.",
+    oculos:"Os óculos já não resolvem bem.",ideal:"—",atencao:"A catarata tende a piorar com o tempo.",team:""},
+  tri:{n:"1ª opção · Trifocal",nome:"Multifocal trifocal",curta:"longe, computador e perto",L:0,I:0.15,P:0.6,H:2.2,
+    frase:"Três focos na mesma lente: longe, intermediário e perto. É a opção para quem quer usar óculos o mínimo possível.",
+    oculos:"Raramente. A maioria dos pacientes faz quase tudo sem óculos.",
+    ideal:"Quem quer ler o celular, usar o computador e dirigir sem óculos.",
+    atencao:"Pode haver halos (anéis) em volta das luzes à noite, que costumam diminuir com a adaptação. Não é indicada para todos os olhos: depende da retina, da córnea e do nervo óptico.",
+    team:"<b>Exemplos de modelos:</b> trifocais Clareon PanOptix / PanOptix Pro (Alcon), TECNIS Synergy e Odyssey (J&amp;J), AT LISA tri (Zeiss), RayOne Trifocal (Rayner). Versão tórica para astigmatismo."},
+  edof:{n:"1ª opção · EDOF",nome:"Foco estendido (EDOF)",curta:"longe e computador; perto bom",L:0,I:0.1,P:1.7,H:0.7,
+    frase:"Um foco alongado, contínuo do longe ao intermediário, com boa visão de perto para a maioria das tarefas. Menos halos que a trifocal.",
+    oculos:"Às vezes, para letras muito pequenas (bula, contrato).",
+    ideal:"Quem dirige muito à noite e quer independência dos óculos com menos halos.",
+    atencao:"Para letras muito pequenas, pode precisar de óculos de leitura.",
+    team:"<b>Exemplos de modelos:</b> Clareon Vivity (Alcon, não difrativa), TECNIS PureSee (J&amp;J, refrativa), TECNIS Symfony (J&amp;J). Versão tórica para astigmatismo."},
+  bif:{n:"2ª opção",nome:"Multifocal bifocal",curta:"longe e perto; computador fraco",L:0,I:2.6,P:0.45,H:2.6,
+    frase:"Dois focos: longe e perto. Lê bem e enxerga bem de longe, mas o computador e o painel do carro ficam menos nítidos.",
+    oculos:"Para computador e distância de braço.",
+    ideal:"Quem lê muito e usa pouco o computador.",
+    atencao:"Halos à noite parecidos com os da trifocal. A faixa do meio (computador) é a mais fraca.",
+    team:"<b>Exemplos:</b> lentes multifocais difrativas de dois focos (ex.: linhas TECNIS Multifocal da J&amp;J). Confirme os modelos disponíveis no hospital."},
+  prem:{n:"3ª opção",nome:"Monofocal premium",curta:"longe nítido + um pouco de meio",L:0,I:1.2,P:3.8,H:0,
+    frase:"Um foco, com a melhor nitidez e contraste de longe, e um ganho na distância do computador em relação à monofocal comum.",
+    oculos:"Para ler e usar o celular.",
+    ideal:"Quem dirige muito à noite, quer a melhor qualidade de longe e não se importa com óculos de leitura.",
+    atencao:"Sem halos. Para perto, óculos de leitura.",
+    team:"<b>Exemplos:</b> monofocais 'plus' como TECNIS Eyhance (J&amp;J), RayOne EMV (Rayner), Vivinex Impress (Hoya); monofocal hidrofóbica asférica Clareon (Alcon). Versão tórica para astigmatismo."},
+  top:{n:"4ª opção",nome:"Monofocal top",curta:"longe nítido",L:0,I:2.4,P:4.2,H:0,
+    frase:"Um foco de longe, com material hidrofóbico de boa qualidade e estável ao longo dos anos.",
+    oculos:"Para ler, celular e às vezes computador.",
+    ideal:"Quem quer enxergar bem de longe e já está acostumado com óculos para perto.",
+    atencao:"Sem halos. Perto e computador com óculos.",
+    team:"<b>Exemplos:</b> monofocais hidrofóbicas asféricas (ex.: AcrySof IQ da Alcon, TECNIS 1-Piece da J&amp;J, Vivinex da Hoya). Versão tórica para astigmatismo."},
+  bas:{n:"5ª opção",nome:"Monofocal básica",curta:"longe; material hidrofílico",L:0.45,I:2.6,P:4.4,H:0,
+    frase:"Resolve a catarata e devolve a visão de longe. É a opção mais econômica.",
+    oculos:"Para ler, celular e computador.",
+    ideal:"Quem precisa operar com o menor custo possível.",
+    atencao:"Material hidrofílico: risco maior de opacificar ao longo dos anos. Não corrige astigmatismo.",
+    team:"<b>Exemplos:</b> monofocais acrílicas hidrofílicas. Explique ao paciente a diferença de material em relação às opções 3 e 4."}
+};
+let PRECOS=[]; // vem do portal (tabela_precos), por mensagem
+const MATCH={tri:/trifocal/i, edof:/trifocal|edof|vivity|puresee/i, bif:/bifocal/i, prem:/premium/i, top:/\btop\b/i, bas:/b[áa]sica/i};
+function precoDe(k){
+  const loc=S.tabela==="ICOG"?"ICOG":null;
+  const rows=PRECOS.filter(r=>r.ativo!==false && (r.local||null)===loc && r.grupo!=="Injeção" && (!r.plano||r.plano===S.plano));
+  const re=MATCH[k]; if(!re) return null;
+  const base=rows.find(r=>!r.torica && re.test(r.nome)), tor=rows.find(r=>r.torica && re.test(r.nome));
+  return base||tor?{base,tor}:null;
+}
+const ORDEM=["cat","tri","bif","prem","top","bas"];
+let S={lente:"tri", sub:"tri", noite:false, preco:true, rec:null, tabela:"ICOG", plano:"sem"};
+const $=s=>document.querySelector(s);
+const brl=v=>v.toLocaleString("pt-BR",{style:"currency",currency:"BRL",maximumFractionDigits:0});
+const nitidez=b=>Math.max(0,Math.round(100-b*21));
+const rotulo=b=>b<0.5?["Nítido","p-ok"]:b<1.9?["Bom","p-warn"]:["Embaçado","p-late"];
+const atual=()=>S.lente==="tri"?S.sub:S.lente;
+
+function botoes(){
+  $("#lenses").innerHTML=ORDEM.map(k=>{ const d=L[k]; const nome=k==="tri"?"Trifocal / EDOF":d.nome;
+    return `<button class="lens ${k==="cat"?"cat":""} ${S.rec===k?"rec":""}" data-k="${k}" aria-pressed="${S.lente===k}"><span class="n">${d.n}</span><b>${nome}</b><small>${k==="tri"?"longe, computador e perto":d.curta}</small></button>`; }).join("");
+}
+const vis=b=>b<2?b*0.45:b*0.95;
+function filtro(b,cat){ return `blur(${vis(b).toFixed(2)}px)${cat?" sepia(.55) saturate(.7) contrast(.78) brightness(1.04)":""}`; }
+function halos(h,cat){
+  const g=$("#halos"); g.innerHTML="";
+  if(h<=0) return;
+  const luzes=[[140,128,3.2],[158,128,3.2],[60,112,2.4],[96,108,2.4]];
+  luzes.forEach(([x,y,r])=>{
+    for(let i=1;i<=3;i++){
+      const c=document.createElementNS("http://www.w3.org/2000/svg","circle");
+      c.setAttribute("cx",x); c.setAttribute("cy",y); c.setAttribute("r",r+i*h*2.6);
+      c.setAttribute("fill","none"); c.setAttribute("stroke",cat?"#ffe9b0":"#fff3cf");
+      c.setAttribute("stroke-width",Math.max(.6,h*.5)); c.setAttribute("opacity",(0.42/i)*Math.min(1,h/2));
+      g.appendChild(c);
+    }
+    if(cat){ const s=document.createElementNS("http://www.w3.org/2000/svg","circle"); s.setAttribute("cx",x); s.setAttribute("cy",y); s.setAttribute("r",r*6); s.setAttribute("fill","#fff3cf"); s.setAttribute("opacity",.18); g.appendChild(s); }
+  });
+}
+function render(){
+  const k=atual(), d=L[k];
+  botoes();
+  $("#subSeg").classList.toggle("hidden", S.lente!=="tri");
+  $("#bTri").setAttribute("aria-pressed",S.sub==="tri"); $("#bEdof").setAttribute("aria-pressed",S.sub==="edof");
+  $("#bDia").setAttribute("aria-pressed",!S.noite); $("#bNoite").setAttribute("aria-pressed",S.noite);
+  $("#longeDia").classList.toggle("hidden",S.noite); $("#longeNoite").classList.toggle("hidden",!S.noite);
+  $("#vLonge").style.filter=filtro(d.L,d.cat); $("#vInter").style.filter=filtro(d.I,d.cat); $("#vPerto").style.filter=filtro(d.P,d.cat);
+  halos(S.noite?d.H:0,d.cat);
+  [["#tLonge",d.L],["#tInter",d.I],["#tPerto",d.P]].forEach(([id,b])=>{ const [t,c]=rotulo(b); const el=$(id); el.textContent=t; el.className="pill "+c; });
+  $("#sNum").textContent=d.n; $("#sNome").textContent=d.nome; $("#sFrase").textContent=d.frase;
+  [["L",d.L],["I",d.I],["P",d.P]].forEach(([x,b])=>{ $("#r"+x).style.width=nitidez(b)+"%"; $("#r"+x+"t").textContent=nitidez(b)+"%"; });
+  $("#rH").style.width=Math.round(d.H/3*100)+"%"; $("#rHt").textContent=d.H===0?"não":d.H<1.2?"leve":"possível";
+  $("#sOculos").textContent=d.oculos; $("#sIdeal").textContent=d.ideal; $("#sAtencao").textContent=d.atencao;
+  $("#sTeam").innerHTML=d.team; $("#sTeam").classList.toggle("hidden",!d.team);
+  $("#bPreco").textContent=S.preco?"Ocultar valores":"Mostrar valores"; $("#bPreco").setAttribute("aria-pressed",S.preco);
+  $("#tbICOG").setAttribute("aria-pressed",S.tabela==="ICOG"); $("#tbPad").setAttribute("aria-pressed",S.tabela!=="ICOG");
+  $("#plSem").setAttribute("aria-pressed",S.plano==="sem"); $("#plCom").setAttribute("aria-pressed",S.plano==="com");
+  $("#precoBox").classList.toggle("hidden",!S.preco||k==="cat");
+  const pr=k==="cat"?null:precoDe(k), b=pr&&(pr.base||pr.tor);
+  $("#pGrid").classList.toggle("hidden",!b); $("#pTor").classList.toggle("hidden",!b);
+  $("#pVazio").textContent=!PRECOS.length?"Abra este simulador pelo portal (botão 👁 Lentes) para ver os valores da tabela de preços.":!b?"Esta opção não tem valor cadastrado nesta tabela. Cadastre em Indicações → 💰 Orçamento → Editar tabela de preços.":"";
+  if(b){ const v=+b.vista, pa=+b.parcelado;
+    $("#pV").textContent=brl(v); $("#pP").textContent=brl(pa); $("#pParc").textContent=`em até ${b.parcelas||10}x`; $("#pA").textContent=brl(v*2);
+    $("#pDia").textContent=`≈ ${brl(Math.round(v*2/(10*365)))} por dia ao longo de 10 anos`;
+    $("#pTor").textContent=pr.base&&pr.tor?`Com astigmatismo, versão tórica (${pr.tor.nome}): ${brl(+pr.tor.vista)} à vista ou ${brl(+pr.tor.parcelado)} em ${pr.tor.parcelas||10}x, por olho.`:!pr.base?`Valor da versão tórica (${b.nome}).`:"Esta opção não tem versão tórica nesta tabela.";
+    $("#pObs").textContent=[b.preco_minimo?`Mínimo para negociação: ${brl(+b.preco_minimo)} à vista.`:"", b.obs||""].filter(Boolean).join(" · "); }
+  else $("#pObs").textContent="";
+  $("#cmp").innerHTML=["tri","edof","bif","prem","top","bas"].map(x=>{ const v=L[x];
+    const dots=(b,h)=>{ const n=h?Math.round(b/3*5):Math.max(0,Math.min(5,Math.round(nitidez(b)/20))); return `<span class="dots ${h?"h":""}" aria-label="${n} de 5">${[0,1,2,3,4].map(i=>`<i class="${i<n?"f":""}"></i>`).join("")}</span>`; };
+    return `<tr class="${x===k?"on":""}"><td><b>${v.n}</b> · ${v.nome}</td><td>${dots(v.L)}</td><td>${dots(v.I)}</td><td>${dots(v.P)}</td><td>${dots(v.H,true)}</td><td>${v.oculos}</td></tr>`; }).join("");
+}
+function recomenda(){
+  const q=[...document.querySelectorAll("#quiz input:checked")].map(i=>i.value);
+  if(!q.length){ S.rec=null; $("#recOut").textContent="Marque o que vale para você e a lente que mais combina aparece com uma estrela."; render(); return; }
+  const cand=["tri","edof","bif","prem","top","bas"];
+  const score=k=>{ const d=L[k]; let s=-d.L*2;
+    if(q.includes("pc")) s-=d.I*1.4;
+    if(q.includes("perto")&&!q.includes("aceita")) s-=d.P*1.2;
+    if(q.includes("livre")) s-=(d.I+d.P)*1.1;
+    if(q.includes("noite")) s-=d.H*1.3;
+    if(q.includes("aceita")) s+= (k==="prem"?1.6:k==="top"?1:0);
+    if(k==="bas") s-=1.2;
+    return s; };
+  const best=cand.sort((a,b)=>score(b)-score(a))[0];
+  S.rec = best==="edof"?"tri":best;
+  if(best==="edof"||best==="tri") S.sub=best;
+  S.lente=S.rec;
+  $("#recOut").textContent=`Pelo que você marcou, a que mais combina é: ${L[best].nome}.${q.includes("ast")?" Como você tem astigmatismo, vale a versão tórica.":""} A indicação final é feita pela Dra. depois dos exames.`;
+  render();
+}
+document.addEventListener("click",e=>{
+  const b=e.target.closest("[data-k]"); if(b){ S.lente=b.dataset.k; render(); return; }
+  if(e.target.closest("#bDia")){ S.noite=false; render(); }
+  if(e.target.closest("#bNoite")){ S.noite=true; render(); }
+  if(e.target.closest("#bTri")){ S.sub="tri"; render(); }
+  if(e.target.closest("#bEdof")){ S.sub="edof"; render(); }
+  if(e.target.closest("#bPreco")){ S.preco=!S.preco; render(); }
+  if(e.target.closest("#tbICOG")){ S.tabela="ICOG"; render(); }
+  if(e.target.closest("#tbPad")){ S.tabela="padrao"; render(); }
+  if(e.target.closest("#plSem")){ S.plano="sem"; render(); }
+  if(e.target.closest("#plCom")){ S.plano="com"; render(); }
+});
+document.getElementById("quiz").addEventListener("change",recomenda);
+window.addEventListener("message",e=>{ const d=e.data||{}; if(d.tipo==="precos"&&Array.isArray(d.rows)){ PRECOS=d.rows; if(d.tabela) S.tabela=d.tabela; if(d.plano) S.plano=d.plano; render(); } });
+const altura=()=>{ try{ parent.postMessage({tipo:"altura",h:document.documentElement.scrollHeight},"*"); }catch(e){} };
+new ResizeObserver(altura).observe(document.body);
+render();
+</script>
+</body>
+</html>

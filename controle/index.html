@@ -315,6 +315,7 @@ legend{font-size:.86rem;font-weight:700;color:var(--soft);padding:0;margin-botto
   <header class="top">
     <img src="../img/simbolo.png" alt="">
     <div class="t"><b>Controle de Pacientes</b><span id="who"></span></div>
+    <button class="out" data-tab="lentes" title="Simulador de lentes com valores">👁 Lentes</button>
     <button class="out" id="bOut">Sair</button>
   </header>
   <nav class="tabs" aria-label="Seções">
@@ -507,7 +508,8 @@ function cardTrat(c){
 function render(){
   document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-current", b.dataset.tab===S.tab?"page":"false"));
   const m=$("#main");
-  m.innerHTML = ({painel:telaPainel, semana:telaSemana, ind:telaInd, cir:telaCir, trat:telaTrat, pac:telaPac}[S.tab])();
+  m.innerHTML = ({lentes:telaLentes, painel:telaPainel, semana:telaSemana, ind:telaInd, cir:telaCir, trat:telaTrat, pac:telaPac}[S.tab])();
+  if(S.tab==="lentes"){ const f=$("#frLentes"); const envia=()=>{ try{ f.contentWindow.postMessage({tipo:"precos",rows:S.precos,tabela:(S.fLocal||"").startsWith("ICOG")||!S.fLocal?"ICOG":"padrao"},"*"); }catch(e){} }; f.addEventListener("load",envia); envia(); }
   m.insertAdjacentHTML("beforeend", `<p class="footnote">Dados protegidos · acesso restrito à equipe · ${S.pacientes.length} pacientes cadastrados</p>`);
 }
 
@@ -921,6 +923,11 @@ function selLocal(base){
   base=base||S.casos;
   return `<label class="loc-sel">📍 Local de atendimento<select id="selLocal">${[["","Todos os locais",base.length],...LOCAIS.map(l=>[l,l,base.filter(c=>c.local===l).length]),["sem","Sem local",base.filter(c=>!c.local).length]].filter(([v,,n])=>v!=="sem"||n).map(([v,tx,n])=>`<option value="${v}" ${(S.fLocal||"")===v?"selected":""}>${tx} (${n})</option>`).join("")}</select></label>`;
 }
+function telaLentes(){
+  return `<div class="sec-head"><div><h2>Simulador de lentes</h2><div class="sub">Para usar na consulta · valores da tabela de preços (ICOG ou OA/OPUS, com ou sem plano)</div></div><button class="btn ghost" data-act="precos">Editar tabela de preços</button></div>
+  <iframe id="frLentes" src="lentes.html" title="Simulador de lentes" style="width:100%;height:1900px;border:0;border-radius:18px;background:#f4f7fb"></iframe>`;
+}
+window.addEventListener("message",e=>{ const d=e.data||{}; if(d.tipo==="altura"){ const f=document.getElementById("frLentes"); if(f&&d.h) f.style.height=(d.h+20)+"px"; } });
 function telaInd(){
   const todos=S.casos.filter(c=>[...ABERTAS,"fechado"].includes(c.etapa) && (c.etapa!=="fechado" || c.tipo==="cirurgia" || (c.fechado_em && desde(c.fechado_em)<=7)));
   const base=todos.filter(noLocal).filter(filtroInd);
