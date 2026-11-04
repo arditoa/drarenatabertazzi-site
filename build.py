@@ -85,6 +85,7 @@ def header(current):
     links = [("index.html#seguranca", "Segurança", "seguranca"),
              ("index.html#jornada", "Como funciona", "jornada"),
              ("cirurgia-de-catarata-palmas.html", "Catarata", "cirurgia-de-catarata-palmas"),
+             ("qual-lente-para-catarata.html", "Qual lente?", "qual-lente-para-catarata"),
              ("cirurgia-de-retina-palmas.html", "Retina", "cirurgia-de-retina-palmas"),
              ("index.html#onde-atendo", "Onde atendo", "onde")]
     nav = "\n".join(f'      <a href="{h}"{" aria-current=\"page\"" if k == current else ""}>{t}</a>' for h, t, k in links)
@@ -110,7 +111,7 @@ MBAR = f"""<div class="mbar" role="region" aria-label="Contato rápido">
 
 def footer():
     names = {"cirurgia-de-catarata-palmas": "Cirurgia de catarata", "cirurgia-de-retina-palmas": "Cirurgia de retina"}
-    pages = "\n".join(f'        <li><a href="{p["slug"]}.html">{names.get(p["slug"], p["nav"])}</a></li>' for p in PAGES)
+    pages = "\n".join(f'        <li><a href="{p["slug"]}.html">{names.get(p["slug"], p["nav"])}</a></li>' for p in PAGES) + '\n        <li><a href="qual-lente-para-catarata.html">Qual lente para catarata? Simulador</a></li>'
     cl = "\n".join(f'        <li><b>{c["name"]}</b><br>{c["street"]} · {c["city"]} (TO){" · " + c["phone_txt"] if c["phone_txt"] else ""}</li>' for c in CLINICS)
     return f"""<footer class="site-foot">
   <div class="wrap foot-grid">
@@ -180,6 +181,19 @@ CTA = f"""<section class="band cta">
 </section>"""
 
 # =================== páginas internas ===================
+LENTE_SLUG = "qual-lente-para-catarata"
+LENTE_CALLOUT = f"""<section class="band alt">
+  <div class="wrap">
+    <a class="card rel" href="{LENTE_SLUG}.html" style="text-decoration:none">
+      <span class="tag">Simulador</span>
+      <h3>Está na dúvida sobre a sua lente? A gente te ajuda.</h3>
+      <p>Responda quatro perguntas sobre o seu dia a dia e veja como você enxergaria de longe, no computador e no celular com cada tipo de lente.</p>
+      <span class="more">Abrir o simulador →</span>
+    </a>
+  </div>
+</section>
+"""
+
 for p in PAGES:
     schema = {"@context": "https://schema.org", "@graph": [
         {"@type": "MedicalWebPage", "@id": url(p["slug"]) + "#pagina", "url": url(p["slug"]), "name": p["title"], "description": p["desc"],
@@ -213,7 +227,7 @@ for p in PAGES:
     </article>
   </div>
 </section>
-
+{LENTE_CALLOUT if p["slug"] == "cirurgia-de-catarata-palmas" else ""}
 <section class="band alt">
   <div class="wrap">
     <div class="head"><span class="eyebrow">Dúvidas frequentes</span><h2>Perguntas sobre {faqtitle}</h2></div>
@@ -234,6 +248,47 @@ for p in PAGES:
 </main>
 """
     open(p["slug"] + ".html", "w").write(head(p["title"], p["desc"], p["slug"], schema) + header(p["slug"]) + "\n" + body + "\n" + footer())
+
+# =================== simulador de lentes ===================
+lt = "Qual lente para catarata? Simulador | Dra. Renata Bertazzi · Palmas"
+ld = "Está na dúvida sobre a lente da cirurgia de catarata? Responda o quiz e veja como enxergaria com lente monofocal, multifocal trifocal, foco estendido ou bifocal. Palmas (TO)."
+lschema = {"@context": "https://schema.org", "@graph": [
+    {"@type": "MedicalWebPage", "@id": url(LENTE_SLUG) + "#pagina", "url": url(LENTE_SLUG), "name": lt, "description": ld, "inLanguage": "pt-BR",
+     "author": {"@id": SITE + "/#medica"}, "reviewedBy": {"@id": SITE + "/#medica"}},
+    {"@type": "BreadcrumbList", "itemListElement": [
+        {"@type": "ListItem", "position": 1, "name": "Início", "item": SITE + "/"},
+        {"@type": "ListItem", "position": 2, "name": "Cirurgia de catarata em Palmas", "item": url("cirurgia-de-catarata-palmas")},
+        {"@type": "ListItem", "position": 3, "name": "Qual lente para catarata?", "item": url(LENTE_SLUG)}]},
+    physician_schema()]}
+lbody = f"""<main>
+<section class="page-hero">
+  <div class="wrap">
+    <div class="stack">
+      <nav class="crumbs" aria-label="Você está em"><a href="index.html">Início</a> <span aria-hidden="true">›</span> <a href="cirurgia-de-catarata-palmas.html">Cirurgia de catarata</a> <span aria-hidden="true">›</span> <span>Qual lente?</span></nav>
+      <span class="eyebrow">Cirurgia de catarata · escolha da lente</span>
+      <h1>Está na dúvida sobre a sua lente? A gente te ajuda.</h1>
+      <p class="lead">Na cirurgia de catarata, o cristalino opaco é trocado por uma lente artificial que fica no olho para sempre. Existem lentes que priorizam a visão de longe e lentes que também ajudam no computador e no celular. Responda as perguntas abaixo e veja, numa simulação, como seria o seu dia a dia com cada uma.</p>
+      <p class="cred">Por <b>Dra. Renata Cerneiro Bertazzi</b>, médica oftalmologista · CRM-TO 7132 · RQE 3562 · Membro da SBRV</p>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+{open("lentes_sim.html").read()}
+  </div>
+</section>
+
+<section class="band alt">
+  <div class="wrap">
+    <div class="head"><span class="eyebrow">Próximo passo</span><h2>A escolha certa é feita na consulta</h2></div>
+    <p class="lead" style="max-width:62ch">A simulação ajuda a entender as diferenças. A indicação da lente de cada olho depende da biometria, da saúde da retina e da córnea, do astigmatismo e do que é importante para você. Traga o resultado do quiz para a consulta: ele ajuda a conversa.</p>
+    <div class="actions"><a class="btn" href="{DM}" target="_blank" rel="noopener">{CTA_MAIN}</a><a class="btn soft" href="{DM}" target="_blank" rel="noopener">{CTA_TALK}</a></div>
+  </div>
+</section>
+</main>
+"""
+open(LENTE_SLUG + ".html", "w").write(head(lt, ld, LENTE_SLUG, lschema) + header(LENTE_SLUG) + "\n" + lbody + "\n" + footer())
 
 # =================== página inicial ===================
 HOME_FAQ = [
@@ -451,7 +506,7 @@ open("index.html", "w").write(head(home_title, home_desc, "index", home_schema) 
 
 # =================== sitemap / robots ===================
 today = date.today().isoformat()
-urls = [("index", "1.0")] + [(p["slug"], "0.8") for p in PAGES]
+urls = [("index", "1.0")] + [(p["slug"], "0.8") for p in PAGES] + [(LENTE_SLUG, "0.8")]
 open("sitemap.xml", "w").write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + "".join(
     f"  <url><loc>{url(sl)}</loc><lastmod>{today}</lastmod><priority>{pr}</priority></url>\n" for sl, pr in urls) + "</urlset>\n")
 open("robots.txt", "w").write(f"User-agent: *\nAllow: /\nDisallow: /controle/\n\nSitemap: {SITE}/sitemap.xml\n")
