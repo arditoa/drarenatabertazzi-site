@@ -286,37 +286,37 @@ const L = {
   cat:{n:"Antes",nome:"Catarata hoje",curta:"visão embaçada e amarelada",L:3,I:3.4,P:4.4,H:3,cat:true,
     frase:"É assim que a catarata costuma deixar a visão: tudo mais apagado, amarelado e com ofuscamento nas luzes.",
     oculos:"Os óculos já não resolvem bem.",ideal:"—",atencao:"A catarata tende a piorar com o tempo.",team:""},
-  tri:{n:"1ª opção · Trifocal",nome:"Multifocal trifocal",curta:"longe, computador e perto",L:0,I:0.15,P:0.6,H:2.2,
+  tri:{n:"1ª opção · Trifocal",nome:"Multifocal trifocal",curta:"longe, computador e perto",L:0,I:0.11,P:0.6,H:2.2,
     frase:"Três focos na mesma lente: longe, intermediário e perto. É a opção para quem quer usar óculos o mínimo possível.",
     oculos:"Raramente. A maioria dos pacientes faz quase tudo sem óculos.",
     ideal:"Quem quer ler o celular, usar o computador e dirigir sem óculos.",
     atencao:"Pode haver halos (anéis) em volta das luzes à noite, que costumam diminuir com a adaptação. Não é indicada para todos os olhos: depende da retina, da córnea e do nervo óptico.",
     team:"<b>Exemplos de modelos:</b> trifocais Clareon PanOptix / PanOptix Pro (Alcon), TECNIS Synergy e Odyssey (J&amp;J), AT LISA tri (Zeiss), RayOne Trifocal (Rayner). Versão tórica para astigmatismo."},
-  edof:{n:"1ª opção · EDOF",nome:"Foco estendido (EDOF)",curta:"longe e computador; perto bom",L:0,I:0.1,P:1.7,H:0.7,
+  edof:{n:"1ª opção · EDOF",nome:"Foco estendido (EDOF)",curta:"longe e computador; perto bom",L:0,I:0.08,P:1.7,H:0.7,
     frase:"Um foco alongado, contínuo do longe ao intermediário, com boa visão de perto para a maioria das tarefas. Menos halos que a trifocal.",
     oculos:"Às vezes, para letras muito pequenas (bula, contrato).",
     ideal:"Quem dirige muito à noite e quer independência dos óculos com menos halos.",
     atencao:"Para letras muito pequenas, pode precisar de óculos de leitura.",
     team:"<b>Exemplos de modelos:</b> Clareon Vivity (Alcon, não difrativa), TECNIS PureSee (J&amp;J, refrativa), TECNIS Symfony (J&amp;J). Versão tórica para astigmatismo."},
-  bif:{n:"2ª opção",nome:"Multifocal bifocal",curta:"longe e perto; computador fraco",L:0,I:2.6,P:0.45,H:2.6,
+  bif:{n:"2ª opção",nome:"Multifocal bifocal",curta:"longe e perto; computador fraco",L:0,I:2.2,P:0.45,H:2.6,
     frase:"Dois focos: longe e perto. Lê bem e enxerga bem de longe, mas o computador e o painel do carro ficam menos nítidos.",
     oculos:"Para computador e distância de braço.",
     ideal:"Quem lê muito e usa pouco o computador.",
     atencao:"Halos à noite parecidos com os da trifocal. A faixa do meio (computador) é a mais fraca.",
     team:"<b>Exemplos:</b> lentes multifocais difrativas de dois focos (ex.: linhas TECNIS Multifocal da J&amp;J). Confirme os modelos disponíveis no hospital."},
-  prem:{n:"3ª opção",nome:"Monofocal premium",curta:"longe nítido + um pouco de meio",L:0,I:1.2,P:3.8,H:0,
+  prem:{n:"3ª opção",nome:"Monofocal premium",curta:"longe nítido + um pouco de meio",L:0,I:0.9,P:3.8,H:0,
     frase:"Um foco, com a melhor nitidez e contraste de longe, e um ganho na distância do computador em relação à monofocal comum.",
     oculos:"Para ler e usar o celular.",
     ideal:"Quem dirige muito à noite, quer a melhor qualidade de longe e não se importa com óculos de leitura.",
     atencao:"Sem halos. Para perto, óculos de leitura.",
     team:"<b>Exemplos:</b> monofocais 'plus' como TECNIS Eyhance (J&amp;J), RayOne EMV (Rayner), Vivinex Impress (Hoya); monofocal hidrofóbica asférica Clareon (Alcon). Versão tórica para astigmatismo."},
-  top:{n:"4ª opção",nome:"Monofocal top",curta:"longe nítido",L:0,I:2.4,P:4.2,H:0,
+  top:{n:"4ª opção",nome:"Monofocal top",curta:"longe nítido",L:0,I:2.0,P:4.2,H:0,
     frase:"Um foco de longe, com material hidrofóbico de boa qualidade e estável ao longo dos anos.",
     oculos:"Para ler, celular e às vezes computador.",
     ideal:"Quem quer enxergar bem de longe e já está acostumado com óculos para perto.",
     atencao:"Sem halos. Perto e computador com óculos.",
     team:"<b>Exemplos:</b> monofocais hidrofóbicas asféricas (ex.: AcrySof IQ da Alcon, TECNIS 1-Piece da J&amp;J, Vivinex da Hoya). Versão tórica para astigmatismo."},
-  bas:{n:"5ª opção",nome:"Monofocal básica",curta:"longe; material hidrofílico",L:0.45,I:2.6,P:4.4,H:0,
+  bas:{n:"5ª opção",nome:"Monofocal básica",curta:"longe; material hidrofílico",L:0.45,I:2.2,P:4.4,H:0,
     frase:"Resolve a catarata e devolve a visão de longe. É a opção mais econômica.",
     oculos:"Para ler, celular e computador.",
     ideal:"Quem precisa operar com o menor custo possível.",
@@ -344,8 +344,8 @@ function botoes(){
   $("#lenses").innerHTML=ORDEM.map(k=>{ const d=L[k]; const nome=k==="tri"?"Trifocal / EDOF":d.nome;
     return `<button class="lens ${k==="cat"?"cat":""} ${S.rec===k?"rec":""}" data-k="${k}" aria-pressed="${S.lente===k}"><span class="n">${d.n}</span><b>${nome}</b><small>${k==="tri"?"longe, computador e perto":d.curta}</small></button>`; }).join("");
 }
-const vis=b=>b<2?b*0.45:b*0.95;
-function filtro(b,cat){ return `blur(${vis(b).toFixed(2)}px)${cat?" sepia(.55) saturate(.7) contrast(.78) brightness(1.04)":""}`; }
+const vis=(b,cat)=>cat?b*0.95:(b<2?b*0.45:0.9+(b-2)*0.9);
+function filtro(b,cat){ return `blur(${vis(b,cat).toFixed(2)}px)${cat?" sepia(.55) saturate(.7) contrast(.78) brightness(1.04)":""}`; }
 function halos(h,cat){
   const g=$("#halos"); g.innerHTML="";
   if(h<=0) return;
