@@ -195,6 +195,7 @@ button.kpi{font:inherit;color:inherit;cursor:pointer} button.kpi:hover{box-shado
 .rb-chips{display:flex;flex-wrap:wrap;gap:8px}
 .rchip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 14px;font:inherit;font-size:.88rem;cursor:pointer;color:inherit}
 .rchip[aria-pressed="true"]{background:#1d4f91;border-color:#1d4f91;color:#fff;font-weight:600}
+.rchip.sem{color:#a0a8b4;border-style:dashed} .rchip.grp{background:#fdf6ea;border-color:#efd3a3} .rchip.grp[aria-pressed="true"]{background:#e8a33d;border-color:#e8a33d} .rb-sep{font-size:.8rem;color:var(--soft);align-self:center;margin-left:6px} .tbl tr.soma td{background:#f3f7fc;border-top:2px solid var(--line)}
 .rb-datas{display:flex;gap:10px;flex-wrap:wrap}.rb-datas label{display:flex;gap:6px;align-items:center;font-size:.88rem;color:var(--soft)}
 .rb-datas input{padding:8px 10px;border:1px solid var(--line);border-radius:10px;font:inherit;background:#fff}
 .rb-of{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
@@ -407,7 +408,7 @@ const PRAZO_CONVENIO = 15, PRAZO_PARTICULAR = 3;
 // Injeções/laser: lembrete D+20, vencimento D+30
 const LEMBRAR_DIAS = 14, VENCE_DIAS = 30, PAUSA_DIAS = 60;
 
-const S = { tab:"painel", pacientes:[], casos:[], sessoes:[], pos:[], modelos:[], precos:[], orcs:[], reps:[], repItens:[], repSel:null, repLocal:"", repMes:"", repDe:"", repAte:"", repFiltro:"todos", repBusca:"", user:null, fInd:"todos", fTrat:"ativos", busca:"" };
+const S = { tab:"painel", pacientes:[], casos:[], sessoes:[], pos:[], modelos:[], precos:[], orcs:[], reps:[], repItens:[], repSel:null, repLocs:(()=>{try{return JSON.parse(localStorage.getItem("repLocs")||"[]")}catch(e){return []}})(), repMes:"", repDe:"", repAte:"", repFiltro:"todos", repBusca:"", user:null, fInd:"todos", fTrat:"ativos", busca:"" };
 
 /* ================= Utilidades ================= */
 const $ = (s, el=document) => el.querySelector(s);
@@ -620,6 +621,9 @@ const AGENDA = {1:[["OA Palmas","Manhã e tarde"]],2:[["OA Paraíso","Dia todo"]
 const DIAS_OF_PADRAO={"OA Palmas":[1,5],"OA Paraíso":[2],"ICOG Palmas":[3],"OPUS":[3,5],"ICOG Porto":[4]};
 function diasOficiais(){ try{ const s=JSON.parse(localStorage.getItem("repDiasOf")||"null"); if(s) return s; }catch(e){} return DIAS_OF_PADRAO; }
 function salvaDiasOf(o){ try{ localStorage.setItem("repDiasOf",JSON.stringify(o)); }catch(e){} }
+const CLINICAS_TODAS=["OA Palmas","OA Paraíso","ICOG Palmas","ICOG Porto","OPUS"];
+function repLocOk(l){ return !S.repLocs.length||S.repLocs.includes(l); }
+function setRepLocs(a){ S.repLocs=a; try{ localStorage.setItem("repLocs",JSON.stringify(a)); }catch(e){} }
 function locItem(i){ return S.reps.find(r=>r.id===i.repasse_id)?.local; }
 function ehOficial(local,data){ if(!data) return true; const d=diasOficiais()[local]; if(!d) return true; return d.includes(parse(data).getDay()); }
 function itOficial(i){ return ehOficial(locItem(i),i.data); }
@@ -1089,7 +1093,7 @@ function folhaRepLista(f){
 const moeda0=v=>Number(v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL",maximumFractionDigits:0});
 
 function repFiltrados(){
-  const reps=S.reps.filter(r=>!S.repLocal||r.local===S.repLocal);
+  const reps=S.reps.filter(r=>repLocOk(r.local));
   const ids=new Set(reps.map(r=>r.id));
   return {reps, itens:S.repItens.filter(i=>ids.has(i.repasse_id)&&(!S.repDe||(i.data&&i.data>=S.repDe))&&(!S.repAte||(i.data&&i.data<=S.repAte)))};
 }
@@ -1136,11 +1140,15 @@ function telaRepasse(){
   const casa=chips.some(([de,ate])=>(S.repDe||"")===de&&(S.repAte||"")===ate);
   const custom=S.repCustom||!casa;
   const DOf=diasOficiais(), SEM=["D","S","T","Q","Q","S","S"];
-  const locsVis=locais.filter(l=>!S.repLocal||l===S.repLocal);
+  const locsVis=locais.filter(repLocOk);
   const filtros=`<div class="rep-bar">
     <div class="rb-row">
       <div class="rb-lab">📍 Clínica</div>
-      <select id="selRepLocal" class="rb-sel"><option value="">Todas as clínicas</option>${locais.map(l=>`<option ${S.repLocal===l?"selected":""}>${esc(l)}</option>`).join("")}</select>
+      <div class="rb-chips">${(()=>{ const todas=[...new Set([...CLINICAS_TODAS,...locais])]; const grupos=[["Rede OA",todas.filter(l=>/^OA\b/.test(l))],["ICOG",todas.filter(l=>/^ICOG/.test(l))]].filter(([,ls])=>ls.length>1);
+        const igual=ls=>ls.length===S.repLocs.length&&ls.every(l=>S.repLocs.includes(l));
+        return `<button class="rchip" data-rloc="" aria-pressed="${!S.repLocs.length}">Todas</button>`
+          +todas.map(l=>{ const tem=locais.includes(l); return `<button class="rchip loc${tem?"":" sem"}" data-rloc="${esc(l)}" aria-pressed="${S.repLocs.includes(l)}" ${tem?"":`title="Ainda sem extrato importado"`}>${S.repLocs.includes(l)?"✓ ":""}${esc(l)}${tem?"":" · sem extrato"}</button>`; }).join("")
+          +`<span class="rb-sep">juntar:</span>`+grupos.map(([n,ls])=>`<button class="rchip grp" data-rgrp="${esc(ls.join("|"))}" aria-pressed="${igual(ls)}">${n}</button>`).join(""); })()}</div>
     </div>
     <div class="rb-row">
       <div class="rb-lab">🗓️ Período</div>
@@ -1164,8 +1172,8 @@ function telaRepasse(){
     ${M.fora?`<button class="kpi fora" ${rl({fora:true,titulo:"Fora dos dias oficiais"})}><b>${moeda0(M.foraV)}</b><span>Fora dos dias oficiais · ${M.foraP} paciente(s), provável pós/retorno</span></button>`:""}
     </div>`;
   // por clínica
-  const porLoc=locais.filter(l=>!S.repLocal||l===S.repLocal).map(l=>{ const its=itens.filter(i=>reps.find(r=>r.id===i.repasse_id)?.local===l); return [l,metricasLocal(its)]; }).filter(([,m])=>m.total>0).sort((a,b)=>b[1].porDia-a[1].porDia);
-  const tabLoc=`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Clínica</th><th>Repasse</th><th>Dias</th><th>R$ por dia</th><th>Pacientes</th><th>Pac. por dia</th><th>R$ por paciente</th><th>Exames por paciente</th><th>% particular</th><th>% procedimentos</th></tr></thead><tbody>${porLoc.map(([l,m],i)=>`<tr class="clk${i===0&&porLoc.length>1?" best":""}" ${rl({local:l})}><td><b>${esc(l)}</b> ›</td><td>${moeda0(m.total)}</td><td>${m.dias}</td><td><b>${moeda0(m.porDia)}</b></td><td>${m.pacientes}</td><td><b>${m.pacDia.toFixed(1).replace(".",",")}</b></td><td>${moeda0(m.porPac)}</td><td>${m.exPac.toFixed(1)}</td><td>${Math.round(m.pPart*100)}%</td><td>${Math.round(m.pProc*100)}%</td></tr>`).join("")}</tbody></table></div>`;
+  const porLoc=locais.filter(repLocOk).map(l=>{ const its=itens.filter(i=>reps.find(r=>r.id===i.repasse_id)?.local===l); return [l,metricasLocal(its)]; }).filter(([,m])=>m.total>0).sort((a,b)=>b[1].porDia-a[1].porDia);
+  const tabLoc=`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Clínica</th><th>Repasse</th><th>Dias</th><th>R$ por dia</th><th>Pacientes</th><th>Pac. por dia</th><th>R$ por paciente</th><th>Exames por paciente</th><th>% particular</th><th>% procedimentos</th></tr></thead><tbody>${porLoc.map(([l,m],i)=>`<tr class="clk${i===0&&porLoc.length>1?" best":""}" ${rl({local:l})}><td><b>${esc(l)}</b> ›</td><td>${moeda0(m.total)}</td><td>${m.dias}</td><td><b>${moeda0(m.porDia)}</b></td><td>${m.pacientes}</td><td><b>${m.pacDia.toFixed(1).replace(".",",")}</b></td><td>${moeda0(m.porPac)}</td><td>${m.exPac.toFixed(1)}</td><td>${Math.round(m.pPart*100)}%</td><td>${Math.round(m.pProc*100)}%</td></tr>`).join("")}${porLoc.length>1?(()=>{ const m=metricasLocal(itens); return `<tr class="soma clk" ${rl({titulo:"Clínicas selecionadas"})}><td><b>Juntas (${porLoc.length})</b></td><td><b>${moeda0(m.total)}</b></td><td>${m.dias}</td><td><b>${moeda0(m.porDia)}</b></td><td>${m.pacientes}</td><td><b>${m.pacDia.toFixed(1).replace(".",",")}</b></td><td>${moeda0(m.porPac)}</td><td>${m.exPac.toFixed(1)}</td><td>${Math.round(m.pPart*100)}%</td><td>${Math.round(m.pProc*100)}%</td></tr>`; })():""}</tbody></table></div>`;
   // por convênio
   const convs={}; itens.forEach(i=>{ const k=(i.convenio||"—").toUpperCase(); (convs[k]=convs[k]||{v:0,cons:[],pac:new Set()}); convs[k].v+=Number(i.valor||0); convs[k].pac.add(normNome(i.paciente)); if(i.categoria==="consulta"&&Number(i.valor)>0) convs[k].cons.push(Number(i.valor)); });
   const convList=Object.entries(convs).sort((a,b)=>b[1].v-a[1].v);
@@ -1566,11 +1574,13 @@ async function ciclarInteresse(id){
 }
 
 document.addEventListener("click", e=>{
-  const t=e.target.closest("[data-ofw],[data-rper],[data-rlist],[data-rfil],[data-acaotg],[data-fpag],[data-finj],[data-fpos],[data-dia],[data-floc],[data-fase],[data-tab],[data-goto],[data-act],[data-pac],[data-ft],[data-fi],[data-int]"); if(!t) return;
+  const t=e.target.closest("[data-rloc],[data-rgrp],[data-ofw],[data-rper],[data-rlist],[data-rfil],[data-acaotg],[data-fpag],[data-finj],[data-fpos],[data-dia],[data-floc],[data-fase],[data-tab],[data-goto],[data-act],[data-pac],[data-ft],[data-fi],[data-int]"); if(!t) return;
   if(t.dataset.int){ ciclarInteresse(t.dataset.int); return; }
   if(t.dataset.dia!==undefined){ S.dia=+t.dataset.dia; render(); return; }
   if(t.dataset.floc!==undefined){ S.fLocal=t.dataset.floc; S.fase=null; render(); return; }
   if(t.dataset.fase){ S.fase = S.fase===t.dataset.fase ? null : t.dataset.fase; render(); return; }
+  if(t.dataset.rloc!==undefined){ const l=t.dataset.rloc; setRepLocs(!l?[]:(S.repLocs.includes(l)?S.repLocs.filter(x=>x!==l):[...S.repLocs,l])); render(); return; }
+  if(t.dataset.rgrp){ const ls=t.dataset.rgrp.split("|"); const igual=ls.length===S.repLocs.length&&ls.every(l=>S.repLocs.includes(l)); setRepLocs(igual?[]:ls); render(); return; }
   if(t.dataset.ofw){ const o=JSON.parse(JSON.stringify(diasOficiais())); const l=t.dataset.ofloc, w=+t.dataset.ofw; const a=o[l]||[]; o[l]=a.includes(w)?a.filter(x=>x!==w):[...a,w].sort(); salvaDiasOf(o); render(); return; }
   if(t.dataset.act==="rep-custom"){ S.repCustom=!S.repCustom; render(); return; }
   if(t.dataset.rper!==undefined){ S.repCustom=false; const [a,b]=t.dataset.rper.split("|"); S.repDe=a||""; S.repAte=b||""; render(); return; }
@@ -1587,7 +1597,6 @@ document.addEventListener("click", e=>{
   if(t.dataset.fi!==undefined){ S.fInd=t.dataset.fi; render(); return; }
 });
 document.addEventListener("change", e=>{ if(e.target.id==="selLocal"){ S.fLocal=e.target.value; S.fase=null; render(); }
-  if(e.target.id==="selRepLocal"){ S.repLocal=e.target.value; render(); }
   if(e.target.id==="repSoOf"){ S.repSoOf=e.target.checked; render(); }
   if(e.target.id==="repDe"){ S.repDe=e.target.value; render(); }
   if(e.target.id==="repAte"){ S.repAte=e.target.value; render(); }
