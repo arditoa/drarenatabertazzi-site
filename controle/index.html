@@ -923,9 +923,10 @@ function selLocal(base){
   base=base||S.casos;
   return `<label class="loc-sel">📍 Local de atendimento<select id="selLocal">${[["","Todos os locais",base.length],...LOCAIS.map(l=>[l,l,base.filter(c=>c.local===l).length]),["sem","Sem local",base.filter(c=>!c.local).length]].filter(([v,,n])=>v!=="sem"||n).map(([v,tx,n])=>`<option value="${v}" ${(S.fLocal||"")===v?"selected":""}>${tx} (${n})</option>`).join("")}</select></label>`;
 }
+function urlLentes(){ const p=location.pathname; return (p.endsWith("/")||p.endsWith(".html")) ? "lentes.html" : p+"/lentes.html"; }
 function telaLentes(){
   return `<div class="sec-head"><div><h2>Simulador de lentes</h2><div class="sub">Para usar na consulta · valores da tabela de preços (ICOG ou OA/OPUS, com ou sem plano)</div></div><button class="btn ghost" data-act="precos">Editar tabela de preços</button></div>
-  <iframe id="frLentes" src="lentes.html" title="Simulador de lentes" style="width:100%;height:1900px;border:0;border-radius:18px;background:#f4f7fb"></iframe>`;
+  <iframe id="frLentes" src="${urlLentes()}" title="Simulador de lentes" style="width:100%;height:1900px;border:0;border-radius:18px;background:#f4f7fb"></iframe>`;
 }
 window.addEventListener("message",e=>{ const d=e.data||{}; if(d.tipo==="altura"){ const f=document.getElementById("frLentes"); if(f&&d.h) f.style.height=(d.h+20)+"px"; } });
 function telaInd(){
