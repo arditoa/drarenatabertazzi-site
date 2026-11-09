@@ -163,6 +163,8 @@ main{max-width:1480px;margin:0 auto;padding:16px 14px 24px}
 .acao-box h3{color:var(--late);display:flex;gap:8px;align-items:center}
 .acao-box.ok{background:var(--ok-soft);border-color:#bfe0cc;border-left-color:var(--ok);color:var(--ok);font-size:.9rem}
 .col-arq{background:#eef0f3}.col-arq h3 span:first-child{color:var(--soft)}.item.arq{opacity:.92;border-style:dashed}
+.pos-card{border-top:1px dashed var(--line);padding-top:8px;display:grid;gap:6px}.pos-card small{color:var(--soft);font-size:.78rem}.pos-t{width:100%;border-collapse:collapse;font-size:.82rem}.pos-t td{padding:3px 0;vertical-align:middle}.pos-t td:first-child{color:var(--soft);font-weight:600}.pos-t td:last-child{text-align:right}
+.agsem-nav{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.agsem-nav b{font-size:.95rem;color:var(--ink)}.agsem-nav .rchip{padding:6px 12px}
 .filtros{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px 14px;align-items:end;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin:4px 0 16px}
 .fcampo{display:flex;flex-direction:column;gap:5px;font-weight:700;font-size:.8rem;color:var(--soft);margin:0}
 .fcampo select{width:100%;min-width:0;font:inherit;font-weight:600;font-size:.95rem;color:var(--ink);padding:9px 12px;border:1px solid var(--line);border-radius:11px;background:#fff}
@@ -558,7 +560,8 @@ function cardExe(c){
     <div class="row"><span class="grip" data-grip="${c.id}" aria-hidden="true">⠿</span><div class="name"><button data-pac="${p.id}">${esc(nomeCurto(p.nome))}</button></div>${chipPag(c)}</div>
     <div class="meta"><b style="color:var(--ink)">${esc(c.procedimento||"Cirurgia")}</b>${c.olho?" · "+esc(c.olho):""}${c.local?" · "+esc(c.local):""}</div>
     ${info?`<div class="meta">${info}</div>`:""}
-    ${dEt!==null?`<div class="row"><span class="chip ${parado?"warn":""}">${dEt===0?"Entrou hoje nesta etapa":`Há ${plural(dEt,"dia","dias")} nesta etapa`}</span></div>`:""}
+    ${c.etapa==="fechado"&&!c.data_agendada?`<div class="row"><span class="chip warn">Sem data · marcar no centro cirúrgico</span></div>`:""}
+    ${["realizado","pos_op"].includes(c.etapa)?blocoPosCard(c):(dEt!==null&&dEt>=0&&c.etapa!=="agendado"?`<div class="row"><span class="chip ${parado?"warn":""}">${dEt===0?"Entrou hoje nesta etapa":`Há ${plural(dEt,"dia","dias")} nesta etapa`}</span></div>`:"")}
     <div class="row" style="justify-content:space-between">${contato(p.telefone)}
       <span class="actions">${prox?`<button class="btn small" data-act="mover-exe" data-id="${c.id}" data-to="${prox[0]}">→ ${prox[1]}</button>`:""}<button class="btn small ghost" data-act="menu" data-id="${c.id}" aria-label="Mais opções">⋯</button></span></div>
   </div>`;
@@ -1316,8 +1319,10 @@ function telaAgenda(){
     return `<div class="panel ag-dia"><div class="panel-h"><h3>${["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"][dt.getDay()]}, ${br(d).slice(0,5)}</h3><span class="sub">${nFin} atendido(s)${of?` · ⭐ dia oficial (${ofL.join(", ")})`:" · fora da agenda oficial"}</span></div>${linhas}</div>`; }).join("");
   const locs=[...new Set(at.map(a=>a.local))].sort();
   return `<div class="page-h"><div><h2>Agenda do prontuário</h2><p class="sub">EyecareBI (OA e OPUS) + Amigo (ICOG) · ${sinc} · cada paciente com horário e situação do repasse</p></div></div>
-  <div class="rep-bar"><div class="rb-row"><div class="rb-lab">🗓️ Semana</div><div class="rb-chips"><button class="rchip" data-agsem="${iso(new Date(seg.getTime()-7*864e5))}">◀</button><span class="ag-sem">${br(de).slice(0,5)} a ${br(ate).slice(0,5)}</span><button class="rchip" data-agsem="${iso(new Date(seg.getTime()+7*864e5))}">▶</button><button class="rchip" data-agsem="">Última</button></div></div>
-  <div class="rb-row"><div class="rb-lab">📍 Unidade</div><div class="rb-chips"><button class="rchip" data-agloc="" aria-pressed="${!loc}">Todas</button>${locs.map(l=>`<button class="rchip" data-agloc="${esc(l)}" aria-pressed="${loc===l}">${esc(l)}</button>`).join("")}</div></div></div>
+  <div class="filtros">
+    <div class="fcampo"><span>🗓️ Semana</span><div class="agsem-nav"><button class="rchip" data-agsem="${iso(new Date(seg.getTime()-7*864e5))}" aria-label="Semana anterior">◀</button><b>${br(de).slice(0,5)} a ${br(ate).slice(0,5)}</b><button class="rchip" data-agsem="${iso(new Date(seg.getTime()+7*864e5))}" aria-label="Próxima semana">▶</button><button class="linkbtn" data-agsem="">Hoje</button></div></div>
+    <label class="fcampo"><span>📍 Clínica</span><select id="selAgLoc"><option value="">Todas as clínicas (${at.filter(a=>a.data>=de&&a.data<=ate).length})</option>${locs.map(l=>`<option value="${esc(l)}" ${loc===l?"selected":""}>${esc(l)} (${at.filter(a=>a.data>=de&&a.data<=ate&&a.local===l).length})</option>`).join("")}</select></label>
+  </div>
   <div class="conf-kpis"><div class="kpi"><b>${tot.at}</b><span>atendidos na semana</span></div><div class="kpi"><b>${moeda0(tot.v)}</b><span>repasse identificado</span></div><div class="kpi ${tot.pend?"alerta":""}"><b>${tot.pend}</b><span>sem repasse ou R$ 0</span></div></div>
   <div class="ag-leg"><span class="ag-st ok">pago no dia</span><span class="ag-st outra">pago em outra data</span><span class="ag-st zero">R$ 0</span><span class="ag-st sem">sem repasse</span><span class="ag-st neutro">aguardando extrato / retorno</span></div>
   ${blocos||`<div class="empty">Nenhum atendimento nesta semana.</div>`}`;
@@ -1671,22 +1676,18 @@ function arquivada(c){ if(![...ABERTAS,"em_tratamento"].includes(c.etapa)) retur
 const PIPE = {
   cirurgia:{titulo:"Cirurgias", sub:"Da indicação até a alta · arraste pela alça ⠿", cols:[
     ["indicado","Nova indicação","Enviar orçamento (particular) ou guia (convênio)",3],
-    ["orcamento","Orçamento / guia enviado","Esperando paciente ou convênio",7],
-    ["aguardando","Aguardando resposta","Particular decidindo · convênio autorizando",15],
-    ["fechado","Fechado · a agendar","Marcar data no centro cirúrgico",7],
-    ["agendado","Agendado","Data marcada",null],
-    ["pos_op","Operado · pós-op","Retornos 1, 7 e 30 dias",45,["realizado","pos_op"]],
+    ["orcamento","Orçamento / guia · aguardando","Esperando o paciente decidir ou o convênio autorizar",15,["orcamento","aguardando"]],
+    ["fechado","Fechado · agenda","Sem data = marcar no centro cirúrgico · com data = agendado",null,["fechado","agendado"]],
+    ["pos_op","Operado · pós-op","Contato do pós e retornos 1, 7 e 30 dias",45,["realizado","pos_op"]],
     ["finalizado","Alta","Últimos 60 dias",null]]},
   injecao:{titulo:"Injeções", sub:"Da indicação ao ciclo de aplicações · agendar a partir de D+14 · vence em D+30", cols:[
     ["indicado","Nova indicação","Enviar orçamento ou guia",3],
-    ["orcamento","Guia / orçamento enviado","Esperando paciente ou convênio",7],
-    ["aguardando","Aguardando autorização","Convênio autorizando · particular decidindo",15],
+    ["orcamento","Orçamento / guia · aguardando","Esperando o paciente decidir ou o convênio autorizar",15,["orcamento","aguardando"]],
     ["em_tratamento","Em tratamento","Ciclo de aplicações com as datas",null],
     ["finalizado","Concluído","Últimos 60 dias",null]]},
   laser:{titulo:"Laser", sub:"Da indicação às sessões realizadas", cols:[
     ["indicado","Nova indicação","Enviar orçamento ou guia",3],
-    ["orcamento","Guia / orçamento enviado","Esperando paciente ou convênio",7],
-    ["aguardando","Aguardando autorização","Convênio autorizando · particular decidindo",15],
+    ["orcamento","Orçamento / guia · aguardando","Esperando o paciente decidir ou o convênio autorizar",15,["orcamento","aguardando"]],
     ["em_tratamento","Agendar / sessões","Marcar e registrar as sessões",null],
     ["finalizado","Realizado","Últimos 60 dias",null]]},
 };
@@ -1717,6 +1718,15 @@ function cardArq(c){
     <div class="row" style="justify-content:space-between">${contato(p.telefone)}<span class="actions"><button class="btn small ghost" data-act="reativar" data-id="${c.id}">↺ Reativar</button><button class="btn small ghost" data-act="mover-ind" data-to="desistiu" data-id="${c.id}">Perdido</button></span></div>
   </div>`;
 }
+function posDe(c){ return S.pos.find(p=>p.caso_id===c.id&&!p.sessao_id)||null; }
+function blocoPosCard(c){
+  const po=posDe(c), d=c.data_realizado?desde(c.data_realizado):null, key=`${c.id}|`;
+  const quando=d===null?"":d===0?"Operado hoje":d===1?"Operado ontem":`D+${d} do pós`;
+  const marco=d===null?"":d<1?"retorno D+1 amanhã":d<7?`retorno D+7 em ${7-d} dia${7-d>1?"s":""}`:d<30?`retorno D+30 em ${30-d} dias`:"pós de 30 dias concluído";
+  return `<div class="pos-card"><div class="row"><span class="chip ${d===0?"blue":""}">${quando}</span>${marco?`<small>${marco}</small>`:""}</div>
+    <table class="pos-t"><tr><td>Contato</td><td>${po?.contato_em?`<span class="fl ok">✔ ${dm(po.contato_em)}</span>`:`<button class="btn small ghost" data-act="pos-contato" data-key="${key}">Contato feito</button>`}</td></tr>
+    <tr><td>WhatsApp pós</td><td>${po?.whatsapp_em?`<span class="fl ok">✔ ${dm(po.whatsapp_em)}</span>`:`<button class="btn small okb" data-act="pos-whats" data-key="${key}">Enviar</button>`}</td></tr></table></div>`;
+}
 function telaPipe(tipo){
   const P=PIPE[tipo]; if(S.fSubTipo!==tipo){ S.fSub=""; S.fSubTipo=tipo; }
   const todos=S.casos.filter(c=>c.tipo===tipo&&!["desistiu"].includes(c.etapa));
@@ -1729,12 +1739,13 @@ function telaPipe(tipo){
     let items=ativos.filter(c=>es.includes(c.etapa));
     if(k==="finalizado") items=items.filter(c=>desde(c.etapa_desde)===null||desde(c.etapa_desde)<=60);
     if(ABERTAS.includes(k)) items.sort((a,b)=>ordInt(a)-ordInt(b)||(a.etapa_desde||"").localeCompare(b.etapa_desde||""));
-    else if(k==="agendado") items.sort((a,b)=>(a.data_agendada||"").localeCompare(b.data_agendada||""));
+    else if(k==="fechado") items.sort((a,b)=>(a.data_agendada||"0").localeCompare(b.data_agendada||"0"));
+    else if(k==="pos_op") items.sort((a,b)=>(b.data_realizado||"").localeCompare(a.data_realizado||""));
     else if(k==="em_tratamento") items.sort((a,b)=>ordTrat[statusTrat(a).estado]-ordTrat[statusTrat(b).estado]);
     else items.sort((a,b)=>(b.etapa_desde||"").localeCompare(a.etapa_desde||""));
-    const n=ABERTAS.includes(k)?items.filter(c=>situacaoInd(c).nivel).length:0;
+    const n=items.filter(c=>ABERTAS.includes(c.etapa)&&situacaoInd(c).nivel).length; const nPos=k==="pos_op"?items.filter(c=>!posDe(c)?.contato_em).length:0;
     const card=c=> ABERTAS.includes(c.etapa)||(c.etapa==="fechado"&&false) ? cardInd(c) : (tipo==="cirurgia" ? cardExe(c) : cardTrat(c));
-    return `<section class="col" data-drop="${k==="pos_op"?"pos_op":k}"><h3><span>${t}</span><span class="count">${items.length}</span></h3><div class="col-desc">${desc}${prazo?` · meta ${prazo} dias`:""}${n?` · <b style="color:var(--warn)">${n} pedindo ação</b>`:""}</div>${items.map(card).join("")||'<div class="empty drop-hint">Solte um card aqui</div>'}</section>`;
+    return `<section class="col" data-drop="${k}" data-etapas="${es.join(",")}"><h3><span>${t}</span><span class="count">${items.length}</span></h3><div class="col-desc">${desc}${prazo?` · meta ${prazo} dias`:""}${n?` · <b style="color:var(--warn)">${n} pedindo ação</b>`:""}${nPos?` · <b style="color:var(--warn)">${nPos} sem contato do pós</b>`:""}</div>${items.map(card).join("")||'<div class="empty drop-hint">Solte um card aqui</div>'}</section>`;
   }).join("");
   const colArq=`<section class="col col-arq"><h3><span>🗄 Arquivadas</span><span class="count">${arqs.length}</span></h3><div class="col-desc">Sem movimento há mais de ${DIAS_ARQ} dias. Continuam guardadas para ações futuras (campanha, retorno). Use ↺ Reativar ou arraste para uma etapa.</div>${arqs.sort((a,b)=>(ultAtiv(b)||"").localeCompare(ultAtiv(a)||"")).map(cardArq).join("")||'<div class="empty">Nenhuma arquivada.</div>'}</section>`;
   const perdidos=S.casos.filter(c=>c.tipo===tipo&&c.etapa==="desistiu"&&noLocal(c)).length;
@@ -2022,7 +2033,7 @@ document.addEventListener("click", e=>{
 });
 document.addEventListener("click",e=>{ const m=document.getElementById("menuTop"); if(m&&m.open&&(!m.contains(e.target)||e.target.closest(".menu-p button"))) setTimeout(()=>m.open=false,0); },true);
 document.addEventListener("change", e=>{ if(e.target.id==="selLocal"){ S.fLocal=e.target.value; S.fase=null; render(); }
-  if(e.target.id==="selProc"){ S.fProc=e.target.value; render(); } if(e.target.id==="selSub"){ S.fSub=e.target.value; render(); } if(e.target.id==="selPag"){ S.fPag=e.target.value; render(); } if(e.target.id==="selSit"){ S.fSit=e.target.value; render(); }
+  if(e.target.id==="selProc"){ S.fProc=e.target.value; render(); } if(e.target.id==="selSub"){ S.fSub=e.target.value; render(); } if(e.target.id==="selAgLoc"){ S.agLoc=e.target.value; render(); } if(e.target.id==="selPag"){ S.fPag=e.target.value; render(); } if(e.target.id==="selSit"){ S.fSit=e.target.value; render(); }
   if(e.target.id==="repSoOf"){ S.repSoOf=e.target.checked; render(); }
   if(e.target.id==="repDe"){ S.repDe=e.target.value; render(); }
   if(e.target.id==="repAte"){ S.repAte=e.target.value; render(); }
@@ -2061,7 +2072,7 @@ document.addEventListener("pointerup", ()=>{
   const {id,card,ghost,over}=drag; drag=null;
   ghost.remove(); card.classList.remove("dragging"); if(over) over.classList.remove("drop-on");
   const c=S.casos.find(x=>x.id===id);
-  if(over&&c&&over.dataset.drop!==c.etapa) moverPara(c, over.dataset.drop);
+  if(over&&c&&over.dataset.drop!==c.etapa&&!(over.dataset.etapas||"").split(",").includes(c.etapa)) moverPara(c, over.dataset.drop);
 });
 document.addEventListener("pointercancel", ()=>{ if(drag){ drag.ghost.remove(); drag.card.classList.remove("dragging"); drag.over?.classList.remove("drop-on"); drag=null; } });
 
