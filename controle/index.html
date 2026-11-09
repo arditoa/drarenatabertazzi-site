@@ -156,6 +156,10 @@ main{max-width:1480px;margin:0 auto;padding:16px 14px 24px}
 .acao-box{background:#fff5f2;border:1px solid #f1c7bc;border-left:5px solid var(--late);border-radius:16px;padding:14px;display:grid;gap:8px;margin:4px 0 14px}
 .acao-box h3{color:var(--late);display:flex;gap:8px;align-items:center}
 .acao-box.ok{background:var(--ok-soft);border-color:#bfe0cc;border-left-color:var(--ok);color:var(--ok);font-size:.9rem}
+.filtros{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px 14px;align-items:end;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin:4px 0 16px}
+.fcampo{display:flex;flex-direction:column;gap:5px;font-weight:700;font-size:.8rem;color:var(--soft);margin:0}
+.fcampo select{width:100%;min-width:0;font:inherit;font-weight:600;font-size:.95rem;color:var(--ink);padding:9px 12px;border:1px solid var(--line);border-radius:11px;background:#fff}
+.flimpa{justify-self:start;align-self:center}
 .loc-sel{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-weight:700;font-size:.9rem;color:var(--deep);margin:4px 0 14px}
 .loc-sel select{width:auto;min-width:240px;font:inherit;font-size:1rem;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink)}
 .ck{display:flex;gap:8px;align-items:flex-start;font-size:.92rem;padding:4px 0;cursor:pointer}
@@ -1586,15 +1590,33 @@ function folhaImportRepasse(){
     fechar(); toast(`Repasse de ${loc} importado ✔ · ${rows.length} itens`); S.repSel=data.id; await carregar(); render(); });
 }
 
-function filtroInd(c){
-  const f=S.fInd;
-  if(f==="convenio") return ehConv(c);
-  if(f==="particular") return !ehConv(c);
-  if(["cirurgia","injecao","laser"].includes(f)) return c.tipo===f;
-  if(f==="travados") return situacaoInd(c).nivel==="late";
-  if(f==="atencao") return !!situacaoInd(c).nivel;
-  if(f==="alto") return c.interesse==="alto";
-  return true;
+function grupoCir(c){ const p=String(c.procedimento||"").toUpperCase(); if(/VVPP|PEELING|RETINECT|LAVAGEM/.test(p)) return "vvpp"; if(/FACO/.test(p)) return "faco"; if(/PTG|PTER/.test(p)) return "ptg"; if(/CALAZ/.test(p)) return "calazio"; return "outras"; }
+function grupoInj(c){ const p=String(c.procedimento||"").toUpperCase(); if(/AVASTIN/.test(p)) return "avastin"; if(/EYLIA/.test(p)) return "eylia"; return "outras"; }
+function passaProc(c,f){ if(!f) return true; const [t,sub]=f.split(":"); const tipo={cir:"cirurgia",inj:"injecao"}[t]||t; if(c.tipo!==tipo) return false; if(!sub) return true; return (tipo==="cirurgia"?grupoCir(c):grupoInj(c))===sub; }
+function passaPag(c,f){ return !f||(f==="convenio"?ehConv(c):!ehConv(c)); }
+function passaSit(c,f){ if(!f) return true; if(f==="travados") return situacaoInd(c).nivel==="late"; if(f==="atencao") return !!situacaoInd(c).nivel; if(f==="alto") return c.interesse==="alto"; return true; }
+function filtroInd(c){ return passaProc(c,S.fProc)&&passaPag(c,S.fPag)&&passaSit(c,S.fSit); }
+// atalhos antigos (Painel → Indicações com filtro)
+function aplicaFiltroInd(f){ S.fProc=""; S.fPag=""; S.fSit=""; if(["cirurgia","injecao","laser"].includes(f)) S.fProc=f; else if(["convenio","particular"].includes(f)) S.fPag=f; else if(["atencao","travados","alto"].includes(f)) S.fSit=f; }
+function barraFiltrosInd(todos){
+  const loc=todos.filter(noLocal); const cnt=(fn)=>loc.filter(fn).length;
+  const op=(v,tx,n,sel)=>`<option value="${v}" ${sel===v?"selected":""}>${tx}${n!==undefined?` (${n})`:""}</option>`;
+  const base=loc.filter(c=>passaPag(c,S.fPag)&&passaSit(c,S.fSit));
+  const nP=f=>base.filter(c=>passaProc(c,f)).length; const fp=S.fProc||"";
+  const proc=`<select id="selProc">${op("","Todos os procedimentos",nP(""),fp)}
+    <optgroup label="Cirurgia">${op("cirurgia","Todas as cirurgias",nP("cirurgia"),fp)}${op("cir:faco","Faco (catarata)",nP("cir:faco"),fp)}${op("cir:vvpp","VVPP / retina (inclui Faco + VVPP)",nP("cir:vvpp"),fp)}${op("cir:ptg","Pterígio",nP("cir:ptg"),fp)}${op("cir:calazio","Calázio",nP("cir:calazio"),fp)}${op("cir:outras","Outras cirurgias",nP("cir:outras"),fp)}</optgroup>
+    <optgroup label="Injeção">${op("injecao","Todas as injeções",nP("injecao"),fp)}${op("inj:avastin","Avastin",nP("inj:avastin"),fp)}${op("inj:eylia","Eylia",nP("inj:eylia"),fp)}${op("inj:outras","Outras / sem medicação",nP("inj:outras"),fp)}</optgroup>
+    <optgroup label="Laser">${op("laser","Laser",nP("laser"),fp)}</optgroup></select>`;
+  const b2=loc.filter(c=>passaProc(c,S.fProc)&&passaSit(c,S.fSit));
+  const pag=`<select id="selPag">${op("","Convênio e particular",b2.length,S.fPag||"")}${op("convenio","Convênio",b2.filter(ehConv).length,S.fPag||"")}${op("particular","Particular",b2.filter(c=>!ehConv(c)).length,S.fPag||"")}</select>`;
+  const b3=loc.filter(c=>passaProc(c,S.fProc)&&passaPag(c,S.fPag));
+  const sit=`<select id="selSit">${op("","Todas as situações",b3.length,S.fSit||"")}${op("atencao","⚠️ Pedindo ação",b3.filter(c=>passaSit(c,"atencao")).length,S.fSit||"")}${op("travados","⏳ Convênio parado",b3.filter(c=>passaSit(c,"travados")).length,S.fSit||"")}${op("alto","🔥 Interesse alto",b3.filter(c=>passaSit(c,"alto")).length,S.fSit||"")}</select>`;
+  const ativo=S.fLocal||S.fProc||S.fPag||S.fSit;
+  return `<div class="filtros">${selLocal(todos).replace('<label class="loc-sel">📍 Local de atendimento','<label class="fcampo"><span>📍 Clínica</span>')}
+    <label class="fcampo"><span>🩺 Procedimento</span>${proc}</label>
+    <label class="fcampo"><span>💳 Pagamento</span>${pag}</label>
+    <label class="fcampo"><span>⚡ Situação</span>${sit}</label>
+    ${ativo?`<button class="linkbtn flimpa" data-act="limpa-fi">Limpar filtros ✕</button>`:""}</div>`;
 }
 function selLocal(base){
   base=base||S.casos;
@@ -1615,10 +1637,8 @@ function telaInd(){
     return `<section class="col" data-drop="${k}" data-board="ind"><h3><span>${t}</span><span class="count">${items.length}</span></h3><div class="col-desc">${desc}${n?` · <b style="color:var(--warn)">${n} pedindo ação</b>`:""}</div>${items.map(cardInd).join("")||'<div class="empty drop-hint">Solte um card aqui</div>'}</section>`;
   }).join("");
   const perdidos=S.casos.filter(c=>c.etapa==="desistiu"&&noLocal(c)).length;
-  const fb=(k,t)=>`<button data-fi="${k}" aria-pressed="${S.fInd===k}">${t}</button>`;
   return `<div class="sec-head"><div><h2>Indicações</h2><div class="sub">Arraste pela alça ⠿ · toque no selo de interesse para mudar · no celular use “→” ou “⋯”</div></div><button class="btn" data-act="novo">+ Nova indicação</button></div>
-  ${selLocal(todos)}
-  <div class="seg">${fb("todos","Todas")}${fb("atencao","Pedindo ação")}${fb("travados","Convênio parado")}${fb("convenio","Convênio")}${fb("particular","Particular")}${fb("alto","Interesse alto")}${fb("cirurgia","Cirurgia")}${fb("injecao","Injeção")}${fb("laser","Laser")}</div>
+  ${barraFiltrosInd(todos)}
   <div class="board" id="board">${cols}</div>
   <section class="col col-out" data-drop="desistiu" data-board="ind"><h3><span>Perdido / não fará</span><span class="count">${perdidos}</span></h3><div class="col-desc">Solte aqui quem desistiu. O card sai do quadro, mas fica no histórico do paciente.</div></section>`;
 }
@@ -1882,6 +1902,7 @@ document.addEventListener("click", e=>{
   if(t.dataset.rgrp){ const ls=t.dataset.rgrp.split("|"); const igual=ls.length===S.repLocs.length&&ls.every(l=>S.repLocs.includes(l)); setRepLocs(igual?[]:ls); render(); return; }
   if(t.dataset.ofw){ const o=JSON.parse(JSON.stringify(diasOficiais())); const l=t.dataset.ofloc, w=+t.dataset.ofw; const a=o[l]||[]; o[l]=a.includes(w)?a.filter(x=>x!==w):[...a,w].sort(); salvaDiasOf(o); render(); return; }
   if(t.dataset.act==="sync"){ folhaSync(); return; }
+  if(t.dataset.act==="limpa-fi"){ S.fLocal=""; S.fProc=""; S.fPag=""; S.fSit=""; S.fase=null; render(); return; }
   if(t.dataset.act==="copiar-pend"){ const tx=textoPendencias(); (navigator.clipboard?navigator.clipboard.writeText(tx):Promise.reject()).then(()=>toast("Pendências copiadas. É só colar no WhatsApp ou e-mail da OA.")).catch(()=>{ prompt("Copie o texto:",tx); }); return; }
   if(t.dataset.act==="rep-custom"){ S.repCustom=!S.repCustom; render(); return; }
   if(t.dataset.rper!==undefined){ S.repCustom=false; const [a,b]=t.dataset.rper.split("|"); S.repDe=a||""; S.repAte=b||""; render(); return; }
@@ -1891,13 +1912,14 @@ document.addEventListener("click", e=>{
   if(t.dataset.fpag!==undefined){ S.fPag=t.dataset.fpag; render(); return; }
   if(t.dataset.finj!==undefined){ S.fInj = S.fInj===t.dataset.finj ? null : t.dataset.finj; render(); return; }
   if(t.dataset.fpos!==undefined){ S.fPos=t.dataset.fpos; render(); return; }
-  if(t.dataset.tab||t.dataset.goto){ S.tab=t.dataset.tab||t.dataset.goto; if(t.dataset.f) S.fInd=t.dataset.f; fechar(); render(); window.scrollTo(0,0); return; }
+  if(t.dataset.tab||t.dataset.goto){ S.tab=t.dataset.tab||t.dataset.goto; if(t.dataset.f) aplicaFiltroInd(t.dataset.f); fechar(); render(); window.scrollTo(0,0); return; }
   if(t.dataset.act){ acao(t.dataset.act,t); return; }
   if(t.dataset.pac){ folhaPaciente(t.dataset.pac); return; }
   if(t.dataset.ft!==undefined){ S.fTrat=t.dataset.ft; render(); return; }
-  if(t.dataset.fi!==undefined){ S.fInd=t.dataset.fi; render(); return; }
+  if(t.dataset.fi!==undefined){ aplicaFiltroInd(t.dataset.fi); render(); return; }
 });
 document.addEventListener("change", e=>{ if(e.target.id==="selLocal"){ S.fLocal=e.target.value; S.fase=null; render(); }
+  if(e.target.id==="selProc"){ S.fProc=e.target.value; render(); } if(e.target.id==="selPag"){ S.fPag=e.target.value; render(); } if(e.target.id==="selSit"){ S.fSit=e.target.value; render(); }
   if(e.target.id==="repSoOf"){ S.repSoOf=e.target.checked; render(); }
   if(e.target.id==="repDe"){ S.repDe=e.target.value; render(); }
   if(e.target.id==="repAte"){ S.repAte=e.target.value; render(); }
