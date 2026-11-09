@@ -117,7 +117,7 @@ def footer():
   <div class="wrap foot-grid">
     <div class="stack">
       <img src="img/logo-dra-renata-bertazzi.png" alt="Dra. Renata Bertazzi · Oftalmologia | Retina e Catarata" class="foot-logo" width="230" height="43" loading="lazy">
-      <p><strong>Dra. Renata Cerneiro Bertazzi</strong><br>Médica Oftalmologista · CRM-TO 7132 · RQE 3562<br>Membro da Sociedade Brasileira de Retina e Vítreo (SBRV)</p>
+      <p><strong>Dra. Renata Carneiro Bertazzi</strong><br>Médica Oftalmologista · CRM-TO 7132 · RQE 3562<br>Membro da Sociedade Brasileira de Retina e Vítreo (SBRV)</p>
       <p><a href="{IG}" target="_blank" rel="noopener">Instagram @dra.renatabertazzi</a></p>
     </div>
     <div class="stack">
@@ -133,7 +133,7 @@ def footer():
       </ul>
     </div>
   </div>
-  <div class="wrap"><p class="foot-note">As informações deste site são educativas e não substituem a consulta médica. Diagnóstico e tratamento dependem de avaliação individual. Responsável técnica: Dra. Renata Cerneiro Bertazzi · CRM-TO 7132 · RQE 3562.</p></div>
+  <div class="wrap"><p class="foot-note">As informações deste site são educativas e não substituem a consulta médica. Diagnóstico e tratamento dependem de avaliação individual. Responsável técnica: Dra. Renata Carneiro Bertazzi · CRM-TO 7132 · RQE 3562.</p></div>
 </footer>
 {MBAR}</body>
 </html>
@@ -149,7 +149,7 @@ def physician_schema():
         locs.append(loc)
     return {
         "@type": "Physician", "@id": SITE + "/#medica",
-        "name": "Dra. Renata Cerneiro Bertazzi", "alternateName": "Dra. Renata Bertazzi",
+        "name": "Dra. Renata Carneiro Bertazzi", "alternateName": "Dra. Renata Bertazzi",
         "description": "Médica oftalmologista em Palmas (TO): cirurgia de catarata, cirurgia de retina, injeção intravítrea e laser. Membro da Sociedade Brasileira de Retina e Vítreo.",
         "url": SITE + "/", "image": SITE + "/img/dra-renata-bertazzi-oftalmologista-palmas.webp", "logo": SITE + "/img/logo-dra-renata-bertazzi.png",
         "medicalSpecialty": "Ophthalmologic", "sameAs": [IG],
@@ -213,7 +213,7 @@ for p in PAGES:
       <span class="eyebrow">{p["eyebrow"]}</span>
       <h1>{p["h1"]}</h1>
       <p class="lead">{p["lead"]}</p>
-      <p class="cred">Por <b>Dra. Renata Cerneiro Bertazzi</b>, médica oftalmologista · CRM-TO 7132 · RQE 3562 · Membro da SBRV</p>
+      <p class="cred">Por <b>Dra. Renata Carneiro Bertazzi</b>, médica oftalmologista · CRM-TO 7132 · RQE 3562 · Membro da SBRV</p>
       <div class="actions"><a class="btn" href="{DM}" target="_blank" rel="noopener">{CTA_MAIN}</a><a class="btn soft" href="{DM}" target="_blank" rel="noopener">{CTA_TALK}</a></div>
     </div>
     {img}
@@ -268,7 +268,7 @@ lbody = f"""<main>
       <span class="eyebrow">Cirurgia de catarata · escolha da lente</span>
       <h1>Está na dúvida sobre a sua lente? A gente te ajuda.</h1>
       <p class="lead">Na cirurgia de catarata, o cristalino opaco é trocado por uma lente artificial que fica no olho para sempre. Existem lentes que priorizam a visão de longe e lentes que também ajudam no computador e no celular. Responda as perguntas abaixo e veja, numa simulação, como seria o seu dia a dia com cada uma.</p>
-      <p class="cred">Por <b>Dra. Renata Cerneiro Bertazzi</b>, médica oftalmologista · CRM-TO 7132 · RQE 3562 · Membro da SBRV</p>
+      <p class="cred">Por <b>Dra. Renata Carneiro Bertazzi</b>, médica oftalmologista · CRM-TO 7132 · RQE 3562 · Membro da SBRV</p>
     </div>
   </div>
 </section>
@@ -383,7 +383,7 @@ HOME = f"""<main id="inicio">
     <div class="stack">
       <span class="eyebrow">Sobre a médica</span>
       <h2>Experiência no centro cirúrgico. Escuta no consultório.</h2>
-      <p class="muted">A Dra. Renata Cerneiro Bertazzi é médica oftalmologista com atuação dedicada à catarata e às doenças da retina, no consultório e no centro cirúrgico. Já realizou mais de 500 cirurgias e atende pacientes de Palmas e da região central do Tocantins.</p>
+      <p class="muted">A Dra. Renata Carneiro Bertazzi é médica oftalmologista com atuação dedicada à catarata e às doenças da retina, no consultório e no centro cirúrgico. Já realizou mais de 500 cirurgias e atende pacientes de Palmas e da região central do Tocantins.</p>
       <ul class="ticks">
         <li><a href="cirurgia-de-catarata-palmas.html">Cirurgia de catarata</a> por facoemulsificação</li>
         <li><a href="cirurgia-de-retina-palmas.html">Cirurgia de retina</a> (vitrectomia) e tratamento do descolamento de retina</li>
