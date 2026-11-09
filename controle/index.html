@@ -215,6 +215,8 @@ details.conf.sem summary b,details.conf.zero summary b{color:#b4472f} details.co
 .ag-st{font-size:.76rem;font-weight:600;padding:4px 9px;border-radius:999px;white-space:nowrap;background:#eef1f5;color:#5b6573} .ag-st.ok{background:#e4f4ea;color:#2f7d4f} .ag-st.outra{background:#e7effa;color:#1d4f91} .ag-st.zero{background:#fdf0dc;color:#a8650f} .ag-st.sem{background:#fbe5e1;color:#b4472f} .ag-st.cir{background:#f1e8fb;color:#6c3fa0}
 .ag-leg{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 6px} .ag-sem{align-self:center;font-weight:600;padding:0 6px}
 @media(max-width:600px){ .ag-l{grid-template-columns:44px 1fr} .ag-st{grid-column:2;justify-self:start} }
+.sync-c{border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:10px 0;background:#fff} .sync-c h3{margin:0 0 4px;font-size:1rem} .sync-c h3 small{font-weight:400;color:var(--soft)} .sync-c p{margin:6px 0;font-size:.9rem}
+a.btn.bm{display:inline-block;cursor:grab;text-decoration:none}
 /* Painel por fases */
 .trilha-t{font-weight:700;font-size:.9rem;color:var(--soft);margin:14px 0 8px}
 .fases{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
@@ -366,6 +368,7 @@ legend{font-size:.86rem;font-weight:700;color:var(--soft);padding:0;margin-botto
     <img src="../img/simbolo.png" alt="">
     <div class="t"><b>Controle de Pacientes</b><span id="who"></span></div>
     <button class="out" data-tab="lentes" title="Simulador de lentes com valores">👁 Lentes</button>
+    <button class="out" data-act="sync" title="Sincronizar prontuário e planilhas">🔄 Sync</button>
     <button class="out" data-tab="agenda" title="Agenda do prontuário">📅 Agenda</button>
     <button class="out" data-tab="repasse" title="Repasse das clínicas">💰 Repasse</button>
     <button class="out" id="bOut">Sair</button>
@@ -497,7 +500,7 @@ async function carregar(){
   const rp=await sb.from("repasses").select("*").order("periodo_fim",{ascending:false}); S.reps=rp.data||[];
   let ri=[]; for(let k=0;k<50;k++){ const r=await sb.from("repasse_itens").select("*").range(k*1000,k*1000+999); if(r.error||!r.data) break; ri=ri.concat(r.data); if(r.data.length<1000) break; } S.repItens=ri;
   let at=[]; for(let k=0;k<50;k++){ const r=await sb.from("atendimentos").select("id,data,local,unidade,paciente,plano,itens,tipo,status,descricao").range(k*1000,k*1000+999); if(r.error||!r.data) break; at=at.concat(r.data); if(r.data.length<1000) break; } S.atend=at;
-  const sc=await sb.from("sincronizacoes").select("*").order("em",{ascending:false}).limit(1); S.ultSync=(sc.data||[])[0]||null;
+  const sc=await sb.from("sincronizacoes").select("*").order("em",{ascending:false}).limit(30); S.syncs=sc.data||[]; S.ultSync=S.syncs.find(x=>(x.origem||"eyecare")==="eyecare")||null;
   const err = p.error||c.error||s.error; if (err) { toast("Erro ao carregar: "+err.message); return; }
   S.pacientes=p.data; S.casos=c.data; S.sessoes=s.data;
 }
@@ -1196,6 +1199,32 @@ window.importarPlanilhas=async function(arquivos,opc){
   return res;
 };
 
+/* ===================== SINCRONIZAR ===================== */
+const BOOKMARKLET="javascript:(function(){var P='https://drarenatabertazzi.com.br';if(!/eyecarebi\\.eyecarehealth\\.com\\.br/.test(location.host)){alert('Abra o EyecareBI (logado) e clique de novo em Sincronizar.');return;}var w=window.open(P+'/controle/?sync=eyecare','sync_portal');var pac=null,pronto=false,res=null;function envia(){if(pac&&pronto&&w){w.postMessage({tipo:'agenda',pacote:pac},P);pac=null;}}window.addEventListener('message',function(e){if(e.origin!==P||!e.data)return;if(e.data.tipo==='pronto'){pronto=true;envia();}if(e.data.tipo==='ok')alert('\u2714 Agenda enviada ao portal: '+e.data.n+' agendamentos ('+e.data.de+' a '+e.data.ate+').');if(e.data.tipo==='erro')alert('N\u00e3o consegui gravar: '+e.data.msg);});(async function(){var tok=localStorage.getItem('access_token');if(!tok){alert('Entre no EyecareBI primeiro.');return;}var root=localStorage.getItem('root_clinic_id')||'b930bcfb-f011-4475-b589-f07a57ba805b';var H={Authorization:'Bearer '+tok,Accept:'application/json','X-Root-Clinic':root,'X-Unity':root};var hoje=new Date(Date.now()-3*36e5);var iso=function(d){return d.toISOString().slice(0,10)};var ate=iso(hoje),de=iso(new Date(hoje.getTime()-45*864e5));var dias=[];for(var d=new Date(de+'T12:00:00Z');iso(d)<=ate;d=new Date(d.getTime()+864e5))if(d.getUTCDay()!==0)dias.push(iso(d));var out=[];await Promise.all(dias.map(async function(ds){var r=await fetch('https://eyecarebi.prod.eyecarehealth.com.br/api/clinics/'+root+'/overview/my-day?scope=group&date='+ds,{headers:H});if(!r.ok)return;var j=await r.json();(j.encounters||[]).forEach(function(e){var un=(e.clinic&&e.clinic.name)||'';out.push({id:e.id,data:ds,inicio:e.start_datetime||'',unidade:un,local:/para[i\u00ed]so/i.test(un)?'OA Para\u00edso':'OA Palmas',paciente:e.patient&&e.patient.name,paciente_id:e.patient&&e.patient.id,nascimento:(e.patient&&e.patient.birthday)||'',plano:(e.health_plan&&e.health_plan.name)||'',itens:(e.items||[]).map(function(x){return x.name}).join(' + '),tipo:e.type||e.kind||'',status:e.status||'',descricao:(e.description||'').replace(/\\s+/g,' ').slice(0,200)});});}));var gz=await new Response(new Blob([JSON.stringify({de:de,ate:ate,itens:out})]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer();var b='';new Uint8Array(gz).forEach(function(x){b+=String.fromCharCode(x)});pac=btoa(b);envia();})();})();";
+const EYE_ORIGIN="https://eyecarebi.eyecarehealth.com.br";
+window.addEventListener("message",async e=>{
+  if(e.origin!==EYE_ORIGIN||!e.data||e.data.tipo!=="agenda") return;
+  try{ const r=await receberAgenda(e.data.pacote); if(r&&r.erro) throw new Error(r.erro); const bin=Uint8Array.from(atob(e.data.pacote),c=>c.charCodeAt(0)); const p=JSON.parse(await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream("gzip"))).text());
+    e.source.postMessage({tipo:"ok",n:p.itens.length,de:br(p.de),ate:br(p.ate)},EYE_ORIGIN); toast("Agenda do EyecareBI sincronizada ✔"); }
+  catch(err){ e.source.postMessage({tipo:"erro",msg:err.message},EYE_ORIGIN); }
+});
+function avisaProntoSync(){ if(/sync=eyecare/.test(location.search)&&window.opener){ try{ window.opener.postMessage({tipo:"pronto"},EYE_ORIGIN); }catch(e){} } }
+function ultimaSync(origem){ const s=(S.syncs||[]).find(x=>(x.origem||"eyecare")===origem); return s?new Date(s.em).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"nunca"; }
+function folhaSync(){
+  abrir(`<header><div><h2>🔄 Sincronizar</h2><div class="sub">Todas as noites (seg a sáb, 20h47) o Claude sincroniza tudo sozinho. Use os botões abaixo para atualizar na hora.</div></div><button class="close" data-close aria-label="Fechar">×</button></header>
+  <div class="sync-c"><h3>1 · Agenda do EyecareBI <small>(OA Palmas e OA Paraíso)</small></h3><p class="sub">Última: <b>${ultimaSync("eyecare")}</b></p>
+   <p><b>Primeira vez:</b> arraste este botão para a barra de favoritos do navegador:</p>
+   <p><a class="btn bm" href="${esc(BOOKMARKLET)}" onclick="event.preventDefault();alert('Arraste este botão para a barra de favoritos. Depois, com o EyecareBI aberto e logado, clique nele.')">🔄 Sincronizar EyecareBI</a></p>
+   <p><b>No dia a dia:</b> abra o EyecareBI (logado) e clique no favorito <b>Sincronizar EyecareBI</b>. O portal abre numa nova aba e recebe os últimos 45 dias da agenda. Nenhuma senha passa pelo portal.</p></div>
+  <div class="sync-c"><h3>2 · Planilhas do Drive <small>(OFT. AV., ICOG, OPUS)</small></h3><p class="sub">Última: <b>${ultimaSync("planilhas")}</b></p>
+   <p>Para atualizar na hora: no Google Sheets, <i>Arquivo → Fazer download → Microsoft Excel (.xlsx)</i> e escolha os arquivos aqui. Só acrescenta o que é novo; nada é apagado.</p>
+   <input type="file" id="syncXlsx" accept=".xlsx" multiple><div id="syncRes" class="sub" style="margin-top:8px"></div></div>
+  <div class="sync-c"><h3>3 · ICOG</h3><p class="sub">Em preparação: assim que tivermos o acesso à agenda do ICOG, ela entra aqui também.</p></div>`);
+  $("#syncXlsx").addEventListener("change",async ev=>{ const fs=[...ev.target.files]; const out=$("#syncRes"); if(!fs.length) return; out.textContent="Lendo planilhas…";
+    try{ const arqs=await Promise.all(fs.map(async f=>({nome:/ICOG/i.test(f.name)?"ICOG":/OPUS/i.test(f.name)?"OPUS":"OFT. AV.",xlsx:await f.arrayBuffer()}))); const r=await importarPlanilhas(arqs);
+      out.innerHTML=`✔ ${r.novosPacientes} paciente(s) novo(s) · ${r.novosCasos} caso(s) novo(s) · ${r.novasSessoes} sessão(ões) nova(s) · ${r.atualizados} atualizado(s)`; }
+    catch(err){ out.textContent="Não consegui importar: "+(err.message||err); } });
+}
 /* ===================== AGENDA DO PRONTUÁRIO ===================== */
 function statusRepasseAt(a,ctx){
   if(a.status!=="FINISHED") return {k:"nao",tx:a.status==="CANCELED"?"cancelado":"não finalizado"};
@@ -1803,6 +1832,7 @@ document.addEventListener("click", e=>{
   if(t.dataset.rloc!==undefined){ const l=t.dataset.rloc; setRepLocs(!l?[]:(S.repLocs.includes(l)?S.repLocs.filter(x=>x!==l):[...S.repLocs,l])); render(); return; }
   if(t.dataset.rgrp){ const ls=t.dataset.rgrp.split("|"); const igual=ls.length===S.repLocs.length&&ls.every(l=>S.repLocs.includes(l)); setRepLocs(igual?[]:ls); render(); return; }
   if(t.dataset.ofw){ const o=JSON.parse(JSON.stringify(diasOficiais())); const l=t.dataset.ofloc, w=+t.dataset.ofw; const a=o[l]||[]; o[l]=a.includes(w)?a.filter(x=>x!==w):[...a,w].sort(); salvaDiasOf(o); render(); return; }
+  if(t.dataset.act==="sync"){ folhaSync(); return; }
   if(t.dataset.act==="copiar-pend"){ const tx=textoPendencias(); (navigator.clipboard?navigator.clipboard.writeText(tx):Promise.reject()).then(()=>toast("Pendências copiadas. É só colar no WhatsApp ou e-mail da OA.")).catch(()=>{ prompt("Copie o texto:",tx); }); return; }
   if(t.dataset.act==="rep-custom"){ S.repCustom=!S.repCustom; render(); return; }
   if(t.dataset.rper!==undefined){ S.repCustom=false; const [a,b]=t.dataset.rper.split("|"); S.repDe=a||""; S.repAte=b||""; render(); return; }
@@ -1875,7 +1905,7 @@ async function entrar(session){
   if(error||!data){ $("#deniedTxt").textContent=`O e-mail ${session.user.email} ainda não tem permissão para ver os pacientes. Peça à Dra. Renata para liberar o seu acesso.`; mostrar("vDenied"); return; }
   $("#who").textContent = (data.nome?data.nome+" · ":"")+session.user.email;
   mostrar("vApp"); $("#main").innerHTML='<div class="empty">Carregando…</div>';
-  await carregar(); render();
+  await carregar(); render(); avisaProntoSync();
 }
 
 $("#fLogin").addEventListener("submit", async e=>{
