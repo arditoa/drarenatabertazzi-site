@@ -210,6 +210,11 @@ button.kpi.fora{border-left-color:#bbb;background:#fafafa}
 details.conf{border:1px solid var(--line);border-radius:12px;margin:8px 0;background:#fff} details.conf summary{cursor:pointer;padding:10px 14px;list-style:none} details.conf summary::-webkit-details-marker{display:none}
 details.conf.sem summary b,details.conf.zero summary b{color:#b4472f} details.conf .tbl td small{display:block;color:var(--soft)} details.conf .tbl td small.ok{color:#2f7d4f}
 .conf-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:6px 0 10px} .conf-kpis .kpi.alerta b{color:#b4472f}
+.ag-dia{margin-top:12px} .ag-l{display:grid;grid-template-columns:52px 1fr auto;gap:10px;align-items:center;padding:9px 4px;border-top:1px solid var(--line)} .ag-l.apagado{opacity:.5}
+.ag-h{font-variant-numeric:tabular-nums;color:var(--soft);font-size:.85rem} .ag-p small{display:block;color:var(--soft);font-size:.78rem} .ag-p .ag-proc{color:#7a8494}
+.ag-st{font-size:.76rem;font-weight:600;padding:4px 9px;border-radius:999px;white-space:nowrap;background:#eef1f5;color:#5b6573} .ag-st.ok{background:#e4f4ea;color:#2f7d4f} .ag-st.outra{background:#e7effa;color:#1d4f91} .ag-st.zero{background:#fdf0dc;color:#a8650f} .ag-st.sem{background:#fbe5e1;color:#b4472f} .ag-st.cir{background:#f1e8fb;color:#6c3fa0}
+.ag-leg{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 6px} .ag-sem{align-self:center;font-weight:600;padding:0 6px}
+@media(max-width:600px){ .ag-l{grid-template-columns:44px 1fr} .ag-st{grid-column:2;justify-self:start} }
 /* Painel por fases */
 .trilha-t{font-weight:700;font-size:.9rem;color:var(--soft);margin:14px 0 8px}
 .fases{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
@@ -361,6 +366,7 @@ legend{font-size:.86rem;font-weight:700;color:var(--soft);padding:0;margin-botto
     <img src="../img/simbolo.png" alt="">
     <div class="t"><b>Controle de Pacientes</b><span id="who"></span></div>
     <button class="out" data-tab="lentes" title="Simulador de lentes com valores">👁 Lentes</button>
+    <button class="out" data-tab="agenda" title="Agenda do prontuário">📅 Agenda</button>
     <button class="out" data-tab="repasse" title="Repasse das clínicas">💰 Repasse</button>
     <button class="out" id="bOut">Sair</button>
   </header>
@@ -558,7 +564,7 @@ function cardTrat(c){
 function render(){
   document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-current", b.dataset.tab===S.tab?"page":"false"));
   const m=$("#main");
-  m.innerHTML = ({repasse:telaRepasse, lentes:telaLentes, painel:telaPainel, semana:telaSemana, ind:telaInd, cir:telaCir, trat:telaTrat, pac:telaPac}[S.tab])();
+  m.innerHTML = ({agenda:telaAgenda, repasse:telaRepasse, lentes:telaLentes, painel:telaPainel, semana:telaSemana, ind:telaInd, cir:telaCir, trat:telaTrat, pac:telaPac}[S.tab])();
   if(S.tab==="repasse"&&$("#fRep")) $("#fRep").addEventListener("submit",async e=>{ e.preventDefault(); const v=$("#rVl").value.trim(); await salvar(sb.from("repasses").update({status:$("#rSt").value,recebido_em:$("#rDt").value||null,valor_recebido:v?parseFloat(v.replace(/\./g,"").replace(",",".")):null}).eq("id",S.repSel),"Repasse atualizado ✔"); });
   if(S.tab==="lentes"){ const f=$("#frLentes"); const envia=()=>{ try{ f.contentWindow.postMessage({tipo:"precos",rows:S.precos,tabela:(S.fLocal||"").startsWith("ICOG")||!S.fLocal?"ICOG":"padrao"},"*"); }catch(e){} }; f.addEventListener("load",envia); envia(); }
   m.insertAdjacentHTML("beforeend", `<p class="footnote">Dados protegidos · acesso restrito à equipe · ${S.pacientes.length} pacientes cadastrados</p>`);
@@ -1076,6 +1082,165 @@ const REP = (() => {
   return { pdfEyecare, planilha, categoria, num };
 })();
 
+
+/* ===================== PLANILHAS DO DRIVE (sincronização) ===================== */
+// Lê as planilhas "OFT. AV. / ICOG / OPUS - CIR./INJ./LASER" e acrescenta no portal só o que é novo:
+// pacientes e casos novos, sessões novas de injeção/laser e cirurgias que passaram a ter data. Nunca apaga nem sobrescreve.
+const PL={
+  s(v){ if(v===null||v===undefined) return ""; if(typeof v==="number") v=String(Math.round(v)); return String(v).replace(/\s+/g," ").trim(); },
+  d(v){ if(v instanceof Date&&!isNaN(v)) return v.getFullYear()>=2025?`${v.getFullYear()}-${String(v.getMonth()+1).padStart(2,"0")}-${String(v.getDate()).padStart(2,"0")}`:null;
+        const m=PL.s(v).match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/); if(!m) return null; const y=m[3].length===2?2000+ +m[3]:+m[3]; return y>=2025?`${y}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`:null; },
+  tel(v){ const t=PL.s(v); const dg=t.replace(/\D/g,""); if(dg.length<8) return null; if(/[ ()-]/.test(t)) return t; if(dg.length===11) return `(${dg.slice(0,2)}) ${dg.slice(2,7)}-${dg.slice(7)}`; if(dg.length===10) return `(${dg.slice(0,2)}) ${dg.slice(2,6)}-${dg.slice(6)}`; return t; },
+  conv(v){ const c=PL.s(v).toUpperCase().replace(/\./g,""); if(!c) return null; if(/^PART/.test(c)) return "PART"; if(/^SERVIR/.test(c)) return "SERVIR"; if(/^MUNIC/.test(c)) return "MUNICÍPIO"; return c; },
+  olho(v){ const m=PL.s(v).toUpperCase().match(/\b(OD|OE|AO)\b/); return m?m[1]:null; },
+  BAIXO:/N[AÃ]O DESEJA|VAI ESPERAR|DESEJA ESPERAR|PEDIU PARA ESPERAR|FALTA DE RECURSO|SEM \$|FINANCEIRO|N[AÃ]O AGENDOU|N[AÃ]O PEDIU|INDECIS|VAI AGUARDAR|2027/i,
+  nomeLoc(txt,padrao){
+    let n=PL.s(txt); const tags=[...n.matchAll(/\(([^)]*)\)/g)].map(m=>m[1]); n=n.replace(/\([^)]*\)/g," "); const extra=[];
+    if(/ - /.test(n)){ const [a,...r]=n.split(" - "); n=a; extra.push(r.join(" - ").trim()); }
+    const t=(tags.join(" ")+" "+extra.join(" ")).toUpperCase(); let loc=padrao;
+    if(/ICOG/.test(t)) loc=/PORTO/.test(t)?"ICOG Porto":"ICOG Palmas";
+    else if(/\bPORTO\b/.test(t)&&/^ICOG/.test(padrao)) loc="ICOG Porto";
+    else if(/\b(PSO|PARAISO|PARAÍSO)\b/.test(t)) loc=/^ICOG/.test(padrao)?padrao:"OA Paraíso";
+    else if(/\bPMW\b/.test(t)&&/^ICOG/.test(padrao)) loc="ICOG Palmas";
+    tags.forEach(x=>{ if(!/^\s*(PMW|PSO|PARAISO|PARAÍSO|PORTO|ICOG[^)]*|PORTO - ICOG|PORTO ICOG)\s*$/i.test(x)) extra.push(x.trim()); });
+    return {n:n.replace(/\s+/g," ").trim().toUpperCase(), loc, extra:extra.filter(Boolean)};
+  },
+  // mapeia colunas pelo cabeçalho
+  mapa(cab,ini,fim){ const m={datas:[]}; for(let i=ini;i<fim;i++){ const h=PL.s(cab[i]).toUpperCase(); if(!h) continue;
+      if(/^(NOME|PACIENTE|FINALIZADOS|INDECISOS)$/.test(h)) m.nome=m.nome??i;
+      else if(/INDICA/.test(h)) m.ind=i; else if(h==="$") m.cv=i; else if(/^(PROCEDIMENTO|CIRURGIA)$/.test(h)) m.pr=i;
+      else if(h==="LIO") m.lio=i; else if(/^OBS/.test(h)||/ENTROU EM CONTATO/.test(h)) m.obs=i; else if(/DATA PROC|REALIZADO/.test(h)) m.dt=i;
+      else if(/^(TEL|CONTATO)/.test(h)) m.tel=i; else if(h==="OLHO") m.olho=i;
+      else if(/(\d)\s*[ªº°]|DATA\s*\d|INJE/.test(h)) m.datas.push(i); }
+    return m; },
+  folha(ws,X){ return X.utils.sheet_to_json(ws,{header:1,raw:true,defval:null}); },
+  ler(wb,X,origem){
+    const padrao=/ICOG/i.test(origem)?"ICOG Palmas":/OPUS/i.test(origem)?"OPUS":"OA Palmas"; const out=[]; const hoje=hojeISO();
+    const add=(k,obs)=>{ const ob=[...obs.filter(Boolean),"Planilha "+origem].join(" · "); k.ob=ob; k.baixo=PL.BAIXO.test(ob); out.push(k); };
+    wb.SheetNames.forEach(nomeF=>{
+      const rows=PL.folha(wb.Sheets[nomeF],X); const tipo=/INJE/i.test(nomeF)?"injecao":/LASER/i.test(nomeF)?"laser":/CIRURG/i.test(nomeF)?"cirurgia":null; if(!tipo) return;
+      const muni=/MUNIC/i.test(nomeF);
+      const hi=rows.findIndex(r=>r&&r.some(c=>/^(NOME|PACIENTE)$/i.test(PL.s(c)))); if(hi<0) return;
+      const cab=rows[hi]; const largura=Math.max(...rows.map(r=>r?r.length:0));
+      // blocos: o principal e, à direita, FINALIZADOS / INDECISOS
+      const ladoIni=cab.findIndex((c,i)=>i>0&&/^(FINALIZADOS|INDECISOS)$/i.test(PL.s(c)));
+      const blocos=[{ini:0,fim:ladoIni>0?ladoIni:largura,modo:"ativo"}]; if(ladoIni>0) blocos.push({ini:ladoIni,fim:largura,modo:/FINAL/i.test(PL.s(cab[ladoIni]))?"finalizado":"indeciso"});
+      let mes="";
+      blocos.forEach(b=>{ let m=PL.mapa(cab,b.ini,b.fim); let modo=b.modo;
+        for(let r=hi+1;r<rows.length;r++){ const row=rows[r]||[]; const nm=PL.s(row[m.nome]);
+          if(!nm){ if(tipo==="cirurgia"){ const mm=row.slice(b.ini,b.fim).map(PL.s).find(x=>/^(JANEIRO|FEVEREIRO|MAR[CÇ]O|ABRIL|MAIO|JUNHO|JULHO|AGOSTO|SETEMBRO|OUTUBRO|NOVEMBRO|DEZEMBRO)$/i.test(x)); if(mm) mes=mm.toLowerCase(); } continue; }
+          if(/^(JANEIRO|FEVEREIRO|MAR[CÇ]O|ABRIL|MAIO|JUNHO|JULHO|AGOSTO|SETEMBRO|OUTUBRO|NOVEMBRO|DEZEMBRO)$/i.test(nm)){ mes=nm.toLowerCase(); continue; }
+          if(/^(FINALIZADOS|INDECISOS)$/i.test(nm)){ modo=/FINAL/i.test(nm)?"finalizado":"indeciso"; // sub-cabeçalho no meio (colunas genéricas): posição fixa
+            m={nome:m.nome,olho:m.nome+1,ind:m.nome+2,cv:m.nome+3,datas:[m.nome+4,m.nome+5,m.nome+6],tel:m.nome+7}; continue; }
+          const {n,loc,extra}=PL.nomeLoc(nm,padrao); if(!n||n.length<4) continue;
+          const obs=[...extra, PL.s(row[m.obs])]; const cv=muni?"MUNICÍPIO":PL.conv(row[m.cv]); const di=PL.d(row[m.ind]); const t=PL.tel(row[m.tel]);
+          if(tipo==="cirurgia"){ const dp=PL.d(row[m.dt]); let e="indicado",dr=null,da=null; if(dp&&dp<=hoje){ e="realizado"; dr=dp; } else if(dp){ e="agendado"; da=dp; }
+            let pr=PL.s(row[m.pr]); if(m.lio!==undefined&&PL.s(row[m.lio])) obs.push("LIO: "+PL.s(row[m.lio])); if(mes) obs.push("Planilha: "+mes);
+            add({n,t,loc,ti:"cirurgia",pr,o:PL.olho(pr),cv,e,di,dr,da},obs); }
+          else { const ses=m.datas.map(i=>PL.d(row[i])).filter(Boolean); const ol=PL.s(row[m.olho]); const o=PL.olho(ol); const pr=ol.replace(/\b(1º|OD|OE|AO)\b/gi,"").trim()||null;
+            let e; if(modo==="finalizado") e="finalizado"; else if(modo==="indeciso"){ e="indicado"; obs.push("indeciso"); }
+            else if(tipo==="laser") e=!ses.length?"indicado":(/FINALIZADO/i.test(obs.join(" "))?"finalizado":"em_tratamento"); else e=ses.length?"em_tratamento":"indicado";
+            add({n,t,loc,ti:tipo,pr,o,cv,e,di,s:ses},obs); }
+        } });
+    });
+    return out;
+  }
+};
+function hojeISO(){ const d=new Date(Date.now()-3*3600e3); return d.toISOString().slice(0,10); }
+const procN=s=>normNome(s).replace(/\b(1º|1O|AO|OD|OE)\b/g,"").replace(/\s+/g,"");
+function acharCaso(r,pac){
+  if(!pac) return null; const cs=S.casos.filter(c=>c.paciente_id===pac.id&&c.tipo===r.ti);
+  if(r.ti==="cirurgia"){ const k=normNome(r.pr).replace(/\s+/g,""); return cs.find(c=>normNome(c.procedimento).replace(/\s+/g,"")===k)||null; }
+  const mesmoOlho=cs.filter(c=>(c.olho||null)===(r.o||null)||!r.o||!c.olho);
+  if(!mesmoOlho.length) return null; if(mesmoOlho.length===1) return mesmoOlho[0];
+  // vários ciclos: prefere o que tem sessões em comum, senão o mais compatível com a etapa
+  const comum=mesmoOlho.find(c=>S.sessoes.some(s=>s.caso_id===c.id&&(r.s||[]).includes(s.data_realizada))); if(comum) return comum;
+  return mesmoOlho.find(c=>(c.etapa==="finalizado")===(r.e==="finalizado"))||mesmoOlho[0];
+}
+window.importarPlanilhas=async function(arquivos,opc){
+  opc=opc||{}; const X=await carregaLib("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js","XLSX");
+  let regs=[]; for(const a of arquivos){ const bin=typeof a.xlsx==="string"?Uint8Array.from(atob(a.xlsx),c=>c.charCodeAt(0)):new Uint8Array(a.xlsx);
+    const wb=X.read(bin,{type:"array",cellDates:true}); regs=regs.concat(PL.ler(wb,X,a.nome)); }
+  const res={lidos:regs.length,novosPacientes:0,novosCasos:0,novasSessoes:0,atualizados:0,detalhes:[]};
+  const pacPorNome=new Map(S.pacientes.map(p=>[normNome(p.nome),p]));
+  for(const r of regs){
+    let pac=pacPorNome.get(normNome(r.n));
+    if(!pac){ res.novosPacientes++; res.detalhes.push("novo paciente: "+r.n);
+      if(!opc.simular){ const q=await sb.from("pacientes").insert({nome:r.n,telefone:r.t||null}).select().single(); if(q.error) throw q.error; pac=q.data; S.pacientes.push(pac); } else pac={id:"sim-"+r.n,nome:r.n};
+      pacPorNome.set(normNome(r.n),pac); }
+    else if(r.t&&!pac.telefone&&!opc.simular){ await sb.from("pacientes").update({telefone:r.t}).eq("id",pac.id); pac.telefone=r.t; }
+    const c=acharCaso(r,pac);
+    if(!c){ res.novosCasos++; res.detalhes.push(`novo caso: ${r.n} · ${r.ti} ${r.pr||""} ${r.o||""} (${r.e})`);
+      if(opc.simular) continue;
+      const fech=["realizado","agendado"].includes(r.e);
+      const novo={paciente_id:pac.id,tipo:r.ti,procedimento:r.pr||null,olho:r.o||null,convenio:r.cv||null,etapa:r.e,data_indicacao:r.di||null,data_realizado:r.dr||null,data_agendada:r.da||null,obs:r.ob,
+        total_sessoes:r.ti==="cirurgia"?null:Math.max(3,(r.s||[]).length),intervalo_dias:r.ti==="cirurgia"?null:30,local:r.loc,pagamento:r.cv==="PART"?"particular":"convenio",
+        interesse:fech?"fechado":r.baixo?"baixo":"medio",fechado_em:fech?(r.dr||r.da):null,etapa_desde:r.dr||r.da||r.di||hojeISO()};
+      const q=await sb.from("casos").insert(novo).select().single(); if(q.error) throw q.error; S.casos.push(q.data);
+      for(let i=0;i<(r.s||[]).length;i++){ const s=await sb.from("sessoes").insert({caso_id:q.data.id,ciclo:1,numero:i+1,data_realizada:r.s[i]}).select().single(); if(!s.error&&s.data) S.sessoes.push(s.data); res.novasSessoes++; }
+      continue; }
+    // caso existente: só acrescenta
+    if(r.ti==="cirurgia"){
+      const upd={};
+      if(r.dr&&!c.data_realizado&&!["realizado","pos_op","finalizado","desistiu"].includes(c.etapa)) Object.assign(upd,{etapa:"realizado",data_realizado:r.dr,etapa_desde:r.dr,interesse:"fechado",fechado_em:c.fechado_em||r.dr});
+      else if(r.da&&!c.data_agendada&&["indicado","orcamento","aguardando","fechado"].includes(c.etapa)) Object.assign(upd,{etapa:"agendado",data_agendada:r.da,etapa_desde:hojeISO(),interesse:"fechado",fechado_em:c.fechado_em||hojeISO()});
+      if(Object.keys(upd).length){ res.atualizados++; res.detalhes.push(`atualizado: ${r.n} · ${r.pr} → ${upd.etapa}`); if(!opc.simular){ await sb.from("casos").update(upd).eq("id",c.id); Object.assign(c,upd); } }
+    } else {
+      const ja=S.sessoes.filter(s=>s.caso_id===c.id); const datas=new Set(ja.map(s=>s.data_realizada)); let num=ja.length;
+      for(const d of (r.s||[])){ if(datas.has(d)) continue; num++; res.novasSessoes++; res.detalhes.push(`sessão: ${r.n} · ${r.ti} ${r.o||""} ${br(d)}`);
+        if(!opc.simular){ const s=await sb.from("sessoes").insert({caso_id:c.id,ciclo:ja[0]?.ciclo||1,numero:num,data_realizada:d}).select().single(); if(!s.error&&s.data) S.sessoes.push(s.data); } }
+      if(c.etapa==="indicado"&&(r.s||[]).length&&!opc.simular){ await sb.from("casos").update({etapa:"em_tratamento",etapa_desde:r.s[0],interesse:"fechado"}).eq("id",c.id); c.etapa="em_tratamento"; res.atualizados++; }
+    }
+  }
+  if(!opc.simular){ await sb.from("sincronizacoes").insert({origem:"planilhas",recebidos:res.lidos,inseridos:res.novosCasos+res.novasSessoes+res.atualizados,obs:arquivos.map(a=>a.nome).join(", ")}); await carregar(); render(); }
+  return res;
+};
+
+/* ===================== AGENDA DO PRONTUÁRIO ===================== */
+function statusRepasseAt(a,ctx){
+  if(a.status!=="FINISHED") return {k:"nao",tx:a.status==="CANCELED"?"cancelado":"não finalizado"};
+  if(!ctx.fim||a.data>ctx.fim||a.data<ctx.ini) return {k:"aguarda",tx:"aguardando extrato"};
+  const hits=ctx.ext.filter(e=>e.paciente&&nomeBate(e.paciente,a.paciente));
+  const md=hits.filter(e=>e.data===a.data); const perto=hits.filter(e=>e.data!==a.data&&Math.abs(parse(e.data)-parse(a.data))/864e5<=4);
+  if(md.length){ const v=md.reduce((s,e)=>s+Number(e.valor||0),0); return v>0?{k:"ok",tx:moeda(v),v}:{k:"zero",tx:"R$ 0"}; }
+  if(perto.length){ const v=perto.reduce((s,e)=>s+Number(e.valor||0),0); return {k:"outra",tx:`pago em ${perto.map(e=>br(e.data).slice(0,5)).join(", ")} · ${moeda(v)}`,v}; }
+  if(/^retorno$/i.test((a.itens||"").trim())) return {k:"normal",tx:"retorno · sem cobrança"};
+  if(/FACECTOMIA|VITRECTOMIA/i.test(a.itens||"")) return {k:"cir",tx:"cirurgia · confirmar GoCare"};
+  return {k:"sem",tx:"sem repasse"};
+}
+function telaAgenda(){
+  const at=(S.atend||[]); const sinc=S.ultSync?`sincronizado em ${new Date(S.ultSync.em).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}`:"ainda não sincronizado";
+  if(!at.length) return `<div class="page-h"><div><h2>Agenda do prontuário</h2><p class="sub">EyecareBI · ${sinc}</p></div></div><div class="empty">A agenda aparece aqui depois da primeira sincronização com o EyecareBI.</div>`;
+  const oa=S.reps.filter(r=>/^OA\b/.test(r.local)); const ids=new Set(oa.map(r=>r.id));
+  const ctx={ext:S.repItens.filter(i=>ids.has(i.repasse_id)),ini:oa.map(r=>r.periodo_ini||"9999").sort()[0],fim:oa.map(r=>r.periodo_fim||"0000").sort().at(-1)};
+  // semana selecionada (segunda a sábado)
+  const base=S.agSem?parse(S.agSem):(()=>{ const ult=at.map(a=>a.data).sort().at(-1); return parse(ult<hojeISO()?ult:hojeISO()); })();
+  const seg=new Date(base); seg.setDate(seg.getDate()-((seg.getDay()+6)%7)); const sab=new Date(seg); sab.setDate(seg.getDate()+5);
+  const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  const de=iso(seg), ate=iso(sab); const loc=S.agLoc||"";
+  const lista=at.filter(a=>a.data>=de&&a.data<=ate&&(!loc||a.local===loc));
+  const dias={}; lista.forEach(a=>(dias[a.data]=dias[a.data]||[]).push(a));
+  const cores={ok:"ok",outra:"outra",zero:"zero",sem:"sem",cir:"cir",normal:"neutro",aguarda:"neutro",nao:"neutro"};
+  let tot={at:0,v:0,pend:0};
+  const blocos=Object.keys(dias).sort().map(d=>{
+    // junta itens do mesmo paciente no dia
+    const pac={}; dias[d].forEach(a=>{ const k=normNome(a.paciente); (pac[k]=pac[k]||{nome:a.paciente,local:a.local,plano:new Set(),itens:[],status:[],inicio:a.inicio,fin:false}); pac[k].plano.add(a.plano||""); pac[k].itens.push(a.itens||""); if(a.status==="FINISHED") pac[k].fin=true; if(a.inicio&&a.inicio<pac[k].inicio) pac[k].inicio=a.inicio; });
+    const linhas=Object.values(pac).sort((x,y)=>(x.inicio||"").localeCompare(y.inicio||"")).map(p=>{
+      const st=statusRepasseAt({status:p.fin?"FINISHED":"X",data:d,paciente:p.nome,itens:p.itens.join(" + ")},ctx); if(p.fin) tot.at++; if(st.v) tot.v+=st.v; if(["sem","zero"].includes(st.k)) tot.pend++;
+      const hora=p.inicio?new Date(p.inicio).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}):"";
+      const proc=p.itens.join(" | ").replace(/Consulta em consultório \(no horário normal ou preestabelecido\)/gi,"Consulta").replace(/ - (MONOCULAR|BINOCULAR)/gi,"");
+      return `<div class="ag-l ${p.fin?"":"apagado"}"><span class="ag-h">${hora}</span><div class="ag-p"><b>${esc(p.nome)}</b><small>${esc([...p.plano].filter(Boolean).join(" / ")||"—")} · ${esc(p.local)}${loc?"":""}</small><small class="ag-proc">${esc(proc.slice(0,120))}</small></div><span class="ag-st ${cores[st.k]}">${esc(st.tx)}</span></div>`; }).join("");
+    const dt=parse(d); const DO=diasOficiais(); const ofL=Object.keys(DO).filter(l=>/^OA\b/.test(l)&&(DO[l]||[]).includes(dt.getDay())); const of=ofL.length>0;
+    const nFin=Object.values(pac).filter(p=>p.fin).length;
+    return `<div class="panel ag-dia"><div class="panel-h"><h3>${["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"][dt.getDay()]}, ${br(d).slice(0,5)}</h3><span class="sub">${nFin} atendido(s)${of?` · ⭐ dia oficial (${ofL.join(", ")})`:" · fora da agenda oficial"}</span></div>${linhas}</div>`; }).join("");
+  const locs=[...new Set(at.map(a=>a.local))].sort();
+  return `<div class="page-h"><div><h2>Agenda do prontuário</h2><p class="sub">EyecareBI · ${sinc} · cada paciente com a situação do repasse</p></div></div>
+  <div class="rep-bar"><div class="rb-row"><div class="rb-lab">🗓️ Semana</div><div class="rb-chips"><button class="rchip" data-agsem="${iso(new Date(seg.getTime()-7*864e5))}">◀</button><span class="ag-sem">${br(de).slice(0,5)} a ${br(ate).slice(0,5)}</span><button class="rchip" data-agsem="${iso(new Date(seg.getTime()+7*864e5))}">▶</button><button class="rchip" data-agsem="">Última</button></div></div>
+  <div class="rb-row"><div class="rb-lab">📍 Unidade</div><div class="rb-chips"><button class="rchip" data-agloc="" aria-pressed="${!loc}">Todas</button>${locs.map(l=>`<button class="rchip" data-agloc="${esc(l)}" aria-pressed="${loc===l}">${esc(l)}</button>`).join("")}</div></div></div>
+  <div class="conf-kpis"><div class="kpi"><b>${tot.at}</b><span>atendidos na semana</span></div><div class="kpi"><b>${moeda0(tot.v)}</b><span>repasse identificado</span></div><div class="kpi ${tot.pend?"alerta":""}"><b>${tot.pend}</b><span>sem repasse ou R$ 0</span></div></div>
+  <div class="ag-leg"><span class="ag-st ok">pago no dia</span><span class="ag-st outra">pago em outra data</span><span class="ag-st zero">R$ 0</span><span class="ag-st sem">sem repasse</span><span class="ag-st neutro">aguardando extrato / retorno</span></div>
+  ${blocos||`<div class="empty">Nenhum atendimento nesta semana.</div>`}`;
+}
 
 /* ===================== REPASSE ===================== */
 const CAT_LABEL={consulta:"Consultas",exame:"Exames",cirurgia:"Cirurgias",injecao:"Injeções",laser:"Laser",retorno:"Retornos"};
@@ -1628,11 +1793,13 @@ async function ciclarInteresse(id){
 }
 
 document.addEventListener("click", e=>{
-  const t=e.target.closest("[data-rloc],[data-rgrp],[data-ofw],[data-rper],[data-rlist],[data-rfil],[data-acaotg],[data-fpag],[data-finj],[data-fpos],[data-dia],[data-floc],[data-fase],[data-tab],[data-goto],[data-act],[data-pac],[data-ft],[data-fi],[data-int]"); if(!t) return;
+  const t=e.target.closest("[data-agsem],[data-agloc],[data-rloc],[data-rgrp],[data-ofw],[data-rper],[data-rlist],[data-rfil],[data-acaotg],[data-fpag],[data-finj],[data-fpos],[data-dia],[data-floc],[data-fase],[data-tab],[data-goto],[data-act],[data-pac],[data-ft],[data-fi],[data-int]"); if(!t) return;
   if(t.dataset.int){ ciclarInteresse(t.dataset.int); return; }
   if(t.dataset.dia!==undefined){ S.dia=+t.dataset.dia; render(); return; }
   if(t.dataset.floc!==undefined){ S.fLocal=t.dataset.floc; S.fase=null; render(); return; }
   if(t.dataset.fase){ S.fase = S.fase===t.dataset.fase ? null : t.dataset.fase; render(); return; }
+  if(t.dataset.agsem!==undefined){ S.agSem=t.dataset.agsem; render(); return; }
+  if(t.dataset.agloc!==undefined){ S.agLoc=t.dataset.agloc; render(); return; }
   if(t.dataset.rloc!==undefined){ const l=t.dataset.rloc; setRepLocs(!l?[]:(S.repLocs.includes(l)?S.repLocs.filter(x=>x!==l):[...S.repLocs,l])); render(); return; }
   if(t.dataset.rgrp){ const ls=t.dataset.rgrp.split("|"); const igual=ls.length===S.repLocs.length&&ls.every(l=>S.repLocs.includes(l)); setRepLocs(igual?[]:ls); render(); return; }
   if(t.dataset.ofw){ const o=JSON.parse(JSON.stringify(diasOficiais())); const l=t.dataset.ofloc, w=+t.dataset.ofw; const a=o[l]||[]; o[l]=a.includes(w)?a.filter(x=>x!==w):[...a,w].sort(); salvaDiasOf(o); render(); return; }
