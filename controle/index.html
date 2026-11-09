@@ -58,8 +58,13 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);outline:none}
 .top .t{flex:1;min-width:0}
 .top b{display:block;font-family:var(--display);font-weight:400;font-size:1.05rem;letter-spacing:.03em}
 .top span{display:block;font-size:.75rem;color:#c8d7ee;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.menu{position:relative;margin-left:auto}.menu>summary{list-style:none;cursor:pointer;display:inline-block}.menu>summary::-webkit-details-marker{display:none}
+.menu-p{position:absolute;right:0;top:calc(100% + 8px);background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 40px -18px rgba(24,41,74,.45);padding:8px;min-width:240px;display:grid;gap:2px;z-index:30}
+.menu-p small{font-size:.72rem;font-weight:700;color:var(--soft);text-transform:uppercase;letter-spacing:.04em;padding:8px 10px 2px}
+.menu-p button{background:none;border:0;text-align:left;padding:10px 10px;border-radius:10px;font:inherit;font-weight:600;color:var(--ink)}.menu-p button:hover{background:#eef2f8}
+.menu-p hr{border:0;border-top:1px solid var(--line);margin:4px 0}
 .top .out{background:transparent;border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:999px;padding:6px 12px;font-size:.82rem}
-@media(max-width:760px){.top{flex-wrap:wrap;row-gap:8px}.top .t{flex:1 1 calc(100% - 44px)}.top .out{padding:5px 10px;font-size:.78rem}}
+@media(max-width:760px){.top .out{padding:6px 11px;font-size:.82rem}}
 main{max-width:1480px;margin:0 auto;padding:16px 14px 24px}
 .tabs{position:fixed;left:0;right:0;bottom:0;z-index:10;background:#fff;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
 .tabs button{background:none;border:0;display:grid;justify-items:center;gap:2px;font-size:.74rem;font-weight:700;color:var(--soft);padding:6px 2px;border-radius:12px}
@@ -373,11 +378,16 @@ legend{font-size:.86rem;font-weight:700;color:var(--soft);padding:0;margin-botto
   <header class="top">
     <img src="../img/simbolo.png" alt="">
     <div class="t"><b>Controle de Pacientes</b><span id="who"></span></div>
-    <button class="out" data-tab="lentes" title="Simulador de lentes com valores">👁 Lentes</button>
-    <button class="out" data-act="sync" title="Sincronizar prontuário e planilhas">🔄 Sync</button>
-    <button class="out" data-tab="agenda" title="Agenda do prontuário">📅 Agenda</button>
-    <button class="out" data-tab="repasse" title="Repasse das clínicas">💰 Repasse</button>
-    <button class="out" id="bOut">Sair</button>
+    <details class="menu" id="menuTop"><summary class="out">☰ Menu</summary>
+      <div class="menu-p">
+        <small>Prontuário e financeiro</small>
+        <button data-tab="agenda">📅 Agenda do prontuário</button>
+        <button data-tab="repasse">💰 Repasse das clínicas</button>
+        <button data-act="sync">🔄 Sincronizar</button>
+        <small>Consulta</small>
+        <button data-tab="lentes">👁 Simulador de lentes</button>
+        <hr><button id="bOut">Sair</button>
+      </div></details>
   </header>
   <nav class="tabs" aria-label="Seções">
     <button data-tab="painel" aria-current="page"><svg viewBox="0 0 24 24"><rect x="3.5" y="4" width="7" height="7" rx="2"/><rect x="13.5" y="4" width="7" height="4" rx="2"/><rect x="13.5" y="11" width="7" height="9" rx="2"/><rect x="3.5" y="14" width="7" height="6" rx="2"/></svg>Painel</button>
@@ -1918,6 +1928,7 @@ document.addEventListener("click", e=>{
   if(t.dataset.ft!==undefined){ S.fTrat=t.dataset.ft; render(); return; }
   if(t.dataset.fi!==undefined){ aplicaFiltroInd(t.dataset.fi); render(); return; }
 });
+document.addEventListener("click",e=>{ const m=document.getElementById("menuTop"); if(m&&m.open&&(!m.contains(e.target)||e.target.closest(".menu-p button"))) setTimeout(()=>m.open=false,0); },true);
 document.addEventListener("change", e=>{ if(e.target.id==="selLocal"){ S.fLocal=e.target.value; S.fase=null; render(); }
   if(e.target.id==="selProc"){ S.fProc=e.target.value; render(); } if(e.target.id==="selPag"){ S.fPag=e.target.value; render(); } if(e.target.id==="selSit"){ S.fSit=e.target.value; render(); }
   if(e.target.id==="repSoOf"){ S.repSoOf=e.target.checked; render(); }
