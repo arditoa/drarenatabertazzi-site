@@ -903,7 +903,10 @@ function folhaWhats(key){
   const monta=()=>{ const m=S.modelos.find(z=>z.id===$("#wMsg").value), v=S.modelos.find(z=>z.id===$("#wVid").value);
     $("#wTxt").value=[m?preencher(m.texto,x):"", v?`${preencher(v.texto,x)}${v.texto?"\n":""}${v.link||""}`.trim():""].filter(Boolean).join("\n\n"); };
   $("#wMsg").addEventListener("change",monta); $("#wVid").addEventListener("change",monta);
-  if(msgs.length===1){ $("#wMsg").value=msgs[0].id; monta(); }
+  { const pr=String(x.c.procedimento||"").toUpperCase(); const faco=/FACO/.test(pr), vv=/VVPP|PEELING|VITRECT/.test(pr);
+    const alvo = x.c.tipo==="injecao"?/INJE/i : x.c.tipo==="laser"?/LASER/i : (faco&&vv)?/FACO\s*\+\s*VVPP/i : vv?/VVPP/i : /PTG|PTER/.test(pr)?/PTER/i : faco?/FACO/i : null;
+    const sug = alvo && (msgs.find(m=>alvo.test(m.nome)&&(faco||!/FACO/i.test(m.nome))&&(vv||!/VVPP/i.test(m.nome)))||msgs.find(m=>alvo.test(m.nome)));
+    if(sug){ $("#wMsg").value=sug.id; monta(); } else if(msgs.length===1){ $("#wMsg").value=msgs[0].id; monta(); } }
   const grava=()=>{ const mm=$("#wMsg").value||null, vv=$("#wVid").value||null; fechar(); salvaPos(x,{whatsapp_em:iso(hoje()),modelo_msg:mm,modelo_video:vv}); };
   $("#fw").addEventListener("submit",e=>{ e.preventDefault(); if(f){ const intl=f.length<=11?"55"+f:f; window.open(`https://wa.me/${intl}?text=${encodeURIComponent($("#wTxt").value)}`,"_blank","noopener"); } grava(); });
   $("#wSo").addEventListener("click",grava);
