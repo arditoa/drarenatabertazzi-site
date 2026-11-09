@@ -59,6 +59,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);outline:none}
 .top b{display:block;font-family:var(--display);font-weight:400;font-size:1.05rem;letter-spacing:.03em}
 .top span{display:block;font-size:.75rem;color:#c8d7ee;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .top .out{background:transparent;border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:999px;padding:6px 12px;font-size:.82rem}
+@media(max-width:760px){.top{flex-wrap:wrap;row-gap:8px}.top .t{flex:1 1 calc(100% - 44px)}.top .out{padding:5px 10px;font-size:.78rem}}
 main{max-width:1480px;margin:0 auto;padding:16px 14px 24px}
 .tabs{position:fixed;left:0;right:0;bottom:0;z-index:10;background:#fff;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
 .tabs button{background:none;border:0;display:grid;justify-items:center;gap:2px;font-size:.74rem;font-weight:700;color:var(--soft);padding:6px 2px;border-radius:12px}
