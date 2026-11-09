@@ -1164,8 +1164,12 @@ function acharCaso(r,pac){
 }
 window.importarPlanilhas=async function(arquivos,opc){
   opc=opc||{}; const X=await carregaLib("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js","XLSX");
-  let regs=[]; for(const a of arquivos){ const bin=typeof a.xlsx==="string"?Uint8Array.from(atob(a.xlsx),c=>c.charCodeAt(0)):new Uint8Array(a.xlsx);
-    const wb=X.read(bin,{type:"array",cellDates:true}); regs=regs.concat(PL.ler(wb,X,a.nome)); }
+  let regs=[]; for(const a of arquivos){ let wb;
+    if(typeof a.xlsx==="string"&&a.xlsx.startsWith("json:")){ // abas lidas direto do Google Sheets (texto formatado)
+      const bin=Uint8Array.from(atob(a.xlsx.slice(5)),c=>c.charCodeAt(0)); const abas=JSON.parse(await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream("gzip"))).text());
+      wb=X.utils.book_new(); abas.forEach(ab=>X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet(ab.linhas),String(ab.nome).slice(0,31)));
+    } else { const bin=typeof a.xlsx==="string"?Uint8Array.from(atob(a.xlsx),c=>c.charCodeAt(0)):new Uint8Array(a.xlsx); wb=X.read(bin,{type:"array",cellDates:true}); }
+    regs=regs.concat(PL.ler(wb,X,a.nome)); }
   const res={lidos:regs.length,novosPacientes:0,novosCasos:0,novasSessoes:0,atualizados:0,detalhes:[]};
   const pacPorNome=new Map(S.pacientes.map(p=>[normNome(p.nome),p]));
   for(const r of regs){
