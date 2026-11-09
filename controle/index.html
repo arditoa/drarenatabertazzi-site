@@ -1294,7 +1294,7 @@ function conferenciaProntuario(){
   const ini0=oa.map(r=>r.periodo_ini||"0000").sort()[0], ini=(S.repDe&&S.repDe>ini0)?S.repDe:ini0, fim=[...oa.map(r=>r.periodo_fim||"9999")].sort().at(-1);
   const fimF=S.repAte&&S.repAte<fim?S.repAte:fim;
   const ids=new Set(oa.map(r=>r.id)); const ext=S.repItens.filter(i=>ids.has(i.repasse_id));
-  const ag={}; S.atend.filter(a=>a.status==="FINISHED"&&a.data>=ini&&a.data<=fimF&&repLocOk(a.local)).forEach(a=>{ const k=a.data+"|"+normNome(a.paciente); (ag[k]=ag[k]||{data:a.data,paciente:a.paciente,local:a.local,planos:new Set(),itens:[]}); if(a.plano) ag[k].planos.add(a.plano); if(a.itens) ag[k].itens.push(a.itens); });
+  const ag={}; S.atend.filter(a=>a.status==="FINISHED"&&/^OA\b/.test(a.local||"")&&a.data>=ini&&a.data<=fimF&&repLocOk(a.local)).forEach(a=>{ const k=a.data+"|"+normNome(a.paciente); (ag[k]=ag[k]||{data:a.data,paciente:a.paciente,local:a.local,planos:new Set(),itens:[]}); if(a.plano) ag[k].planos.add(a.plano); if(a.itens) ag[k].itens.push(a.itens); });
   const res={sem:[],zero:[],outra:[],normal:[],cir:[],total:0,ini,fim:fimF};
   const dif=(a,b)=>Math.abs(parse(a)-parse(b))/864e5;
   Object.values(ag).forEach(p=>{ res.total++; p.plano=[...p.planos].join(" / "); p.proc=p.itens.join(" | ");
