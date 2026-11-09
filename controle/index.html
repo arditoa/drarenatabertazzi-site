@@ -161,6 +161,7 @@ main{max-width:1480px;margin:0 auto;padding:16px 14px 24px}
 .acao-box{background:#fff5f2;border:1px solid #f1c7bc;border-left:5px solid var(--late);border-radius:16px;padding:14px;display:grid;gap:8px;margin:4px 0 14px}
 .acao-box h3{color:var(--late);display:flex;gap:8px;align-items:center}
 .acao-box.ok{background:var(--ok-soft);border-color:#bfe0cc;border-left-color:var(--ok);color:var(--ok);font-size:.9rem}
+.col-arq{background:#eef0f3}.col-arq h3 span:first-child{color:var(--soft)}.item.arq{opacity:.92;border-style:dashed}
 .filtros{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px 14px;align-items:end;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin:4px 0 16px}
 .fcampo{display:flex;flex-direction:column;gap:5px;font-weight:700;font-size:.8rem;color:var(--soft);margin:0}
 .fcampo select{width:100%;min-width:0;font:inherit;font-weight:600;font-size:.95rem;color:var(--ink);padding:9px 12px;border:1px solid var(--line);border-radius:11px;background:#fff}
@@ -392,9 +393,9 @@ legend{font-size:.86rem;font-weight:700;color:var(--soft);padding:0;margin-botto
   <nav class="tabs" aria-label="Seções">
     <button data-tab="painel" aria-current="page"><svg viewBox="0 0 24 24"><rect x="3.5" y="4" width="7" height="7" rx="2"/><rect x="13.5" y="4" width="7" height="4" rx="2"/><rect x="13.5" y="11" width="7" height="9" rx="2"/><rect x="3.5" y="14" width="7" height="6" rx="2"/></svg>Painel</button>
     <button data-tab="semana"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Semana</button>
-    <button data-tab="ind"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="10" y="4" width="5" height="11" rx="1.5"/><rect x="17" y="4" width="4" height="7" rx="1.5"/></svg>Indicações</button>
     <button data-tab="cir"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M6 12c2-2.5 10-2.5 12 0"/></svg>Cirurgias</button>
     <button data-tab="trat"><svg viewBox="0 0 24 24"><path d="M14 4l6 6M17 7l-9 9-3 1 1-3 9-9M11 8l5 5M4 20l2-2"/></svg>Injeções</button>
+    <button data-tab="laser"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l2.5 2.5M16.5 16.5L19 19M19 5l-2.5 2.5M7.5 16.5L5 19"/></svg>Laser</button>
     <button data-tab="pac"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c.8-3.4 3.2-5.2 6-5.2s5.2 1.8 6 5.2"/><circle cx="17" cy="9" r="2.4"/><path d="M16 14.8c2.4.2 4.2 1.8 5 4.6"/></svg>Pacientes</button>
   </nav>
   <main id="main"></main>
@@ -581,9 +582,10 @@ function cardTrat(c){
 
 /* ================= Telas ================= */
 function render(){
+  if(S.tab==="ind"||!["agenda","repasse","lentes","painel","semana","cir","trat","laser","pac"].includes(S.tab)) S.tab=tabDoFiltro();
   document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-current", b.dataset.tab===S.tab?"page":"false"));
   const m=$("#main");
-  m.innerHTML = ({agenda:telaAgenda, repasse:telaRepasse, lentes:telaLentes, painel:telaPainel, semana:telaSemana, ind:telaInd, cir:telaCir, trat:telaTrat, pac:telaPac}[S.tab])();
+  m.innerHTML = ({agenda:telaAgenda, repasse:telaRepasse, lentes:telaLentes, painel:telaPainel, semana:telaSemana, cir:()=>telaPipe("cirurgia"), trat:()=>telaPipe("injecao"), laser:()=>telaPipe("laser"), pac:telaPac}[S.tab])();
   if(S.tab==="repasse"&&$("#fRep")) $("#fRep").addEventListener("submit",async e=>{ e.preventDefault(); const v=$("#rVl").value.trim(); await salvar(sb.from("repasses").update({status:$("#rSt").value,recebido_em:$("#rDt").value||null,valor_recebido:v?parseFloat(v.replace(/\./g,"").replace(",",".")):null}).eq("id",S.repSel),"Repasse atualizado ✔"); });
   if(S.tab==="lentes"){ const f=$("#frLentes"); const envia=()=>{ try{ f.contentWindow.postMessage({tipo:"precos",rows:S.precos,tabela:(S.fLocal||"").startsWith("ICOG")||!S.fLocal?"ICOG":"padrao"},"*"); }catch(e){} }; f.addEventListener("load",envia); envia(); }
   m.insertAdjacentHTML("beforeend", `<p class="footnote">Dados protegidos · acesso restrito à equipe · ${S.pacientes.length} pacientes cadastrados</p>`);
@@ -1653,6 +1655,87 @@ function telaInd(){
   <section class="col col-out" data-drop="desistiu" data-board="ind"><h3><span>Perdido / não fará</span><span class="count">${perdidos}</span></h3><div class="col-desc">Solte aqui quem desistiu. O card sai do quadro, mas fica no histórico do paciente.</div></section>`;
 }
 
+/* ===== Pipelines únicos por procedimento (indicação → execução) + arquivadas ===== */
+const DIAS_ARQ = 90;
+function tabDoFiltro(){ const f=S.fProc||""; if(/^(inj|injecao)/.test(f)){ S.fProc=""; return "trat"; } if(f==="laser"){ S.fProc=""; return "laser"; } if(f==="cirurgia") S.fProc=""; return "cir"; }
+function ultAtiv(c){ const ds=[c.etapa_desde,c.data_indicacao,c.orcamento_em,c.ultimo_contato,...S.sessoes.filter(x=>x.caso_id===c.id).flatMap(x=>[x.data_realizada,x.data_prevista])].filter(Boolean).sort(); return ds.at(-1)||null; }
+function arquivada(c){ if(![...ABERTAS,"em_tratamento"].includes(c.etapa)) return false; const u=ultAtiv(c); const d=u?desde(u):null; return d!==null&&d>DIAS_ARQ; }
+const PIPE = {
+  cirurgia:{titulo:"Cirurgias", sub:"Da indicação até a alta · arraste pela alça ⠿", cols:[
+    ["indicado","Nova indicação","Enviar orçamento (particular) ou guia (convênio)",3],
+    ["orcamento","Orçamento / guia enviado","Esperando paciente ou convênio",7],
+    ["aguardando","Aguardando resposta","Particular decidindo · convênio autorizando",15],
+    ["fechado","Fechado · a agendar","Marcar data no centro cirúrgico",7],
+    ["agendado","Agendado","Data marcada",null],
+    ["pos_op","Operado · pós-op","Retornos 1, 7 e 30 dias",45,["realizado","pos_op"]],
+    ["finalizado","Alta","Últimos 60 dias",null]]},
+  injecao:{titulo:"Injeções", sub:"Da indicação ao ciclo de aplicações · agendar a partir de D+14 · vence em D+30", cols:[
+    ["indicado","Nova indicação","Enviar orçamento ou guia",3],
+    ["orcamento","Guia / orçamento enviado","Esperando paciente ou convênio",7],
+    ["aguardando","Aguardando autorização","Convênio autorizando · particular decidindo",15],
+    ["em_tratamento","Em tratamento","Ciclo de aplicações com as datas",null],
+    ["finalizado","Concluído","Últimos 60 dias",null]]},
+  laser:{titulo:"Laser", sub:"Da indicação às sessões realizadas", cols:[
+    ["indicado","Nova indicação","Enviar orçamento ou guia",3],
+    ["orcamento","Guia / orçamento enviado","Esperando paciente ou convênio",7],
+    ["aguardando","Aguardando autorização","Convênio autorizando · particular decidindo",15],
+    ["em_tratamento","Agendar / sessões","Marcar e registrar as sessões",null],
+    ["finalizado","Realizado","Últimos 60 dias",null]]},
+};
+const SUBS = { cirurgia:[["faco","Faco (catarata)"],["vvpp","VVPP / retina (inclui Faco + VVPP)"],["ptg","Pterígio"],["calazio","Calázio"],["outras","Outras cirurgias"]],
+  injecao:[["avastin","Avastin"],["eylia","Eylia"],["outras","Outras / sem medicação"]], laser:[] };
+function passaSub(c){ const f=S.fSub; if(!f) return true; return (c.tipo==="cirurgia"?grupoCir(c):grupoInj(c))===f; }
+function passaSitP(c,f){ if(!f) return true; if(ABERTAS.includes(c.etapa)) return passaSit(c,f);
+  if(f==="atencao"&&c.etapa==="em_tratamento"){ const e=statusTrat(c).estado; return ["late","lembrar","primeira"].includes(e); }
+  if(f==="alto") return c.interesse==="alto"; return false; }
+function barraFiltrosPipe(todos,tipo){
+  const loc=todos.filter(noLocal); const op=(v,tx,n,sel)=>`<option value="${v}" ${sel===v?"selected":""}>${tx}${n!==undefined?` (${n})`:""}</option>`;
+  const subs=SUBS[tipo];
+  const b1=loc.filter(c=>passaPag(c,S.fPag)&&passaSitP(c,S.fSit));
+  const sub=subs.length?`<label class="fcampo"><span>🩺 Procedimento</span><select id="selSub">${op("","Todos",b1.length,S.fSub||"")}${subs.map(([k,t])=>op(k,t,b1.filter(c=>(tipo==="cirurgia"?grupoCir(c):grupoInj(c))===k).length,S.fSub||"")).join("")}</select></label>`:"";
+  const b2=loc.filter(c=>passaSub(c)&&passaSitP(c,S.fSit));
+  const pag=`<label class="fcampo"><span>💳 Pagamento</span><select id="selPag">${op("","Convênio e particular",b2.length,S.fPag||"")}${op("convenio","Convênio",b2.filter(ehConv).length,S.fPag||"")}${op("particular","Particular",b2.filter(c=>!ehConv(c)).length,S.fPag||"")}</select></label>`;
+  const b3=loc.filter(c=>passaSub(c)&&passaPag(c,S.fPag));
+  const sit=`<label class="fcampo"><span>⚡ Situação</span><select id="selSit">${op("","Todas",b3.length,S.fSit||"")}${op("atencao","⚠️ Pedindo ação",b3.filter(c=>passaSitP(c,"atencao")).length,S.fSit||"")}${op("travados","⏳ Convênio parado",b3.filter(c=>passaSitP(c,"travados")).length,S.fSit||"")}${op("alto","🔥 Interesse alto",b3.filter(c=>passaSitP(c,"alto")).length,S.fSit||"")}</select></label>`;
+  const ativo=S.fLocal||S.fSub||S.fPag||S.fSit;
+  return `<div class="filtros">${selLocal(todos).replace('<label class="loc-sel">📍 Local de atendimento','<label class="fcampo"><span>📍 Clínica</span>')}${sub}${pag}${sit}${ativo?`<button class="linkbtn flimpa" data-act="limpa-fi">Limpar filtros ✕</button>`:""}</div>`;
+}
+function cardArq(c){
+  const p=pacOf(c), u=ultAtiv(c);
+  return `<div class="item arq" data-card="${c.id}">
+    <div class="row"><span class="grip" data-grip="${c.id}" aria-hidden="true">⠿</span><div class="name"><button data-pac="${p.id}">${esc(nomeCurto(p.nome))}</button></div>${chipPag(c)}</div>
+    <div class="meta">${esc(c.procedimento||TIPO_LABEL[c.tipo])}${c.olho?" · "+esc(c.olho):""}${c.local?" · "+esc(c.local):""}</div>
+    <div class="meta">Parado em <b>${esc(ETAPA_LABEL[c.etapa]||c.etapa)}</b>${u?` · último movimento ${br(u)} (${desde(u)} dias)`:""}</div>
+    <div class="row" style="justify-content:space-between">${contato(p.telefone)}<span class="actions"><button class="btn small ghost" data-act="reativar" data-id="${c.id}">↺ Reativar</button><button class="btn small ghost" data-act="mover-ind" data-to="desistiu" data-id="${c.id}">Perdido</button></span></div>
+  </div>`;
+}
+function telaPipe(tipo){
+  const P=PIPE[tipo]; if(S.fSubTipo!==tipo){ S.fSub=""; S.fSubTipo=tipo; }
+  const todos=S.casos.filter(c=>c.tipo===tipo&&!["desistiu"].includes(c.etapa));
+  const base=todos.filter(noLocal).filter(c=>passaSub(c)&&passaPag(c,S.fPag)&&passaSitP(c,S.fSit));
+  const ativos=base.filter(c=>!arquivada(c)), arqs=base.filter(arquivada);
+  const ordInt=c=>({alto:0,medio:1,baixo:2,fechado:3}[c.interesse||"medio"]);
+  const ordTrat={late:0,lembrar:1,primeira:2,avaliar:3,agendado:4,ok:5,fim:6,pausa:7};
+  const cols=P.cols.map(([k,t,desc,prazo,etapas])=>{
+    const es=etapas||[k];
+    let items=ativos.filter(c=>es.includes(c.etapa));
+    if(k==="finalizado") items=items.filter(c=>desde(c.etapa_desde)===null||desde(c.etapa_desde)<=60);
+    if(ABERTAS.includes(k)) items.sort((a,b)=>ordInt(a)-ordInt(b)||(a.etapa_desde||"").localeCompare(b.etapa_desde||""));
+    else if(k==="agendado") items.sort((a,b)=>(a.data_agendada||"").localeCompare(b.data_agendada||""));
+    else if(k==="em_tratamento") items.sort((a,b)=>ordTrat[statusTrat(a).estado]-ordTrat[statusTrat(b).estado]);
+    else items.sort((a,b)=>(b.etapa_desde||"").localeCompare(a.etapa_desde||""));
+    const n=ABERTAS.includes(k)?items.filter(c=>situacaoInd(c).nivel).length:0;
+    const card=c=> ABERTAS.includes(c.etapa)||(c.etapa==="fechado"&&false) ? cardInd(c) : (tipo==="cirurgia" ? cardExe(c) : cardTrat(c));
+    return `<section class="col" data-drop="${k==="pos_op"?"pos_op":k}"><h3><span>${t}</span><span class="count">${items.length}</span></h3><div class="col-desc">${desc}${prazo?` · meta ${prazo} dias`:""}${n?` · <b style="color:var(--warn)">${n} pedindo ação</b>`:""}</div>${items.map(card).join("")||'<div class="empty drop-hint">Solte um card aqui</div>'}</section>`;
+  }).join("");
+  const colArq=`<section class="col col-arq"><h3><span>🗄 Arquivadas</span><span class="count">${arqs.length}</span></h3><div class="col-desc">Sem movimento há mais de ${DIAS_ARQ} dias. Continuam guardadas para ações futuras (campanha, retorno). Use ↺ Reativar ou arraste para uma etapa.</div>${arqs.sort((a,b)=>(ultAtiv(b)||"").localeCompare(ultAtiv(a)||"")).map(cardArq).join("")||'<div class="empty">Nenhuma arquivada.</div>'}</section>`;
+  const perdidos=S.casos.filter(c=>c.tipo===tipo&&c.etapa==="desistiu"&&noLocal(c)).length;
+  return `<div class="sec-head"><div><h2>${P.titulo}</h2><div class="sub">${P.sub}</div></div><button class="btn" data-act="novo">+ Nova indicação</button></div>
+  ${tipo!=="cirurgia"?`<div class="legend"><span class="chip late">D+30 vencida</span><span class="chip warn">D+14 agendar</span><span class="chip ok">em dia / agendada</span><span class="chip blue">ciclo completo</span></div>`:""}
+  ${barraFiltrosPipe(todos,tipo)}
+  <div class="board" id="board">${cols}${colArq}</div>
+  <section class="col col-out" data-drop="desistiu"><h3><span>Perdido / não fará</span><span class="count">${perdidos}</span></h3><div class="col-desc">Solte aqui quem desistiu. O card sai do quadro, mas fica no histórico do paciente.</div></section>`;
+}
 function telaCir(){
   const todasCir=S.casos.filter(c=>c.tipo==="cirurgia"&&ETAPAS_EXE.some(([k])=>k===c.etapa));
   const list=todasCir.filter(noLocal);
@@ -1852,6 +1935,7 @@ async function acao(act, el){
   if(act==="editar") return folhaIndicacao(c);
   if(act==="editpac") return folhaPacEdit(el.dataset.pid);
   if(act==="menu") return folhaMenu(c);
+  if(act==="reativar") return salvar(sb.from("casos").update({etapa_desde:iso(hoje())}).eq("id",id),"Reativado ✔ · voltou para o quadro");
   if(act==="mover-ind"||act==="mover-exe") return moverPara(c, el.dataset.to);
   if(act==="pos-contato") return salvaPos(achaProc(el.dataset.key),{contato_em:iso(hoje())});
   if(act==="pos-whats") return folhaWhats(el.dataset.key);
@@ -1912,7 +1996,7 @@ document.addEventListener("click", e=>{
   if(t.dataset.rgrp){ const ls=t.dataset.rgrp.split("|"); const igual=ls.length===S.repLocs.length&&ls.every(l=>S.repLocs.includes(l)); setRepLocs(igual?[]:ls); render(); return; }
   if(t.dataset.ofw){ const o=JSON.parse(JSON.stringify(diasOficiais())); const l=t.dataset.ofloc, w=+t.dataset.ofw; const a=o[l]||[]; o[l]=a.includes(w)?a.filter(x=>x!==w):[...a,w].sort(); salvaDiasOf(o); render(); return; }
   if(t.dataset.act==="sync"){ folhaSync(); return; }
-  if(t.dataset.act==="limpa-fi"){ S.fLocal=""; S.fProc=""; S.fPag=""; S.fSit=""; S.fase=null; render(); return; }
+  if(t.dataset.act==="limpa-fi"){ S.fLocal=""; S.fProc=""; S.fSub=""; S.fPag=""; S.fSit=""; S.fase=null; render(); return; }
   if(t.dataset.act==="copiar-pend"){ const tx=textoPendencias(); (navigator.clipboard?navigator.clipboard.writeText(tx):Promise.reject()).then(()=>toast("Pendências copiadas. É só colar no WhatsApp ou e-mail da OA.")).catch(()=>{ prompt("Copie o texto:",tx); }); return; }
   if(t.dataset.act==="rep-custom"){ S.repCustom=!S.repCustom; render(); return; }
   if(t.dataset.rper!==undefined){ S.repCustom=false; const [a,b]=t.dataset.rper.split("|"); S.repDe=a||""; S.repAte=b||""; render(); return; }
@@ -1922,7 +2006,7 @@ document.addEventListener("click", e=>{
   if(t.dataset.fpag!==undefined){ S.fPag=t.dataset.fpag; render(); return; }
   if(t.dataset.finj!==undefined){ S.fInj = S.fInj===t.dataset.finj ? null : t.dataset.finj; render(); return; }
   if(t.dataset.fpos!==undefined){ S.fPos=t.dataset.fpos; render(); return; }
-  if(t.dataset.tab||t.dataset.goto){ S.tab=t.dataset.tab||t.dataset.goto; if(t.dataset.f) aplicaFiltroInd(t.dataset.f); fechar(); render(); window.scrollTo(0,0); return; }
+  if(t.dataset.tab||t.dataset.goto){ S.tab=t.dataset.tab||t.dataset.goto; if(t.dataset.f) aplicaFiltroInd(t.dataset.f); if(S.tab==="ind") S.tab=tabDoFiltro(); fechar(); render(); window.scrollTo(0,0); return; }
   if(t.dataset.act){ acao(t.dataset.act,t); return; }
   if(t.dataset.pac){ folhaPaciente(t.dataset.pac); return; }
   if(t.dataset.ft!==undefined){ S.fTrat=t.dataset.ft; render(); return; }
@@ -1930,7 +2014,7 @@ document.addEventListener("click", e=>{
 });
 document.addEventListener("click",e=>{ const m=document.getElementById("menuTop"); if(m&&m.open&&(!m.contains(e.target)||e.target.closest(".menu-p button"))) setTimeout(()=>m.open=false,0); },true);
 document.addEventListener("change", e=>{ if(e.target.id==="selLocal"){ S.fLocal=e.target.value; S.fase=null; render(); }
-  if(e.target.id==="selProc"){ S.fProc=e.target.value; render(); } if(e.target.id==="selPag"){ S.fPag=e.target.value; render(); } if(e.target.id==="selSit"){ S.fSit=e.target.value; render(); }
+  if(e.target.id==="selProc"){ S.fProc=e.target.value; render(); } if(e.target.id==="selSub"){ S.fSub=e.target.value; render(); } if(e.target.id==="selPag"){ S.fPag=e.target.value; render(); } if(e.target.id==="selSit"){ S.fSit=e.target.value; render(); }
   if(e.target.id==="repSoOf"){ S.repSoOf=e.target.checked; render(); }
   if(e.target.id==="repDe"){ S.repDe=e.target.value; render(); }
   if(e.target.id==="repAte"){ S.repAte=e.target.value; render(); }
