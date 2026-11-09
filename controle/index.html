@@ -1170,11 +1170,13 @@ window.importarPlanilhas=async function(arquivos,opc){
   const pacPorNome=new Map(S.pacientes.map(p=>[normNome(p.nome),p]));
   for(const r of regs){
     let pac=pacPorNome.get(normNome(r.n));
+    if(!pac&&opc.corte){ const ult=[r.di,r.dr,r.da,...(r.s||[])].filter(Boolean).sort().at(-1); if(ult&&ult<opc.corte){ res.guardados=(res.guardados||0)+1; continue; } }
     if(!pac){ res.novosPacientes++; res.detalhes.push("novo paciente: "+r.n);
       if(!opc.simular){ const q=await sb.from("pacientes").insert({nome:r.n,telefone:r.t||null}).select().single(); if(q.error) throw q.error; pac=q.data; S.pacientes.push(pac); } else pac={id:"sim-"+r.n,nome:r.n};
       pacPorNome.set(normNome(r.n),pac); }
     else if(r.t&&!pac.telefone&&!opc.simular){ await sb.from("pacientes").update({telefone:r.t}).eq("id",pac.id); pac.telefone=r.t; }
     const c=acharCaso(r,pac);
+    if(!c&&opc.corte){ const ult=[r.di,r.dr,r.da,...(r.s||[])].filter(Boolean).sort().at(-1); if(ult&&ult<opc.corte){ res.guardados=(res.guardados||0)+1; continue; } }
     if(!c){ res.novosCasos++; res.detalhes.push(`novo caso: ${r.n} · ${r.ti} ${r.pr||""} ${r.o||""} (${r.e})`);
       if(opc.simular) continue;
       const fech=["realizado","agendado"].includes(r.e);
@@ -1219,13 +1221,32 @@ function folhaSync(){
    <p><a class="btn bm" href="${esc(BOOKMARKLET)}" onclick="event.preventDefault();alert('Arraste este botão para a barra de favoritos. Depois, com o EyecareBI aberto e logado, clique nele.')">🔄 Sincronizar EyecareBI</a></p>
    <p><b>No dia a dia:</b> abra o EyecareBI (logado) e clique no favorito <b>Sincronizar EyecareBI</b>. O portal abre numa nova aba e recebe os últimos 45 dias da agenda. Nenhuma senha passa pelo portal.</p></div>
   <div class="sync-c"><h3>2 · Planilhas do Drive <small>(OFT. AV., ICOG, OPUS)</small></h3><p class="sub">Última: <b>${ultimaSync("planilhas")}</b></p>
-   <p>Para atualizar na hora: no Google Sheets, <i>Arquivo → Fazer download → Microsoft Excel (.xlsx)</i> e escolha os arquivos aqui. Só acrescenta o que é novo; nada é apagado.</p>
+   <p><b>Automático:</b> o Google envia cada planilha sozinho quando ela muda (verifica a cada 30 min) e o portal processa ao abrir. Indicações com mais de 60 dias ficam só guardadas, sem entrar no pipeline.</p>
+   ${(S.plDrive||[]).length?`<ul class="sub" style="margin:0 0 10px 18px">${S.plDrive.map(x=>`<li><b>${esc(x.nome)}</b>: recebida ${new Date(x.recebido_em).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}${x.resultado?` · ${esc(x.resultado)}`:" · aguardando processar"}</li>`).join("")}</ul>`:`<p class="sub">Ainda não chegou nenhuma planilha pelo Drive.</p>`}
+   <p class="sub">Manual (se precisar): no Google Sheets, <i>Arquivo → Fazer download → Microsoft Excel (.xlsx)</i> e escolha os arquivos aqui. Só acrescenta o que é novo; nada é apagado.</p>
    <input type="file" id="syncXlsx" accept=".xlsx" multiple><div id="syncRes" class="sub" style="margin-top:8px"></div></div>
-  <div class="sync-c"><h3>3 · ICOG</h3><p class="sub">Em preparação: assim que tivermos o acesso à agenda do ICOG, ela entra aqui também.</p></div>`);
+  <div class="sync-c"><h3>3 · Agenda do ICOG <small>(Amigo · Palmas e Porto)</small></h3><p class="sub">Última: <b>${ultimaSync("eyecare")}</b> · entra na sincronização da noite (precisa do Mac ligado com o app Claude aberto e o Amigo logado).</p></div>`);
   $("#syncXlsx").addEventListener("change",async ev=>{ const fs=[...ev.target.files]; const out=$("#syncRes"); if(!fs.length) return; out.textContent="Lendo planilhas…";
-    try{ const arqs=await Promise.all(fs.map(async f=>({nome:/ICOG/i.test(f.name)?"ICOG":/OPUS/i.test(f.name)?"OPUS":"OFT. AV.",xlsx:await f.arrayBuffer()}))); const r=await importarPlanilhas(arqs);
-      out.innerHTML=`✔ ${r.novosPacientes} paciente(s) novo(s) · ${r.novosCasos} caso(s) novo(s) · ${r.novasSessoes} sessão(ões) nova(s) · ${r.atualizados} atualizado(s)`; }
+    try{ const arqs=await Promise.all(fs.map(async f=>({nome:/ICOG/i.test(f.name)?"ICOG":/OPUS/i.test(f.name)?"OPUS":"OFT. AV.",xlsx:await f.arrayBuffer()}))); const r=await importarPlanilhas(arqs,{corte:corte60()});
+      out.innerHTML=`✔ ${r.novosPacientes} paciente(s) novo(s) · ${r.novosCasos} caso(s) novo(s) · ${r.novasSessoes} sessão(ões) nova(s) · ${r.atualizados} atualizado(s) · ${r.guardados||0} antigo(s) só guardado(s)`; }
     catch(err){ out.textContent="Não consegui importar: "+(err.message||err); } });
+}
+function corte60(){ const d=new Date(); d.setDate(d.getDate()-60); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+// Planilhas que chegaram do Google Drive (Apps Script) e ainda não foram processadas
+async function processarPlanilhasDrive(){
+  const q=await sb.from("planilhas_brutas").select("arquivo,nome,recebido_em,processado_em,resultado,modificado_em").order("nome"); if(q.error){ S.plDrive=[]; return; }
+  S.plDrive=q.data||[]; const pend=S.plDrive.filter(x=>!x.processado_em); if(!pend.length) return;
+  let tot={p:0,c:0,s:0,a:0,g:0};
+  for(const x of pend){
+    const r1=await sb.from("planilhas_brutas").select("xlsx").eq("arquivo",x.arquivo).single(); if(r1.error) continue;
+    try{ const r=await importarPlanilhas([{nome:x.nome,xlsx:r1.data.xlsx}],{corte:corte60()});
+      const txt=`${r.novosPacientes} paciente(s) · ${r.novosCasos} caso(s) · ${r.novasSessoes} sessão(ões) · ${r.atualizados} atualizado(s) · ${r.guardados||0} antigo(s) só guardado(s)`;
+      tot.p+=r.novosPacientes; tot.c+=r.novosCasos; tot.s+=r.novasSessoes; tot.a+=r.atualizados; tot.g+=r.guardados||0;
+      const agora=new Date().toISOString(); await sb.from("planilhas_brutas").update({processado_em:agora,resultado:txt}).eq("arquivo",x.arquivo); x.processado_em=agora; x.resultado=txt;
+      await sb.from("sincronizacoes").insert({de:hojeISO(),ate:hojeISO(),recebidos:r.lidos,inseridos:r.novosCasos+r.novasSessoes+r.atualizados,origem:"drive",obs:x.nome});
+    }catch(e){ console.warn("planilha",x.nome,e); }
+  }
+  if(tot.p+tot.c+tot.s+tot.a) toast(`Planilhas do Drive: ${tot.c} caso(s) novo(s), ${tot.s} sessão(ões), ${tot.a} atualizado(s)`);
 }
 /* ===================== AGENDA DO PRONTUÁRIO ===================== */
 function statusRepasseAt(a,ctx){
@@ -1921,7 +1942,7 @@ async function entrar(session){
   if(error||!data){ $("#deniedTxt").textContent=`O e-mail ${session.user.email} ainda não tem permissão para ver os pacientes. Peça à Dra. Renata para liberar o seu acesso.`; mostrar("vDenied"); return; }
   $("#who").textContent = (data.nome?data.nome+" · ":"")+session.user.email;
   mostrar("vApp"); $("#main").innerHTML='<div class="empty">Carregando…</div>';
-  await carregar(); render(); avisaProntoSync();
+  await carregar(); render(); avisaProntoSync(); processarPlanilhasDrive().then(()=>render()).catch(()=>{});
 }
 
 $("#fLogin").addEventListener("submit", async e=>{
