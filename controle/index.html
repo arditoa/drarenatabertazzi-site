@@ -207,6 +207,9 @@ button.kpi{font:inherit;color:inherit;cursor:pointer} button.kpi:hover{box-shado
 .tbl.pdia td.of{box-shadow:inset 3px 0 0 #e8a33d}.tbl.pdia td.fora{background:repeating-linear-gradient(135deg,#fafafa 0 6px,#f1f1f1 6px 12px);color:#8a94a3}.tbl.pdia td.fora b{color:#6b7480}
 .lg{display:inline-block;width:10px;height:10px;border-radius:3px;vertical-align:-1px}.lg.of{background:#e8a33d}.lg.fora{background:#ddd}
 button.kpi.fora{border-left-color:#bbb;background:#fafafa}
+details.conf{border:1px solid var(--line);border-radius:12px;margin:8px 0;background:#fff} details.conf summary{cursor:pointer;padding:10px 14px;list-style:none} details.conf summary::-webkit-details-marker{display:none}
+details.conf.sem summary b,details.conf.zero summary b{color:#b4472f} details.conf .tbl td small{display:block;color:var(--soft)} details.conf .tbl td small.ok{color:#2f7d4f}
+.conf-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:6px 0 10px} .conf-kpis .kpi.alerta b{color:#b4472f}
 /* Painel por fases */
 .trilha-t{font-weight:700;font-size:.9rem;color:var(--soft);margin:14px 0 8px}
 .fases{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
@@ -487,6 +490,8 @@ async function carregar(){
   S.pos=ps.data||[]; S.modelos=md.data||[]; S.precos=tp.data||[]; S.orcs=oc.data||[];
   const rp=await sb.from("repasses").select("*").order("periodo_fim",{ascending:false}); S.reps=rp.data||[];
   let ri=[]; for(let k=0;k<50;k++){ const r=await sb.from("repasse_itens").select("*").range(k*1000,k*1000+999); if(r.error||!r.data) break; ri=ri.concat(r.data); if(r.data.length<1000) break; } S.repItens=ri;
+  let at=[]; for(let k=0;k<50;k++){ const r=await sb.from("atendimentos").select("id,data,local,unidade,paciente,plano,itens,tipo,status,descricao").range(k*1000,k*1000+999); if(r.error||!r.data) break; at=at.concat(r.data); if(r.data.length<1000) break; } S.atend=at;
+  const sc=await sb.from("sincronizacoes").select("*").order("em",{ascending:false}).limit(1); S.ultSync=(sc.data||[])[0]||null;
   const err = p.error||c.error||s.error; if (err) { toast("Erro ao carregar: "+err.message); return; }
   S.pacientes=p.data; S.casos=c.data; S.sessoes=s.data;
 }
@@ -1076,6 +1081,54 @@ const REP = (() => {
 const CAT_LABEL={consulta:"Consultas",exame:"Exames",cirurgia:"Cirurgias",injecao:"Injeções",laser:"Laser",retorno:"Retornos"};
 const normNome=s=>String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toUpperCase().replace(/…|\.\.\./g,"").replace(/[^A-Z ]/g," ").replace(/\s+/g," ").trim();
 function mesmoPaciente(a,b){ const x=normNome(a), y=normNome(b); if(!x||!y) return false; const c=x.length<y.length?x:y, l=x.length<y.length?y:x; return c.length>=8 && l.startsWith(c); }
+// ===== Conferência com o prontuário (EyecareBI) =====
+window.receberAgenda=async function(pacote){
+  const bin=Uint8Array.from(atob(pacote),c=>c.charCodeAt(0));
+  const txt=await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
+  const p=JSON.parse(txt);
+  const r=await sb.rpc("sync_atendimentos",{de:p.de,ate:p.ate,itens:p.itens});
+  if(r.error) return {erro:r.error.message};
+  await carregar(); render(); return r.data;
+};
+const tokN=s=>normNome(s).split(" ").filter(w=>w.length>2&&!["DOS","DAS","DE","DA","DO"].includes(w));
+function nomeBate(ext,ag){ if(mesmoPaciente(ext,ag)) return true; const A=tokN(ext),B=tokN(ag); if(!A.length||!B.length||A[0]!==B[0]) return false; return A.filter(w=>B.includes(w)).length>=Math.min(2,A.length,B.length); }
+function conferenciaProntuario(){
+  const oa=S.reps.filter(r=>/^OA\b/.test(r.local)&&repLocOk(r.local)); if(!oa.length||!(S.atend||[]).length) return null;
+  const ini0=oa.map(r=>r.periodo_ini||"0000").sort()[0], ini=(S.repDe&&S.repDe>ini0)?S.repDe:ini0, fim=[...oa.map(r=>r.periodo_fim||"9999")].sort().at(-1);
+  const fimF=S.repAte&&S.repAte<fim?S.repAte:fim;
+  const ids=new Set(oa.map(r=>r.id)); const ext=S.repItens.filter(i=>ids.has(i.repasse_id));
+  const ag={}; S.atend.filter(a=>a.status==="FINISHED"&&a.data>=ini&&a.data<=fimF&&repLocOk(a.local)).forEach(a=>{ const k=a.data+"|"+normNome(a.paciente); (ag[k]=ag[k]||{data:a.data,paciente:a.paciente,local:a.local,planos:new Set(),itens:[]}); if(a.plano) ag[k].planos.add(a.plano); if(a.itens) ag[k].itens.push(a.itens); });
+  const res={sem:[],zero:[],outra:[],normal:[],cir:[],total:0,ini,fim:fimF};
+  const dif=(a,b)=>Math.abs(parse(a)-parse(b))/864e5;
+  Object.values(ag).forEach(p=>{ res.total++; p.plano=[...p.planos].join(" / "); p.proc=p.itens.join(" | ");
+    const hits=ext.filter(e=>e.paciente&&nomeBate(e.paciente,p.paciente)); const md=hits.filter(e=>e.data===p.data); const perto=hits.filter(e=>e.data!==p.data&&dif(e.data,p.data)<=4);
+    if(md.length){ const v=md.reduce((s,e)=>s+Number(e.valor||0),0); if(v===0) res.zero.push(p); return; }
+    if(perto.length){ p.pago=perto; res.outra.push(p); return; }
+    if(/^retorno$/i.test(p.proc.trim())||(/retorno/i.test(p.proc)&&/particular/i.test(p.plano))) res.normal.push(p);
+    else if(/FACECTOMIA|VITRECTOMIA/i.test(p.proc)) res.cir.push(p);
+    else res.sem.push(p); });
+  return res;
+}
+function painelConferencia(){
+  const sinc=S.ultSync?`Prontuário sincronizado em ${new Date(S.ultSync.em).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}`:"Prontuário ainda não sincronizado";
+  const c=conferenciaProntuario();
+  if(!c) return `<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>Conferência com o prontuário</h3><span class="sub">${sinc}</span></div><p class="sub">Assim que a agenda do EyecareBI for sincronizada, a conferência aparece aqui.</p></div>`;
+  const pl=s=>s.replace(/Consulta em consultório \(no horário normal ou preestabelecido\)/gi,"Consulta").replace(/ - (MONOCULAR|BINOCULAR)/gi,"").slice(0,110);
+  const linha=p=>`<tr><td>${br(p.data)}</td><td><b>${esc(p.paciente)}</b><small>${esc(p.local)} · ${esc(p.plano||"—")}</small></td><td><small>${esc(pl(p.proc||""))}</small>${p.pago?`<small class="ok">pago em ${p.pago.map(e=>br(e.data)+" "+moeda(Number(e.valor||0))).join("; ")}</small>`:""}</td></tr>`;
+  const bloco=(tit,lst,cls,aberto)=>lst.length?`<details class="conf ${cls}" ${aberto?"open":""}><summary><b>${tit}</b> <span class="count">${lst.length}</span></summary><div class="tbl-wrap"><table class="tbl"><tbody>${lst.sort((a,b)=>a.data.localeCompare(b.data)).map(linha).join("")}</tbody></table></div></details>`:"";
+  return `<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>Conferência com o prontuário</h3><span class="sub">${sinc} · ${c.total} atendimentos finalizados de ${br(c.ini)} a ${br(c.fim)}</span></div>
+   <div class="conf-kpis"><div class="kpi ${c.sem.length?"alerta":""}"><b>${c.sem.length}</b><span>sem repasse</span></div><div class="kpi ${c.zero.length?"alerta":""}"><b>${c.zero.length}</b><span>vieram com R$ 0</span></div><div class="kpi"><b>${c.outra.length}</b><span>pagos em outra data</span></div><div class="kpi"><b>${c.total-c.sem.length-c.zero.length-c.outra.length-c.normal.length-c.cir.length}</b><span>conferidos ok</span></div></div>
+   ${bloco("Atendidos sem repasse",c.sem,"sem",true)}${bloco("Repasse zerado (R$ 0)",c.zero,"zero",true)}${bloco("Cirurgias sem repasse da clínica (confirmar se foram pela GoCare)",c.cir,"cir",false)}${bloco("Pagos em outra data",c.outra,"outra",false)}${bloco("Retornos sem cobrança (normal)",c.normal,"normal",false)}
+   ${c.sem.length||c.zero.length?`<button class="btn" data-act="copiar-pend">Copiar pendências para enviar à OA</button>`:""}</div>`;
+}
+function textoPendencias(){
+  const c=conferenciaProntuario(); if(!c) return "";
+  const pl=s=>(s||"").replace(/Consulta em consultório \(no horário normal ou preestabelecido\)/gi,"consulta").toLowerCase();
+  let n=0; const L=["Bom dia! Conferi os repasses da Dra. Renata Bertazzi com a agenda do EyecareBI ("+br(c.ini)+" a "+br(c.fim)+") e encontrei estas pendências:",""];
+  if(c.sem.length){ L.push("Atendimentos finalizados sem repasse:"); c.sem.forEach(p=>L.push(`${++n}. ${br(p.data)} – ${p.paciente} – ${p.plano} – ${pl(p.proc)}`)); L.push(""); }
+  if(c.zero.length){ L.push("Itens com repasse zerado (R$ 0):"); c.zero.forEach(p=>L.push(`${++n}. ${br(p.data)} – ${p.paciente} – ${p.plano} – ${pl(p.proc)}`)); L.push(""); }
+  L.push("Podem verificar e, se for o caso, incluir no próximo repasse? Obrigada!"); return L.join("\n");
+}
 function rl(f){ return `data-rlist="${esc(JSON.stringify(f))}"`; }
 function barrasR(lista,fmt){ fmt=fmt||moeda; const max=Math.max(1,...lista.map(x=>x[1])); return `<div class="funnel">${lista.map(([t,n,sub,f])=>`<button class="fn rp" ${f?rl(f):""}><span>${esc(t)}${sub?`<small>${esc(sub)}</small>`:""}</span><i style="width:${Math.max(3,Math.round(n/max*100))}%"></i><b>${fmt(n)}</b></button>`).join("")}</div>`; }
 function folhaRepLista(f){
@@ -1218,6 +1271,7 @@ function telaRepasse(){
        return `<tr class="media"><td><b>Média por dia</b></td>${locs.map(l=>`<td>${med(itens.filter(i=>locDe(i.repasse_id)===l))}</td>`).join("")}<td>${med(itens)}</td></tr>`; })()}</tfoot></table></div>
      ${(()=>{ const f=v=>v.toFixed(1).replace(".",","); const linhas=[1,2,3,4,5,6,0].map(w=>{ const cels=locs.map(l=>{ const its=itens.filter(i=>locDe(i.repasse_id)===l&&parse(i.data).getDay()===w); const ds=new Set(its.map(i=>i.data)).size; if(!ds) return `<td class="vazio">—</td>`; const of=ehOficial(l,its[0].data); const at=new Set(its.map(i=>normNome(i.paciente)+"|"+i.data)).size; const v=its.reduce((s,i)=>s+Number(i.valor||0),0); return `<td class="${of?"of":"fora"}"><b>${f(at/ds)} pac.</b><small>${moeda0(v/ds)} · ${ds} dia(s)${of?" · ⭐ oficial":" · fora da agenda"}</small></td>`; }); return cels.some(c=>!c.includes("vazio"))?`<tr><td><b>${["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"][w]}</b></td>${cels.join("")}</tr>`:""; }).join("");
        return linhas?`<h4 style="margin:16px 0 6px;font-size:.95rem">Média por dia da semana</h4><div class="sub" style="margin-bottom:6px">pacientes e repasse médios em cada dia em que houve atendimento</div><div class="tbl-wrap"><table class="tbl pdia"><thead><tr><th>Dia</th>${locs.map(l=>`<th>${esc(l)}</th>`).join("")}</tr></thead><tbody>${linhas}</tbody></table></div>`:""; })()}</div>`; })()}
+  ${painelConferencia()}
   <div class="group-title">Relatórios importados <span class="count">${reps.length}</span></div>
   <div class="list">${reps.sort((a,b)=>(b.periodo_fim||"").localeCompare(a.periodo_fim||"")).map(cardRep).join("")}</div>`;
 }
@@ -1582,6 +1636,7 @@ document.addEventListener("click", e=>{
   if(t.dataset.rloc!==undefined){ const l=t.dataset.rloc; setRepLocs(!l?[]:(S.repLocs.includes(l)?S.repLocs.filter(x=>x!==l):[...S.repLocs,l])); render(); return; }
   if(t.dataset.rgrp){ const ls=t.dataset.rgrp.split("|"); const igual=ls.length===S.repLocs.length&&ls.every(l=>S.repLocs.includes(l)); setRepLocs(igual?[]:ls); render(); return; }
   if(t.dataset.ofw){ const o=JSON.parse(JSON.stringify(diasOficiais())); const l=t.dataset.ofloc, w=+t.dataset.ofw; const a=o[l]||[]; o[l]=a.includes(w)?a.filter(x=>x!==w):[...a,w].sort(); salvaDiasOf(o); render(); return; }
+  if(t.dataset.act==="copiar-pend"){ const tx=textoPendencias(); (navigator.clipboard?navigator.clipboard.writeText(tx):Promise.reject()).then(()=>toast("Pendências copiadas. É só colar no WhatsApp ou e-mail da OA.")).catch(()=>{ prompt("Copie o texto:",tx); }); return; }
   if(t.dataset.act==="rep-custom"){ S.repCustom=!S.repCustom; render(); return; }
   if(t.dataset.rper!==undefined){ S.repCustom=false; const [a,b]=t.dataset.rper.split("|"); S.repDe=a||""; S.repAte=b||""; render(); return; }
   if(t.dataset.rlist){ folhaRepLista(JSON.parse(t.dataset.rlist)); return; }
