@@ -165,6 +165,7 @@ main{max-width:1480px;margin:0 auto;padding:16px 14px 24px}
 .col-arq{background:#eef0f3}.col-arq h3 span:first-child{color:var(--soft)}.item.arq{opacity:.92;border-style:dashed}
 .pos-card{border-top:1px dashed var(--line);padding-top:8px;display:grid;gap:6px}.pos-card small{color:var(--soft);font-size:.78rem}.pos-t{width:100%;border-collapse:collapse;font-size:.82rem}.pos-t td{padding:3px 0;vertical-align:middle}.pos-t td:first-child{color:var(--soft);font-weight:600}.pos-t td:last-child{text-align:right}
 .agsem-nav{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.agsem-nav b{font-size:.95rem;color:var(--ink)}.agsem-nav .rchip{padding:6px 12px}
+.hist-wrap{max-height:340px;overflow:auto;margin-top:8px}.hist-t{width:100%;border-collapse:collapse;font-size:.82rem}.hist-t td{padding:7px 6px;border-top:1px solid var(--line);vertical-align:top}.hist-t td:first-child{white-space:nowrap;font-weight:700}.hist-t small{color:var(--soft)}.hist-t tr.hist-fut td{color:var(--soft)}.chip.cir{background:#f1e8fb;color:#6c3fa0}
 .filtros{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px 14px;align-items:end;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin:4px 0 16px}
 .fcampo{display:flex;flex-direction:column;gap:5px;font-weight:700;font-size:.8rem;color:var(--soft);margin:0}
 .fcampo select{width:100%;min-width:0;font:inherit;font-weight:600;font-size:.95rem;color:var(--ink);padding:9px 12px;border:1px solid var(--line);border-radius:11px;background:#fff}
@@ -1289,6 +1290,7 @@ function statusRepasseAt(a,ctx){
   if(md.length){ const v=md.reduce((s,e)=>s+Number(e.valor||0),0); return v>0?{k:"ok",tx:moeda(v),v}:{k:"zero",tx:"R$ 0"}; }
   if(perto.length){ const v=perto.reduce((s,e)=>s+Number(e.valor||0),0); return {k:"outra",tx:`pago em ${perto.map(e=>br(e.data).slice(0,5)).join(", ")} · ${moeda(v)}`,v}; }
   if(/^retorno$/i.test((a.itens||"").trim())) return {k:"normal",tx:"retorno · sem cobrança"};
+  if(classeItem(a.itens)==="laser") return {k:"sem",tx:"laser · sem repasse"};
   if(/FACECTOMIA|VITRECTOMIA/i.test(a.itens||"")) return {k:"cir",tx:"cirurgia · confirmar GoCare"};
   return {k:"sem",tx:"sem repasse"};
 }
@@ -1314,7 +1316,7 @@ function telaAgenda(){
       const st=statusRepasseAt({status:p.fin?"FINISHED":"X",data:d,paciente:p.nome,itens:p.itens.join(" + ")},ctxDe(p.local)); if(p.fin) tot.at++; if(st.v) tot.v+=st.v; if(["sem","zero"].includes(st.k)) tot.pend++;
       const hora=p.inicio?new Date(p.inicio).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit",timeZone:"America/Sao_Paulo"}):"";
       const proc=p.itens.join(" | ").replace(/Consulta em consultório \(no horário normal ou preestabelecido\)/gi,"Consulta").replace(/ - (MONOCULAR|BINOCULAR)/gi,"");
-      return `<div class="ag-l ${p.fin?"":"apagado"}"><span class="ag-h">${hora}</span><div class="ag-p"><b>${esc(p.nome)}</b><small>${esc([...p.plano].filter(Boolean).join(" / ")||"—")} · ${esc(p.local)}${loc?"":""}</small><small class="ag-proc">${esc(proc.slice(0,120))}</small></div><span class="ag-st ${cores[st.k]}">${esc(st.tx)}</span></div>`; }).join("");
+      return `<div class="ag-l ${p.fin?"":"apagado"}"><span class="ag-h">${hora}</span><div class="ag-p"><b>${(()=>{ const cad=pacPorNome(p.nome); return cad?`<button class="linklike" data-pac="${cad.id}" title="Abrir ficha e histórico">${esc(p.nome)}</button>`:esc(p.nome); })()}${(()=>{ const ks=[...new Set(p.itens.map(classeItem))].filter(k=>["laser","injecao","cirurgia"].includes(k)); return ks.map(k=>` <span class="chip ${CLASSE_LBL[k][1]}" style="font-size:.7rem">${CLASSE_LBL[k][0]}</span>`).join(""); })()}</b><small>${esc([...p.plano].filter(Boolean).join(" / ")||"—")} · ${esc(p.local)}${loc?"":""}</small><small class="ag-proc">${esc(proc.slice(0,120))}</small></div><span class="ag-st ${cores[st.k]}">${esc(st.tx)}</span></div>`; }).join("");
     const dt=parse(d); const DO=diasOficiais(); const locsDia=[...new Set(dias[d].map(a=>a.local))]; const ofL=Object.keys(DO).filter(l=>locsDia.some(x=>fam(x)===fam(l))&&(DO[l]||[]).includes(dt.getDay())); const of=ofL.length>0;
     const nFin=Object.values(pac).filter(p=>p.fin).length;
     return `<div class="panel ag-dia"><div class="panel-h"><h3>${["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"][dt.getDay()]}, ${br(d).slice(0,5)}</h3><span class="sub">${nFin} atendido(s)${of?` · ⭐ dia oficial (${ofL.join(", ")})`:" · fora da agenda oficial"}</span></div>${linhas}</div>`; }).join("");
@@ -1900,6 +1902,27 @@ function folhaIndicacao(caso, pacienteId){
   if(caso) $("#iDel").addEventListener("click", async ()=>{ if(!confirmar("Excluir esta indicação e o histórico dela?")) return; fechar(); await salvar(sb.from("casos").delete().eq("id",c.id),"Excluído"); });
 }
 
+// Classifica itens do prontuário (EyecareBI / Amigo)
+function classeItem(txt){ const t=String(txt||"").toUpperCase();
+  if(/FOTOCOAG|PANFOTO|\bYAG\b|LASER|CAPSULOTOMIA|IRIDOTOMIA|IRIDECTOMIA A LASER|TRABECULOPLASTIA/.test(t)) return "laser";
+  if(/QUIMIOTERAP|INTRAVITRE|AVASTIN|EYLIA|LUCENTIS|VABYSMO|ANTI.?ANGIOG|APLICA[CÇ][AÃ]O/.test(t)) return "injecao";
+  if(/FACECTOMIA|FACOEMULS|VITRECTOMIA|PTERIG|CALAZ|CIRURGIA|TUMOR/.test(t)) return "cirurgia";
+  if(/RETORNO/.test(t)) return "retorno";
+  if(/EXAME|MAPEAMENTO|TOMOGRAFIA|RETINOGRAF|CAMPIMETR|CERATOSCOP|BIOMETRIA|PAQUIMETR|TOPOGRAF|MICROSCOPIA|ULTRASSON|GONIOSCOP|FUNDOSCOP/.test(t)) return "exame";
+  if(/CONSULTA/.test(t)) return "consulta"; return "outro"; }
+const CLASSE_LBL={laser:["Laser","blue"],injecao:["Injeção","blue"],cirurgia:["Cirurgia","cir"],retorno:["Retorno",""],exame:["Exame",""],consulta:["Consulta",""],outro:["",""]};
+function historicoPac(p){ const n=normNome(p.nome); return (S.atend||[]).filter(a=>normNome(a.paciente)===n).sort((a,b)=>(b.data+(b.inicio||"")).localeCompare(a.data+(a.inicio||""))); }
+function pacPorNome(nome){ const n=normNome(nome); return S.pacientes.find(p=>normNome(p.nome)===n)||null; }
+function blocoHistorico(p){
+  const H=historicoPac(p); if(!H.length) return `<div class="box"><b>📋 Histórico no prontuário</b><div class="meta">Nenhum atendimento encontrado no EyecareBI/Amigo com este nome.</div></div>`;
+  const cs=S.casos.filter(c=>c.paciente_id===p.id&&!["finalizado","desistiu"].includes(c.etapa));
+  const linhas=H.slice(0,40).map(a=>{ const k=classeItem(a.itens); const [lb,cl]=CLASSE_LBL[k]; const fin=a.status==="FINISHED";
+    let reg=""; if(fin&&["laser","injecao"].includes(k)){ const c=cs.find(x=>x.tipo===k); if(c&&!S.sessoes.some(s=>s.caso_id===c.id&&s.data_realizada===a.data)) reg=`<button class="btn small okb" data-act="reg-hist" data-id="${c.id}" data-data="${a.data}">+ Registrar ${k==="laser"?"sessão":"aplicação"}</button>`; }
+    if(fin&&k==="cirurgia"){ const c=cs.find(x=>x.tipo==="cirurgia"&&!x.data_realizado); if(c) reg=`<button class="btn small okb" data-act="reg-hist" data-id="${c.id}" data-data="${a.data}">+ Registrar cirurgia</button>`; }
+    const st=fin?"":a.status==="CANCELED"?"cancelado":a.status==="MISSED"?"faltou":"agendado";
+    return `<tr class="${fin?"":"hist-fut"}"><td>${br(a.data)}</td><td>${lb?`<span class="chip ${cl}">${lb}</span> `:""}${esc(String(a.itens||"").replace(/Consulta em consultório \(no horário normal ou preestabelecido\)/gi,"Consulta").slice(0,90))}${st?` <small>· ${st}</small>`:""}</td><td>${esc(a.local||"")}<br><small>${esc(a.plano||"")}</small></td><td>${reg}</td></tr>`; }).join("");
+  return `<div class="box"><b>📋 Histórico no prontuário</b> <span class="meta">(${H.length} atendimento${H.length>1?"s":""} · EyecareBI e Amigo)</span><div class="hist-wrap"><table class="hist-t">${linhas}</table></div></div>`;
+}
 function folhaPaciente(id){
   const p=S.pacientes.find(x=>x.id===id); if(!p) return;
   const cs=S.casos.filter(c=>c.paciente_id===id);
@@ -1912,6 +1935,7 @@ function folhaPaciente(id){
     const ses = c.tipo==="cirurgia" ? "" : `<div class="sesslist">${S.sessoes.filter(s=>s.caso_id===c.id).sort((a,b)=>a.ciclo-b.ciclo||a.numero-b.numero).map(s=>`<div class="sess"><span>Ciclo ${s.ciclo} · ${s.numero}ª</span><span>${s.data_realizada?"✔ "+br(s.data_realizada):"📅 "+br(s.data_prevista)}</span></div>`).join("")||'<span class="meta">Nenhuma aplicação registrada</span>'}</div>`;
     return `<div class="box">${head}${ses}${c.obs?`<div class="meta">📝 ${esc(c.obs)}</div>`:""}<div class="actions"><button class="btn small ghost" data-act="editar" data-id="${c.id}">Editar</button></div></div>`;
   }).join("")}
+  ${blocoHistorico(p)}
   <div class="actions"><button class="btn small" data-act="novo-do-pac" data-pid="${p.id}">+ Nova indicação para este paciente</button><button class="btn small ghost" data-act="editpac" data-pid="${p.id}">Editar paciente</button></div>`);
 }
 
@@ -1973,6 +1997,12 @@ async function acao(act, el){
   if(act==="rep-check-todos"){ const ids=[...document.querySelectorAll("[data-rck]")].map(x=>x.dataset.rck); return marcaConferido(ids,true); }
   if(act==="cobrei") return salvar(sb.from("casos").update({ultimo_contato:iso(hoje())}).eq("id",id),"Cobrança registrada ✔ · sai da lista por 7 dias");
   if(act==="avisei") return salvar(sb.from("casos").update({ultimo_contato:iso(hoje())}).eq("id",id),"Marcado: paciente avisado ✔");
+  if(act==="reg-hist"){ const v=el.dataset.data;
+    if(c.tipo==="cirurgia") return salvar(sb.from("casos").update({etapa:"realizado",data_realizado:v,etapa_desde:v,interesse:"fechado",fechado_em:c.fechado_em||v}).eq("id",c.id),`Cirurgia de ${br(v)} registrada ✔`).then(()=>folhaPaciente(c.paciente_id));
+    const st=statusTrat(c); const pend=st.doCiclo.find(s=>!s.data_realizada);
+    const ok = pend ? await salvar(sb.from("sessoes").update({data_realizada:v}).eq("id",pend.id)) : await salvar(sb.from("sessoes").insert({caso_id:c.id,ciclo:st.ciclo,numero:st.feitas.length+1,data_realizada:v}));
+    if(ok) await salvar(sb.from("casos").update({etapa:"em_tratamento",ultimo_contato:null}).eq("id",c.id),`${TIPO_LABEL[c.tipo]} de ${br(v)} registrada ✔`);
+    return folhaPaciente(c.paciente_id); }
   if(act==="aplicar"){
     const st=statusTrat(c);
     return folhaData(`Registrar ${st.feitas.length+1}ª aplicação`,"Data da aplicação", st.agendada?.data_prevista||iso(hoje()), async v=>{
