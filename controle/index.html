@@ -501,7 +501,7 @@ async function carregar(){
   S.pos=ps.data||[]; S.modelos=md.data||[]; S.precos=tp.data||[]; S.orcs=oc.data||[];
   const rp=await sb.from("repasses").select("*").order("periodo_fim",{ascending:false}); S.reps=rp.data||[];
   let ri=[]; for(let k=0;k<50;k++){ const r=await sb.from("repasse_itens").select("*").range(k*1000,k*1000+999); if(r.error||!r.data) break; ri=ri.concat(r.data); if(r.data.length<1000) break; } S.repItens=ri;
-  let at=[]; for(let k=0;k<50;k++){ const r=await sb.from("atendimentos").select("id,data,local,unidade,paciente,plano,itens,tipo,status,descricao").range(k*1000,k*1000+999); if(r.error||!r.data) break; at=at.concat(r.data); if(r.data.length<1000) break; } S.atend=at;
+  let at=[]; for(let k=0;k<50;k++){ const r=await sb.from("atendimentos").select("id,data,inicio,local,unidade,paciente,plano,itens,tipo,status,descricao").range(k*1000,k*1000+999); if(r.error||!r.data) break; at=at.concat(r.data); if(r.data.length<1000) break; } S.atend=at;
   const sc=await sb.from("sincronizacoes").select("*").order("em",{ascending:false}).limit(30); S.syncs=sc.data||[]; S.ultSync=S.syncs.find(x=>(x.origem||"eyecare")==="eyecare")||null;
   const err = p.error||c.error||s.error; if (err) { toast("Erro ao carregar: "+err.message); return; }
   S.pacientes=p.data; S.casos=c.data; S.sessoes=s.data;
@@ -1284,14 +1284,14 @@ function telaAgenda(){
     const pac={}; dias[d].forEach(a=>{ const k=normNome(a.paciente); (pac[k]=pac[k]||{nome:a.paciente,local:a.local,plano:new Set(),itens:[],status:[],inicio:a.inicio,fin:false}); pac[k].plano.add(a.plano||""); pac[k].itens.push(a.itens||""); if(a.status==="FINISHED") pac[k].fin=true; if(a.inicio&&a.inicio<pac[k].inicio) pac[k].inicio=a.inicio; });
     const linhas=Object.values(pac).sort((x,y)=>(x.inicio||"").localeCompare(y.inicio||"")).map(p=>{
       const st=statusRepasseAt({status:p.fin?"FINISHED":"X",data:d,paciente:p.nome,itens:p.itens.join(" + ")},ctxDe(p.local)); if(p.fin) tot.at++; if(st.v) tot.v+=st.v; if(["sem","zero"].includes(st.k)) tot.pend++;
-      const hora=p.inicio?new Date(p.inicio).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}):"";
+      const hora=p.inicio?new Date(p.inicio).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit",timeZone:"America/Sao_Paulo"}):"";
       const proc=p.itens.join(" | ").replace(/Consulta em consultório \(no horário normal ou preestabelecido\)/gi,"Consulta").replace(/ - (MONOCULAR|BINOCULAR)/gi,"");
       return `<div class="ag-l ${p.fin?"":"apagado"}"><span class="ag-h">${hora}</span><div class="ag-p"><b>${esc(p.nome)}</b><small>${esc([...p.plano].filter(Boolean).join(" / ")||"—")} · ${esc(p.local)}${loc?"":""}</small><small class="ag-proc">${esc(proc.slice(0,120))}</small></div><span class="ag-st ${cores[st.k]}">${esc(st.tx)}</span></div>`; }).join("");
     const dt=parse(d); const DO=diasOficiais(); const locsDia=[...new Set(dias[d].map(a=>a.local))]; const ofL=Object.keys(DO).filter(l=>locsDia.some(x=>fam(x)===fam(l))&&(DO[l]||[]).includes(dt.getDay())); const of=ofL.length>0;
     const nFin=Object.values(pac).filter(p=>p.fin).length;
     return `<div class="panel ag-dia"><div class="panel-h"><h3>${["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"][dt.getDay()]}, ${br(d).slice(0,5)}</h3><span class="sub">${nFin} atendido(s)${of?` · ⭐ dia oficial (${ofL.join(", ")})`:" · fora da agenda oficial"}</span></div>${linhas}</div>`; }).join("");
   const locs=[...new Set(at.map(a=>a.local))].sort();
-  return `<div class="page-h"><div><h2>Agenda do prontuário</h2><p class="sub">EyecareBI · ${sinc} · cada paciente com a situação do repasse</p></div></div>
+  return `<div class="page-h"><div><h2>Agenda do prontuário</h2><p class="sub">EyecareBI (OA e OPUS) + Amigo (ICOG) · ${sinc} · cada paciente com horário e situação do repasse</p></div></div>
   <div class="rep-bar"><div class="rb-row"><div class="rb-lab">🗓️ Semana</div><div class="rb-chips"><button class="rchip" data-agsem="${iso(new Date(seg.getTime()-7*864e5))}">◀</button><span class="ag-sem">${br(de).slice(0,5)} a ${br(ate).slice(0,5)}</span><button class="rchip" data-agsem="${iso(new Date(seg.getTime()+7*864e5))}">▶</button><button class="rchip" data-agsem="">Última</button></div></div>
   <div class="rb-row"><div class="rb-lab">📍 Unidade</div><div class="rb-chips"><button class="rchip" data-agloc="" aria-pressed="${!loc}">Todas</button>${locs.map(l=>`<button class="rchip" data-agloc="${esc(l)}" aria-pressed="${loc===l}">${esc(l)}</button>`).join("")}</div></div></div>
   <div class="conf-kpis"><div class="kpi"><b>${tot.at}</b><span>atendidos na semana</span></div><div class="kpi"><b>${moeda0(tot.v)}</b><span>repasse identificado</span></div><div class="kpi ${tot.pend?"alerta":""}"><b>${tot.pend}</b><span>sem repasse ou R$ 0</span></div></div>
