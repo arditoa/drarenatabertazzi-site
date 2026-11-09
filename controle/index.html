@@ -904,7 +904,7 @@ function folhaWhats(key){
     $("#wTxt").value=[m?preencher(m.texto,x):"", v?`${preencher(v.texto,x)}${v.texto?"\n":""}${v.link||""}`.trim():""].filter(Boolean).join("\n\n"); };
   $("#wMsg").addEventListener("change",monta); $("#wVid").addEventListener("change",monta);
   { const pr=String(x.c.procedimento||"").toUpperCase(); const faco=/FACO/.test(pr), vv=/VVPP|PEELING|VITRECT/.test(pr);
-    const alvo = x.c.tipo==="injecao"?/INJE/i : x.c.tipo==="laser"?/LASER/i : (faco&&vv)?(/DRR|REGMAT/.test(pr)?/REGMAT/i:/DRT|\bHV\b|DIAB|RDP|TRAC/.test(pr)?/DIABET/i:/FACO\s*\+\s*VVPP/i) : vv?/VVPP/i : /PTG|PTER/.test(pr)?/PTER/i : faco?/FACO/i : null;
+    const alvo = x.c.tipo==="injecao"?/INJE/i : x.c.tipo==="laser"?/LASER/i : (faco&&vv)?(/OSI|[OÓ]LEO|SILIC/.test(pr)?/[OÓ]LEO/i:/G[AÁ]S|C3F8|SF6/.test(pr)?/G[AÁ]S/i:/FACO\s*\+\s*VVPP/i) : vv?/VVPP/i : /PTG|PTER/.test(pr)?/PTER/i : faco?/FACO/i : null;
     const sug = alvo && (msgs.find(m=>alvo.test(m.nome)&&(faco||!/FACO/i.test(m.nome))&&(vv||!/VVPP/i.test(m.nome)))||msgs.find(m=>alvo.test(m.nome)));
     if(sug){ $("#wMsg").value=sug.id; monta(); } else if(msgs.length===1){ $("#wMsg").value=msgs[0].id; monta(); } }
   const grava=()=>{ const mm=$("#wMsg").value||null, vv=$("#wVid").value||null; fechar(); salvaPos(x,{whatsapp_em:iso(hoje()),modelo_msg:mm,modelo_video:vv}); };
