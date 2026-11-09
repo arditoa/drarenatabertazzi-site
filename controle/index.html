@@ -1348,8 +1348,9 @@ window.receberAgenda=async function(pacote){
 };
 // Cruza o prontuário com o cadastro: preenche telefone (e nunca troca um que já existe)
 window.completarTelefones=async function(itens){
-  const mapa=new Map(); (itens||[]).forEach(x=>{ const t=PL.tel(x.telefone); if(x.paciente&&t) mapa.set(normNome(x.paciente),t); });
-  let n=0; for(const pac of (S.pacientes||[])){ if(pac.telefone) continue; const t=mapa.get(normNome(pac.nome)); if(!t) continue;
+  const ck=s=>normNome(s).split(" ").filter(w=>w&&!["DE","DA","DO","DAS","DOS","E","D"].includes(w)).join(" ");
+  const mapa=new Map(); (itens||[]).forEach(x=>{ const t=PL.tel(x.telefone); if(x.paciente&&t) mapa.set(ck(x.paciente),t); });
+  let n=0; for(const pac of (S.pacientes||[])){ if(pac.telefone) continue; const t=mapa.get(ck(pac.nome)); if(!t) continue;
     const q=await sb.from("pacientes").update({telefone:t}).eq("id",pac.id); if(!q.error){ pac.telefone=t; n++; } }
   return n;
 };
@@ -1912,8 +1913,9 @@ function classeItem(txt){ const t=String(txt||"").toUpperCase();
   if(/EXAME|MAPEAMENTO|TOMOGRAFIA|RETINOGRAF|CAMPIMETR|CERATOSCOP|BIOMETRIA|PAQUIMETR|TOPOGRAF|MICROSCOPIA|ULTRASSON|GONIOSCOP|FUNDOSCOP/.test(t)) return "exame";
   if(/CONSULTA/.test(t)) return "consulta"; return "outro"; }
 const CLASSE_LBL={laser:["Laser","blue"],injecao:["Injeção","blue"],cirurgia:["Cirurgia","cir"],retorno:["Retorno",""],exame:["Exame",""],consulta:["Consulta",""],outro:["",""]};
-function historicoPac(p){ const n=normNome(p.nome); return (S.atend||[]).filter(a=>normNome(a.paciente)===n).sort((a,b)=>(b.data+(b.inicio||"")).localeCompare(a.data+(a.inicio||""))); }
-function pacPorNome(nome){ const n=normNome(nome); return S.pacientes.find(p=>normNome(p.nome)===n)||null; }
+const chaveNome=s=>normNome(s).split(" ").filter(w=>w&&!["DE","DA","DO","DAS","DOS","E","D"].includes(w)).join(" ");
+function historicoPac(p){ const n=chaveNome(p.nome); return (S.atend||[]).filter(a=>chaveNome(a.paciente)===n).sort((a,b)=>(b.data+(b.inicio||"")).localeCompare(a.data+(a.inicio||""))); }
+function pacPorNome(nome){ const n=chaveNome(nome); return S.pacientes.find(p=>chaveNome(p.nome)===n)||null; }
 function pendProntuario(c){ // datas no prontuário (finalizado) do mesmo tipo ainda não lançadas
   if(!["injecao","laser"].includes(c.tipo)) return []; const p=pacOf(c); if(!p) return [];
   const ini=c.data_indicacao||"2000-01-01"; const feitas=new Set(S.sessoes.filter(s=>s.caso_id===c.id&&s.data_realizada).map(s=>s.data_realizada));
