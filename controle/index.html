@@ -120,7 +120,7 @@ main{max-width:1480px;margin:0 auto;padding:16px 14px 24px}
 
 /* Pipeline (kanban) */
 .board{display:grid;grid-auto-flow:column;grid-auto-columns:86%;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:10px}
-@media(min-width:900px){.board{grid-auto-columns:minmax(250px,1fr)}}
+@media(min-width:900px){.board{display:flex;align-items:flex-start}.board>.col{flex:1 0 250px}.board>.col.larga{flex:2 0 440px}.board>.col.larga .apps li{padding:6px 9px;font-size:.76rem}.board>.col.larga .apps li b{font-size:.9rem}}
 .col h3 .count{flex:none;margin-left:8px}
 .col{scroll-snap-align:start;background:#ece7de;border-radius:18px;padding:10px;display:grid;gap:8px;align-content:start;min-height:200px}
 .col h3{font-weight:700;font-size:.92rem;display:flex;justify-content:space-between;padding:4px 4px 2px}
@@ -1745,7 +1745,7 @@ function telaPipe(tipo){
     else items.sort((a,b)=>(b.etapa_desde||"").localeCompare(a.etapa_desde||""));
     const n=items.filter(c=>ABERTAS.includes(c.etapa)&&situacaoInd(c).nivel).length; const nPos=k==="pos_op"?items.filter(c=>!posDe(c)?.contato_em).length:0;
     const card=c=> ABERTAS.includes(c.etapa)||(c.etapa==="fechado"&&false) ? cardInd(c) : (tipo==="cirurgia" ? cardExe(c) : cardTrat(c));
-    return `<section class="col" data-drop="${k}" data-etapas="${es.join(",")}"><h3><span>${t}</span><span class="count">${items.length}</span></h3><div class="col-desc">${desc}${prazo?` · meta ${prazo} dias`:""}${n?` · <b style="color:var(--warn)">${n} pedindo ação</b>`:""}${nPos?` · <b style="color:var(--warn)">${nPos} sem contato do pós</b>`:""}</div>${items.map(card).join("")||'<div class="empty drop-hint">Solte um card aqui</div>'}</section>`;
+    return `<section class="col ${k==="em_tratamento"?"larga":""}" data-drop="${k}" data-etapas="${es.join(",")}"><h3><span>${t}</span><span class="count">${items.length}</span></h3><div class="col-desc">${desc}${prazo?` · meta ${prazo} dias`:""}${n?` · <b style="color:var(--warn)">${n} pedindo ação</b>`:""}${nPos?` · <b style="color:var(--warn)">${nPos} sem contato do pós</b>`:""}</div>${items.map(card).join("")||'<div class="empty drop-hint">Solte um card aqui</div>'}</section>`;
   }).join("");
   const colArq=`<section class="col col-arq"><h3><span>🗄 Arquivadas</span><span class="count">${arqs.length}</span></h3><div class="col-desc">Sem movimento há mais de ${DIAS_ARQ} dias. Continuam guardadas para ações futuras (campanha, retorno). Use ↺ Reativar ou arraste para uma etapa.</div>${arqs.sort((a,b)=>(ultAtiv(b)||"").localeCompare(ultAtiv(a)||"")).map(cardArq).join("")||'<div class="empty">Nenhuma arquivada.</div>'}</section>`;
   const perdidos=S.casos.filter(c=>c.tipo===tipo&&c.etapa==="desistiu"&&noLocal(c)).length;
