@@ -469,7 +469,7 @@ function chipInt(c){ const i=INTERESSE[c.interesse||"medio"]; return `<button cl
 /* ================= Regras ================= */
 // Situação de uma indicação aberta: o que precisa ser feito e se está atrasada
 function situacaoInd(c){
-  const dEt = desde(c.etapa_desde), dInd = desde(c.data_indicacao || c.criado_em);
+  const dEt = desde([c.etapa_desde, c.etapa==="indicado"?c.data_indicacao:null].filter(Boolean).sort().at(-1)||null), dInd = desde(c.data_indicacao || c.criado_em);
   const dEnv = desde(c.orcamento_em);
   if (c.etapa==="indicado" && dEt!==null && dEt>3) return {nivel:"warn", txt:`Há ${plural(dEt,"dia","dias")} sem ${ehConv(c)?"enviar a guia":"enviar orçamento"}`};
   if (["orcamento","aguardando"].includes(c.etapa) && ehConv(c) && dEnv!==null && dEnv>PRAZO_CONVENIO)
