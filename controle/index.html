@@ -1225,7 +1225,7 @@ function folhaSync(){
    <p><a class="btn bm" href="${esc(BOOKMARKLET)}" onclick="event.preventDefault();alert('Arraste este botão para a barra de favoritos. Depois, com o EyecareBI aberto e logado, clique nele.')">🔄 Sincronizar EyecareBI</a></p>
    <p><b>No dia a dia:</b> abra o EyecareBI (logado) e clique no favorito <b>Sincronizar EyecareBI</b>. O portal abre numa nova aba e recebe os últimos 45 dias da agenda. Nenhuma senha passa pelo portal.</p></div>
   <div class="sync-c"><h3>2 · Planilhas do Drive <small>(OFT. AV., ICOG, OPUS)</small></h3><p class="sub">Última: <b>${ultimaSync("planilhas")}</b></p>
-   <p><b>Automático:</b> o Google envia cada planilha sozinho quando ela muda (verifica a cada 30 min) e o portal processa ao abrir. Indicações com mais de 60 dias ficam só guardadas, sem entrar no pipeline.</p>
+   <p><b>Automático:</b> toda noite (20h47) o Claude lê as planilhas direto do Google, junto com a agenda, e o portal processa. Indicações com mais de 60 dias ficam só guardadas, sem entrar no pipeline.</p>
    ${(S.plDrive||[]).length?`<ul class="sub" style="margin:0 0 10px 18px">${S.plDrive.map(x=>`<li><b>${esc(x.nome)}</b>: recebida ${new Date(x.recebido_em).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}${x.resultado?` · ${esc(x.resultado)}`:" · aguardando processar"}</li>`).join("")}</ul>`:`<p class="sub">Ainda não chegou nenhuma planilha pelo Drive.</p>`}
    <p class="sub">Manual (se precisar): no Google Sheets, <i>Arquivo → Fazer download → Microsoft Excel (.xlsx)</i> e escolha os arquivos aqui. Só acrescenta o que é novo; nada é apagado.</p>
    <input type="file" id="syncXlsx" accept=".xlsx" multiple><div id="syncRes" class="sub" style="margin-top:8px"></div></div>
