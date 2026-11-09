@@ -553,15 +553,16 @@ function cardExe(c){
   const p=pacOf(c), meta=ETAPAS_EXE.find(e=>e[0]===c.etapa), dEt=desde(c.etapa_desde);
   const parado = meta && meta[3] && dEt!==null && dEt>meta[3];
   const idx=ETAPAS_EXE.findIndex(e=>e[0]===c.etapa);
-  const prox = idx>=0 && idx<ETAPAS_EXE.length-1 ? ETAPAS_EXE[idx+1] : null;
+  let prox = idx>=0 && idx<ETAPAS_EXE.length-1 ? ETAPAS_EXE[idx+1] : null;
+  if(c.data_realizado && c.etapa!=="finalizado") prox = ["finalizado","Alta"];
   const info = c.etapa==="agendado"&&c.data_agendada ? (()=>{const d=diff(parse(c.data_agendada),hoje()); return `📅 ${br(c.data_agendada)} · ${d>=0?`em ${plural(d,"dia","dias")}`:`há ${-d} dias`}`;})()
     : c.data_realizado ? `Operado em ${br(c.data_realizado)}` : c.fechado_em ? `Fechado em ${br(c.fechado_em)}` : "";
   return `<div class="item card-dd ${parado?"warn":""}" data-card="${c.id}">
     <div class="row"><span class="grip" data-grip="${c.id}" aria-hidden="true">⠿</span><div class="name"><button data-pac="${p.id}">${esc(nomeCurto(p.nome))}</button></div>${chipPag(c)}</div>
     <div class="meta"><b style="color:var(--ink)">${esc(c.procedimento||"Cirurgia")}</b>${c.olho?" · "+esc(c.olho):""}${c.local?" · "+esc(c.local):""}</div>
     ${info?`<div class="meta">${info}</div>`:""}
-    ${c.etapa==="fechado"&&!c.data_agendada?`<div class="row"><span class="chip warn">Sem data · marcar no centro cirúrgico</span></div>`:""}
-    ${["realizado","pos_op"].includes(c.etapa)?blocoPosCard(c):(dEt!==null&&dEt>=0&&c.etapa!=="agendado"?`<div class="row"><span class="chip ${parado?"warn":""}">${dEt===0?"Entrou hoje nesta etapa":`Há ${plural(dEt,"dia","dias")} nesta etapa`}</span></div>`:"")}
+    ${c.etapa==="fechado"&&!c.data_agendada&&!c.data_realizado?`<div class="row"><span class="chip warn">Sem data · marcar no centro cirúrgico</span></div>`:""}
+    ${(["realizado","pos_op"].includes(c.etapa)||c.data_realizado)?blocoPosCard(c):(dEt!==null&&dEt>=0&&c.etapa!=="agendado"?`<div class="row"><span class="chip ${parado?"warn":""}">${dEt===0?"Entrou hoje nesta etapa":`Há ${plural(dEt,"dia","dias")} nesta etapa`}</span></div>`:"")}
     <div class="row" style="justify-content:space-between">${contato(p.telefone)}
       <span class="actions">${prox?`<button class="btn small" data-act="mover-exe" data-id="${c.id}" data-to="${prox[0]}">→ ${prox[1]}</button>`:""}<button class="btn small ghost" data-act="menu" data-id="${c.id}" aria-label="Mais opções">⋯</button></span></div>
   </div>`;
@@ -1678,7 +1679,8 @@ const PIPE = {
     ["indicado","Nova indicação","Enviar orçamento (particular) ou guia (convênio)",3],
     ["orcamento","Orçamento / guia · aguardando","Esperando o paciente decidir ou o convênio autorizar",15,["orcamento","aguardando"]],
     ["fechado","Fechado · agenda","Sem data = marcar no centro cirúrgico · com data = agendado",null,["fechado","agendado"]],
-    ["pos_op","Operado · pós-op","Contato do pós e retornos 1, 7 e 30 dias",45,["realizado","pos_op"]],
+    ["realizado","Operado · fazer contato","Ligar ou mandar WhatsApp no dia seguinte",1,["realizado","pos_op"],c=>!posDe(c)?.contato_em],
+    ["pos_op","Em contato · pós-op","Contato feito · retornos 1, 7 e 30 dias",45,["realizado","pos_op"],c=>!!posDe(c)?.contato_em],
     ["finalizado","Alta","Últimos 60 dias",null]]},
   injecao:{titulo:"Injeções", sub:"Da indicação ao ciclo de aplicações · agendar a partir de D+14 · vence em D+30", cols:[
     ["indicado","Nova indicação","Enviar orçamento ou guia",3],
@@ -1731,21 +1733,22 @@ function telaPipe(tipo){
   const P=PIPE[tipo]; if(S.fSubTipo!==tipo){ S.fSub=""; S.fSubTipo=tipo; }
   const todos=S.casos.filter(c=>c.tipo===tipo&&!["desistiu"].includes(c.etapa));
   const base=todos.filter(noLocal).filter(c=>passaSub(c)&&passaPag(c,S.fPag)&&passaSitP(c,S.fSit));
+  const etEf=c=>(["fechado","agendado"].includes(c.etapa)&&c.data_realizado&&(!c.data_agendada||c.data_agendada<=c.data_realizado))?"realizado":c.etapa;
   const ativos=base.filter(c=>!arquivada(c)), arqs=base.filter(arquivada);
   const ordInt=c=>({alto:0,medio:1,baixo:2,fechado:3}[c.interesse||"medio"]);
   const ordTrat={late:0,lembrar:1,primeira:2,avaliar:3,agendado:4,ok:5,fim:6,pausa:7};
-  const cols=P.cols.map(([k,t,desc,prazo,etapas])=>{
+  const cols=P.cols.map(([k,t,desc,prazo,etapas,filtro])=>{
     const es=etapas||[k];
-    let items=ativos.filter(c=>es.includes(c.etapa));
+    let items=ativos.filter(c=>es.includes(etEf(c))&&(!filtro||filtro(c)));
     if(k==="finalizado") items=items.filter(c=>desde(c.etapa_desde)===null||desde(c.etapa_desde)<=60);
     if(ABERTAS.includes(k)) items.sort((a,b)=>ordInt(a)-ordInt(b)||(a.etapa_desde||"").localeCompare(b.etapa_desde||""));
     else if(k==="fechado") items.sort((a,b)=>(a.data_agendada||"0").localeCompare(b.data_agendada||"0"));
-    else if(k==="pos_op") items.sort((a,b)=>(b.data_realizado||"").localeCompare(a.data_realizado||""));
+    else if(k==="pos_op"||k==="realizado") items.sort((a,b)=>(b.data_realizado||"").localeCompare(a.data_realizado||""));
     else if(k==="em_tratamento") items.sort((a,b)=>ordTrat[statusTrat(a).estado]-ordTrat[statusTrat(b).estado]);
     else items.sort((a,b)=>(b.etapa_desde||"").localeCompare(a.etapa_desde||""));
-    const n=items.filter(c=>ABERTAS.includes(c.etapa)&&situacaoInd(c).nivel).length; const nPos=k==="pos_op"?items.filter(c=>!posDe(c)?.contato_em).length:0;
+    const n=items.filter(c=>ABERTAS.includes(c.etapa)&&situacaoInd(c).nivel).length; const nPos=k==="realizado"?items.length:0;
     const card=c=> ABERTAS.includes(c.etapa)||(c.etapa==="fechado"&&false) ? cardInd(c) : (tipo==="cirurgia" ? cardExe(c) : cardTrat(c));
-    return `<section class="col ${k==="em_tratamento"?"larga":""}" data-drop="${k}" data-etapas="${es.join(",")}"><h3><span>${t}</span><span class="count">${items.length}</span></h3><div class="col-desc">${desc}${prazo?` · meta ${prazo} dias`:""}${n?` · <b style="color:var(--warn)">${n} pedindo ação</b>`:""}${nPos?` · <b style="color:var(--warn)">${nPos} sem contato do pós</b>`:""}</div>${items.map(card).join("")||'<div class="empty drop-hint">Solte um card aqui</div>'}</section>`;
+    return `<section class="col ${k==="em_tratamento"?"larga":""}" data-drop="${k}" data-etapas="${es.join(",")}"><h3><span>${t}</span><span class="count">${items.length}</span></h3><div class="col-desc">${desc}${prazo?` · meta ${prazo} dias`:""}${n?` · <b style="color:var(--warn)">${n} pedindo ação</b>`:""}${nPos?` · <b style="color:var(--warn)">${nPos} aguardando contato</b>`:""}</div>${items.map(card).join("")||'<div class="empty drop-hint">Solte um card aqui</div>'}</section>`;
   }).join("");
   const colArq=`<section class="col col-arq"><h3><span>🗄 Arquivadas</span><span class="count">${arqs.length}</span></h3><div class="col-desc">Sem movimento há mais de ${DIAS_ARQ} dias. Continuam guardadas para ações futuras (campanha, retorno). Use ↺ Reativar ou arraste para uma etapa.</div>${arqs.sort((a,b)=>(ultAtiv(b)||"").localeCompare(ultAtiv(a)||"")).map(cardArq).join("")||'<div class="empty">Nenhuma arquivada.</div>'}</section>`;
   const perdidos=S.casos.filter(c=>c.tipo===tipo&&c.etapa==="desistiu"&&noLocal(c)).length;
@@ -2072,6 +2075,8 @@ document.addEventListener("pointerup", ()=>{
   const {id,card,ghost,over}=drag; drag=null;
   ghost.remove(); card.classList.remove("dragging"); if(over) over.classList.remove("drop-on");
   const c=S.casos.find(x=>x.id===id);
+  if(over&&c&&over.dataset.drop==="pos_op"&&c.tipo==="cirurgia"&&c.data_realizado){ if(!posDe(c)?.contato_em) salvaPos(achaProc(c.id+"|"),{contato_em:iso(hoje())}); return; }
+  if(over&&c&&over.dataset.drop==="realizado"&&c.data_realizado) return;
   if(over&&c&&over.dataset.drop!==c.etapa&&!(over.dataset.etapas||"").split(",").includes(c.etapa)) moverPara(c, over.dataset.drop);
 });
 document.addEventListener("pointercancel", ()=>{ if(drag){ drag.ghost.remove(); drag.card.classList.remove("dragging"); drag.over?.classList.remove("drop-on"); drag=null; } });
