@@ -784,6 +784,32 @@ function blocoAcaoImediata(){
   <div class="inj-list">${mostra.map(linhaTarefa).join("")}</div>
   ${L.length>5?`<button class="linkbtn" data-acaotg="1">${tudo?"Mostrar só os 5 mais urgentes ▲":`Ver todos os ${L.length} ▼`}</button>`:""}</div>`;
 }
+/* ===== Procedimentos do dia (do prontuário) para os contatos ===== */
+function blocoDia(){
+  const off=S.diaOff||0; const dt=addDias(hoje(),-off); const d=iso(dt);
+  const ats=(S.atend||[]).filter(a=>a.data===d&&a.status==="FINISHED"&&noLocalNome(a.local));
+  const grupos={cirurgia:[],injecao:[],laser:[]}; const vistos=new Set();
+  ats.forEach(a=>{ const k=classeItem(a.itens); if(!grupos[k]) return; const ch=k+"|"+chaveNome(a.paciente); if(vistos.has(ch)) return; vistos.add(ch); grupos[k].push(a); });
+  const tot=grupos.cirurgia.length+grupos.injecao.length+grupos.laser.length;
+  const linha=(a,k)=>{ const p=pacPorNome(a.paciente); const c=p?S.casos.find(x=>x.paciente_id===p.id&&x.tipo===k&&!["desistiu"].includes(x.etapa)):null;
+    const po=c?(k==="cirurgia"?S.pos.find(x=>x.caso_id===c.id&&!x.sessao_id):(()=>{ const ses=S.sessoes.find(x=>x.caso_id===c.id&&x.data_realizada===d); return ses?S.pos.find(x=>x.caso_id===c.id&&x.sessao_id===ses.id):null; })()):null;
+    const ses=c&&k!=="cirurgia"?S.sessoes.find(x=>x.caso_id===c.id&&x.data_realizada===d):null;
+    const lancado = c&&(k==="cirurgia"?c.data_realizado===d:!!ses);
+    const key=c?`${c.id}|${ses?ses.id:""}`:"";
+    let acts="";
+    if(!p) acts=`<span class="fl">sem cadastro no portal</span>`;
+    else if(!c) acts=`<button class="btn small ghost" data-pac="${p.id}">Abrir ficha</button>`;
+    else if(!lancado) acts=`<button class="btn small okb" data-act="reg-hist" data-id="${c.id}" data-data="${d}">+ Lançar no quadro</button>`;
+    else acts=`${po?.contato_em?`<span class="fl ok">✔ Contato ${dm(po.contato_em)}</span>`:`<button class="btn small ghost" data-act="pos-contato" data-key="${key}">Contato feito</button>`}${po?.whatsapp_em?`<span class="fl ok">✔ WhatsApp</span>`:`<button class="btn small okb" data-act="pos-whats" data-key="${key}">WhatsApp pós</button>`}`;
+    const item=String(a.itens||"").replace(/PCT-HM - |PCT-HOSP - |PAR - |TAXA DE INSTRUMENTADOR CIRÚRGICO \+ /gi,"").slice(0,70);
+    return `<div class="tk-row"><div class="inj-nome">${p?`<button class="linklike" data-pac="${p.id}">${esc(nomeCurto(p.nome))}</button>`:`<b>${esc(a.paciente)}</b>`}<small>${esc(item)} · ${esc(a.local)}${a.plano?" · "+esc(a.plano):""}</small></div><div class="inj-acts">${p?contato(p.telefone):""}${acts}</div></div>`; };
+  const bloco=(k,t)=>grupos[k].length?`<div class="tk-g"><div class="tk-gt">${t} <span class="count">${grupos[k].length}</span></div>${grupos[k].map(a=>linha(a,k)).join("")}</div>`:"";
+  const rot=off===0?"Hoje":off===1?"Ontem":dt.toLocaleDateString("pt-BR",{weekday:"short",day:"2-digit",month:"2-digit"});
+  return `<div class="inj-box dia-box"><div class="panel-h"><h3>📞 Procedimentos do dia · contatos</h3><div class="agsem-nav"><button class="rchip" data-diaoff="${off+1}" aria-label="Dia anterior">◀</button><b>${rot} · ${br(d).slice(0,5)}</b>${off>0?`<button class="rchip" data-diaoff="${off-1}" aria-label="Próximo dia">▶</button><button class="linkbtn" data-diaoff="0">Hoje</button>`:""}</div></div>
+    <div class="sub" style="margin-bottom:6px">Cirurgias, injeções e laser finalizados no prontuário (EyecareBI e Amigo) neste dia.</div>
+    ${tot?bloco("cirurgia","🔪 Cirurgias")+bloco("injecao","💉 Injeções")+bloco("laser","✨ Laser"):`<div class="empty">Nenhum procedimento finalizado no prontuário neste dia${off===0?" (a agenda de hoje atualiza na sincronização da noite)":""}.</div>`}</div>`;
+}
+function noLocalNome(l){ return !S.fLocal||S.fLocal===l; }
 function telaPainel(){
   const h=hoje(); const F=fasesPainel();
   const sel=S.fase?F.find(f=>f.id===S.fase):null;
@@ -797,6 +823,7 @@ function telaPainel(){
   const d = new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"});
   return `<div class="sec-head"><div><h2>Painel</h2><div class="sub">${d}</div></div><button class="btn" data-act="novo">+ Nova indicação</button></div>
   ${selLocal()}
+  ${blocoDia()}
   ${blocoAcaoImediata()}
   <div class="trilha-t">Fases · toque para ver os pacientes</div>
   <div class="trilha-t sm">💉 Injeção e laser · ciclo de 3 aplicações</div>
@@ -2043,13 +2070,14 @@ async function ciclarInteresse(id){
 }
 
 document.addEventListener("click", e=>{
-  const t=e.target.closest("[data-eds],[data-agsem],[data-agloc],[data-rloc],[data-rgrp],[data-ofw],[data-rper],[data-rlist],[data-rfil],[data-acaotg],[data-fpag],[data-finj],[data-fpos],[data-dia],[data-floc],[data-fase],[data-tab],[data-goto],[data-act],[data-pac],[data-ft],[data-fi],[data-int]"); if(!t) return;
+  const t=e.target.closest("[data-eds],[data-diaoff],[data-agsem],[data-agloc],[data-rloc],[data-rgrp],[data-ofw],[data-rper],[data-rlist],[data-rfil],[data-acaotg],[data-fpag],[data-finj],[data-fpos],[data-dia],[data-floc],[data-fase],[data-tab],[data-goto],[data-act],[data-pac],[data-ft],[data-fi],[data-int]"); if(!t) return;
   if(t.dataset.int){ ciclarInteresse(t.dataset.int); return; }
   if(t.dataset.dia!==undefined){ S.dia=+t.dataset.dia; render(); return; }
   if(t.dataset.floc!==undefined){ S.fLocal=t.dataset.floc; S.fase=null; render(); return; }
   if(t.dataset.fase){ S.fase = S.fase===t.dataset.fase ? null : t.dataset.fase; render(); return; }
   if(t.dataset.eds){ folhaEditSessao(t.dataset.eds); return; }
   if(t.dataset.agsem!==undefined){ S.agSem=t.dataset.agsem; render(); return; }
+  if(t.dataset.diaoff!==undefined){ S.diaOff=+t.dataset.diaoff; render(); return; }
   if(t.dataset.agloc!==undefined){ S.agLoc=t.dataset.agloc; render(); return; }
   if(t.dataset.rloc!==undefined){ const l=t.dataset.rloc; setRepLocs(!l?[]:(S.repLocs.includes(l)?S.repLocs.filter(x=>x!==l):[...S.repLocs,l])); render(); return; }
   if(t.dataset.rgrp){ const ls=t.dataset.rgrp.split("|"); const igual=ls.length===S.repLocs.length&&ls.every(l=>S.repLocs.includes(l)); setRepLocs(igual?[]:ls); render(); return; }
