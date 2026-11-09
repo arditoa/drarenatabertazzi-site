@@ -583,6 +583,7 @@ function cardTrat(c){
     <div class="row"><div class="name"><button data-pac="${p.id}">${esc(nomeCurto(p.nome))}</button></div><span class="chip ${chip}">${esc(st.rotulo)}</span></div>
     <div class="row meta"><span class="chip blue">${TIPO_LABEL[c.tipo]}</span>${c.olho?`<span class="chip">${esc(c.olho)}</span>`:""}${chipPag(c)}${c.local?`<span class="chip">${esc(c.local)}</span>`:""}${st.ciclo>1?`<span class="chip">Ciclo ${st.ciclo}</span>`:""}</div>
     <ol class="apps">${linhas}</ol>
+    ${(()=>{ const pd=["finalizado","desistiu"].includes(c.etapa)?[]:pendProntuario(c); return pd.length?`<div class="row pront-pend"><span class="chip warn">📋 Prontuário: ${c.tipo==="laser"?"laser":"aplicação"} em ${pd.map(d=>br(d).slice(0,5)).join(", ")} ainda não lançad${c.tipo==="laser"?"o":"a"}</span><button class="btn small okb" data-act="reg-hist" data-id="${c.id}" data-data="${pd[0]}">+ Lançar ${br(pd[0]).slice(0,5)}</button></div>`:""; })()}
     ${st.ultima&&!["fim","avaliar"].includes(st.estado)?`<div class="meta">Última aplicação <b style="color:var(--ink)">${br(st.ultima)}</b> · agendar a partir de: <b>${dm(iso(st.lembrar))}</b> · vence D+30: <b>${dm(iso(st.vence))}</b></div>`:""}
     ${st.avisado?`<span class="chip sage">✔ Paciente avisado em ${br(c.ultimo_contato)} · falta agendar</span>`:""}
     ${c.obs?`<div class="meta">📝 ${esc(c.obs)}</div>`:""}
@@ -1913,6 +1914,10 @@ function classeItem(txt){ const t=String(txt||"").toUpperCase();
 const CLASSE_LBL={laser:["Laser","blue"],injecao:["Injeção","blue"],cirurgia:["Cirurgia","cir"],retorno:["Retorno",""],exame:["Exame",""],consulta:["Consulta",""],outro:["",""]};
 function historicoPac(p){ const n=normNome(p.nome); return (S.atend||[]).filter(a=>normNome(a.paciente)===n).sort((a,b)=>(b.data+(b.inicio||"")).localeCompare(a.data+(a.inicio||""))); }
 function pacPorNome(nome){ const n=normNome(nome); return S.pacientes.find(p=>normNome(p.nome)===n)||null; }
+function pendProntuario(c){ // datas no prontuário (finalizado) do mesmo tipo ainda não lançadas
+  if(!["injecao","laser"].includes(c.tipo)) return []; const p=pacOf(c); if(!p) return [];
+  const ini=c.data_indicacao||"2000-01-01"; const feitas=new Set(S.sessoes.filter(s=>s.caso_id===c.id&&s.data_realizada).map(s=>s.data_realizada));
+  return [...new Set(historicoPac(p).filter(a=>a.status==="FINISHED"&&classeItem(a.itens)===c.tipo&&a.data>=ini&&!feitas.has(a.data)).map(a=>a.data))].sort(); }
 function blocoHistorico(p){
   const H=historicoPac(p); if(!H.length) return `<div class="box"><b>📋 Histórico no prontuário</b><div class="meta">Nenhum atendimento encontrado no EyecareBI/Amigo com este nome.</div></div>`;
   const cs=S.casos.filter(c=>c.paciente_id===p.id&&!["finalizado","desistiu"].includes(c.etapa));
@@ -1998,11 +2003,11 @@ async function acao(act, el){
   if(act==="cobrei") return salvar(sb.from("casos").update({ultimo_contato:iso(hoje())}).eq("id",id),"Cobrança registrada ✔ · sai da lista por 7 dias");
   if(act==="avisei") return salvar(sb.from("casos").update({ultimo_contato:iso(hoje())}).eq("id",id),"Marcado: paciente avisado ✔");
   if(act==="reg-hist"){ const v=el.dataset.data;
-    if(c.tipo==="cirurgia") return salvar(sb.from("casos").update({etapa:"realizado",data_realizado:v,etapa_desde:v,interesse:"fechado",fechado_em:c.fechado_em||v}).eq("id",c.id),`Cirurgia de ${br(v)} registrada ✔`).then(()=>folhaPaciente(c.paciente_id));
+    if(c.tipo==="cirurgia") return salvar(sb.from("casos").update({etapa:"realizado",data_realizado:v,etapa_desde:v,interesse:"fechado",fechado_em:c.fechado_em||v}).eq("id",c.id),`Cirurgia de ${br(v)} registrada ✔`).then(()=>{ if(document.querySelector(".sheet")) folhaPaciente(c.paciente_id); });
     const st=statusTrat(c); const pend=st.doCiclo.find(s=>!s.data_realizada);
     const ok = pend ? await salvar(sb.from("sessoes").update({data_realizada:v}).eq("id",pend.id)) : await salvar(sb.from("sessoes").insert({caso_id:c.id,ciclo:st.ciclo,numero:st.feitas.length+1,data_realizada:v}));
     if(ok) await salvar(sb.from("casos").update({etapa:"em_tratamento",ultimo_contato:null}).eq("id",c.id),`${TIPO_LABEL[c.tipo]} de ${br(v)} registrada ✔`);
-    return folhaPaciente(c.paciente_id); }
+    if(document.querySelector(".sheet")) folhaPaciente(c.paciente_id); return; }
   if(act==="aplicar"){
     const st=statusTrat(c);
     return folhaData(`Registrar ${st.feitas.length+1}ª aplicação`,"Data da aplicação", st.agendada?.data_prevista||iso(hoje()), async v=>{
