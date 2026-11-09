@@ -217,6 +217,7 @@ details.conf.sem summary b,details.conf.zero summary b{color:#b4472f} details.co
 @media(max-width:600px){ .ag-l{grid-template-columns:44px 1fr} .ag-st{grid-column:2;justify-self:start} }
 .sync-c{border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:10px 0;background:#fff} .sync-c h3{margin:0 0 4px;font-size:1rem} .sync-c h3 small{font-weight:400;color:var(--soft)} .sync-c p{margin:6px 0;font-size:.9rem}
 a.btn.bm{display:inline-block;cursor:grab;text-decoration:none}
+.apps li.ed{cursor:pointer} .apps li.ed:hover{filter:brightness(.96)}
 /* Painel por fases */
 .trilha-t{font-weight:700;font-size:.9rem;color:var(--soft);margin:14px 0 8px}
 .fases{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
@@ -545,8 +546,8 @@ function cardTrat(c){
   const chip = {late:"late",lembrar:"warn",primeira:"warn",avaliar:"blue",agendado:"ok",ok:"ok",fim:"",pausa:""}[st.estado];
   const linhas = Array.from({length:st.total},(_,i)=>{
     const s=st.doCiclo.find(x=>x.numero===i+1);
-    if(s&&s.data_realizada) return `<li class="done"><span>${i+1}ª</span><b>${br(s.data_realizada)}</b></li>`;
-    if(s&&s.data_prevista) return `<li class="sched"><span>${i+1}ª</span><b>📅 ${br(s.data_prevista)}</b></li>`;
+    if(s&&s.data_realizada) return `<li class="done ed" data-eds="${s.id}" title="Toque para editar a data"><span>${i+1}ª ✎</span><b>${br(s.data_realizada)}</b></li>`;
+    if(s&&s.data_prevista) return `<li class="sched ed" data-eds="${s.id}" title="Toque para editar a data"><span>${i+1}ª ✎</span><b>📅 ${br(s.data_prevista)}</b></li>`;
     return `<li><span>${i+1}ª</span><b>—</b></li>`;
   }).join("");
   return `<div class="item ${cls}">
@@ -1611,7 +1612,8 @@ function telaTrat(){
   if(f==="convenio") list=list.filter(ehConv);
   if(f==="particular") list=list.filter(c=>!ehConv(c));
   const ord={late:0,lembrar:1,primeira:2,avaliar:3,agendado:4,ok:5,fim:6,pausa:7};
-  list = list.map(c=>[c,statusTrat(c)]).sort((a,b)=>(ord[a[1].estado]-ord[b[1].estado])||((b[1].dU||0)-(a[1].dU||0))).map(x=>x[0]);
+  const recente=c=>S.sessoes.filter(s=>s.caso_id===c.id).map(s=>s.data_realizada||s.data_prevista||"").sort().at(-1)||c.data_indicacao||"";
+  list = list.map(c=>[c,recente(c)]).sort((a,b)=>b[1].localeCompare(a[1])).map(x=>x[0]);
   const fb=(k,t)=>`<button data-ft="${k}" aria-pressed="${f===k}">${t}</button>`;
   return `<div class="sec-head"><div><h2>Injeções e laser</h2><div class="sub">Ciclos de 3 aplicações · agendar a partir de D+14 · vence em D+30 · pausa após 60 dias</div></div></div>
   <div class="legend"><span class="chip late">D+30 vencida</span><span class="chip warn">D+14 agendar</span><span class="chip ok">em dia / agendada</span><span class="chip blue">ciclo completo</span></div>
@@ -1620,6 +1622,17 @@ function telaTrat(){
   <div class="list">${list.map(cardTrat).join("")||'<div class="empty">Nada por aqui.</div>'}</div>`;
 }
 
+function folhaEditSessao(id){
+  const s=S.sessoes.find(x=>x.id===id); if(!s) return; const c=S.casos.find(x=>x.id===s.caso_id); const p=pacOf(c); const feita=!!s.data_realizada;
+  abrir(`<header><div><h2>${s.numero}ª aplicação · ${esc(nomeCurto(p.nome))}</h2><div class="sub">${esc(TIPO_LABEL[c.tipo])}${c.olho?" · "+esc(c.olho):""} · ciclo ${s.ciclo}</div></div><button class="close" data-close aria-label="Fechar">×</button></header>
+  <form id="fEds" class="form"><label>${feita?"Data da aplicação":"Data agendada"}<input type="date" id="edsData" value="${feita?s.data_realizada:s.data_prevista}" required></label>
+  ${feita?"":`<label class="ck"><input type="checkbox" id="edsFeita"> Já foi aplicada nesta data</label>`}
+  <div class="row" style="justify-content:space-between;margin-top:12px"><button type="button" class="btn ghost" id="edsDel">Excluir</button><button class="btn">Salvar</button></div></form>`);
+  $("#fEds").addEventListener("submit",async e=>{ e.preventDefault(); const d=$("#edsData").value; const vira=!feita&&$("#edsFeita")&&$("#edsFeita").checked;
+    const upd=feita?{data_realizada:d}:(vira?{data_realizada:d,data_prevista:null}:{data_prevista:d});
+    await salvar(sb.from("sessoes").update(upd).eq("id",id),"Data atualizada ✔"); fechar(); });
+  $("#edsDel").addEventListener("click",async()=>{ if(!confirm("Excluir esta aplicação?")) return; await salvar(sb.from("sessoes").delete().eq("id",id),"Aplicação excluída"); fechar(); });
+}
 function telaPac(){
   const q=S.busca.trim().toLowerCase(), qd=q.replace(/\D/g,"");
   const list=S.pacientes.filter(p=>!q||p.nome.toLowerCase().includes(q)||(qd&&(p.telefone||"").replace(/\D/g,"").includes(qd)));
@@ -1822,11 +1835,12 @@ async function ciclarInteresse(id){
 }
 
 document.addEventListener("click", e=>{
-  const t=e.target.closest("[data-agsem],[data-agloc],[data-rloc],[data-rgrp],[data-ofw],[data-rper],[data-rlist],[data-rfil],[data-acaotg],[data-fpag],[data-finj],[data-fpos],[data-dia],[data-floc],[data-fase],[data-tab],[data-goto],[data-act],[data-pac],[data-ft],[data-fi],[data-int]"); if(!t) return;
+  const t=e.target.closest("[data-eds],[data-agsem],[data-agloc],[data-rloc],[data-rgrp],[data-ofw],[data-rper],[data-rlist],[data-rfil],[data-acaotg],[data-fpag],[data-finj],[data-fpos],[data-dia],[data-floc],[data-fase],[data-tab],[data-goto],[data-act],[data-pac],[data-ft],[data-fi],[data-int]"); if(!t) return;
   if(t.dataset.int){ ciclarInteresse(t.dataset.int); return; }
   if(t.dataset.dia!==undefined){ S.dia=+t.dataset.dia; render(); return; }
   if(t.dataset.floc!==undefined){ S.fLocal=t.dataset.floc; S.fase=null; render(); return; }
   if(t.dataset.fase){ S.fase = S.fase===t.dataset.fase ? null : t.dataset.fase; render(); return; }
+  if(t.dataset.eds){ folhaEditSessao(t.dataset.eds); return; }
   if(t.dataset.agsem!==undefined){ S.agSem=t.dataset.agsem; render(); return; }
   if(t.dataset.agloc!==undefined){ S.agLoc=t.dataset.agloc; render(); return; }
   if(t.dataset.rloc!==undefined){ const l=t.dataset.rloc; setRepLocs(!l?[]:(S.repLocs.includes(l)?S.repLocs.filter(x=>x!==l):[...S.repLocs,l])); render(); return; }
