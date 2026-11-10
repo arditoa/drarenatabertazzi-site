@@ -71,6 +71,8 @@ main{max-width:1480px;margin:0 auto;padding:16px 14px 24px}
 .tabs button{background:none;border:0;display:grid;justify-items:center;gap:2px;font-size:.74rem;font-weight:700;color:var(--soft);padding:6px 2px;border-radius:12px}
 .tabs button svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .tabs button[aria-current="page"]{color:var(--accent);background:#e8f0fa}
+.tabs button{position:relative}.tab-badge:empty{display:none}.tab-badge{position:absolute;top:2px;right:calc(50% - 22px);background:var(--late);color:#fff;border-radius:999px;font-size:.66rem;min-width:17px;height:17px;line-height:17px;padding:0 4px;text-align:center}
+@media(min-width:900px){.tab-badge{position:static;margin-left:2px}}
 @media (min-width:900px){
   .tabs{position:sticky;top:54px;bottom:auto;border:0;border-bottom:1px solid var(--line);grid-template-columns:repeat(4,max-content);gap:6px;justify-content:center;background:var(--paper);padding:8px}
   .tabs button{grid-auto-flow:column;gap:8px;font-size:.9rem;padding:8px 16px}
@@ -290,9 +292,9 @@ a.btn.bm{display:inline-block;cursor:grab;text-decoration:none}
 .footnote{font-size:.78rem;color:var(--soft);text-align:center;margin-top:24px}
 
 /* ===== v3: indicações, interesse, aplicações ===== */
-.tabs{grid-template-columns:repeat(6,1fr)}
+.tabs{grid-template-columns:repeat(7,1fr)}
 .tabs button{font-size:.66rem}
-@media(min-width:900px){.tabs{grid-template-columns:repeat(6,max-content)}.tabs button{font-size:.9rem}}
+@media(min-width:900px){.tabs{grid-template-columns:repeat(7,max-content)}.tabs button{font-size:.9rem}}
 .sec-head .btn{white-space:nowrap}
 .chip.conv{background:#efe6fb;color:#5b3a99}
 .chip.part{background:#e6f3ee;color:#2f6b52}
@@ -410,6 +412,7 @@ legend{font-size:.86rem;font-weight:700;color:var(--soft);padding:0;margin-botto
     <button data-tab="trat"><svg viewBox="0 0 24 24"><path d="M14 4l6 6M17 7l-9 9-3 1 1-3 9-9M11 8l5 5M4 20l2-2"/></svg>Injeções</button>
     <button data-tab="laser"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l2.5 2.5M16.5 16.5L19 19M19 5l-2.5 2.5M7.5 16.5L5 19"/></svg>Laser</button>
     <button data-tab="pac"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c.8-3.4 3.2-5.2 6-5.2s5.2 1.8 6 5.2"/><circle cx="17" cy="9" r="2.4"/><path d="M16 14.8c2.4.2 4.2 1.8 5 4.6"/></svg>Pacientes</button>
+    <button data-tab="cont"><svg viewBox="0 0 24 24"><path d="M4 20h16M5 20v-7h14v7M8 13V10M12 13V9M16 13V10"/><path d="M8 7.5c-.8-1-.2-2 0-2.5.2.5.8 1.5 0 2.5zM12 6.5c-.8-1-.2-2 0-2.5.2.5.8 1.5 0 2.5zM16 7.5c-.8-1-.2-2 0-2.5.2.5.8 1.5 0 2.5z"/></svg>Contatos<b class="tab-badge" id="nAniv"></b></button>
   </nav>
   <main id="main"></main>
   <button class="fab" id="fab">+ Nova indicação</button>
@@ -529,7 +532,10 @@ async function carregar(){
   S.pos=ps.data||[]; S.modelos=md.data||[]; S.precos=tp.data||[]; S.orcs=oc.data||[];
   const rp=await sb.from("repasses").select("*").order("periodo_fim",{ascending:false}); S.reps=rp.data||[];
   let ri=[]; for(let k=0;k<50;k++){ const r=await sb.from("repasse_itens").select("*").range(k*1000,k*1000+999); if(r.error||!r.data) break; ri=ri.concat(r.data); if(r.data.length<1000) break; } S.repItens=ri;
-  let at=[]; for(let k=0;k<50;k++){ const r=await sb.from("atendimentos").select("id,data,inicio,local,unidade,paciente,plano,itens,tipo,status,descricao").range(k*1000,k*1000+999); if(r.error||!r.data) break; at=at.concat(r.data); if(r.data.length<1000) break; } S.atend=at;
+  const colsAt="id,data,inicio,local,unidade,paciente,paciente_id,nascimento,plano,itens,tipo,status,descricao";
+  let at=[]; S.semTelCol=false; for(let k=0;k<50;k++){ let r=await sb.from("atendimentos").select(S.semTelCol?colsAt:colsAt+",telefone").range(k*1000,k*1000+999);
+    if(r.error&&!S.semTelCol&&/telefone/.test(r.error.message||"")){ S.semTelCol=true; k--; continue; } if(r.error||!r.data) break; at=at.concat(r.data); if(r.data.length<1000) break; } S.atend=at;
+  const cp=await sb.from("contatos_prefs").select("*"); S.cprefs={}; (cp.data||[]).forEach(x=>{ S.cprefs[x.paciente_id]=x; });
   const rc=await sb.from("recados_site").select("*").order("criado_em",{ascending:false}).limit(500); S.recados=rc.error?null:(rc.data||[]);
   const sc=await sb.from("sincronizacoes").select("*").order("em",{ascending:false}).limit(30); S.syncs=sc.data||[]; S.ultSync=S.syncs.find(x=>(x.origem||"eyecare")==="eyecare")||null;
   const err = p.error||c.error||s.error; if (err) { toast("Erro ao carregar: "+err.message); return; }
@@ -597,14 +603,160 @@ function cardTrat(c){
   </div>`;
 }
 
+/* ================= Contatos, aniversários e Natal ================= */
+const MSG_PADRAO = {
+  aniversario: "Olá, {nome}! 🎉 A Dra. Renata Bertazzi e toda a equipe desejam um feliz aniversário, com muita saúde e ótimos momentos. Um abraço!",
+  natal: "Olá, {nome}! 🎄 A Dra. Renata Bertazzi e toda a equipe desejam a você e à sua família um Feliz Natal e um próximo ano com muita saúde. Obrigada pela confiança!"
+};
+const primeiroNome = n => { const p=String(n||"").trim().split(/\s+/)[0]||""; return p.charAt(0).toUpperCase()+p.slice(1).toLowerCase(); };
+const nomeTitulo = n => String(n||"").toLowerCase().replace(/\s+/g," ").trim().split(" ").map(w=>/^(d[aeo]s?|e)$/.test(w)?w:w.charAt(0).toUpperCase()+w.slice(1)).join(" ");
+const telIntl = t => { const f=fones(t)[0]; if(!f) return null; return f.length<=11 ? "55"+f : f; };
+const msgDe = tipo => (S.modelos.find(m=>m.tipo===tipo)||{}).texto || MSG_PADRAO[tipo];
+const prefDe = k => (S.cprefs||{})[k] || {};
+const anoAtual = () => +hojeISO().slice(0,4);
+
+// Junta a agenda (EyecareBI + Amigo) em um contato por paciente
+function listaContatos(){
+  if(S._ctCache && S._ctCache.n===(S.atend||[]).length && S._ctCache.p===S.pacientes.length) return S._ctCache.v;
+  const hj=hojeISO(), m=new Map();
+  for(const a of (S.atend||[])){
+    if(!a.paciente) continue;
+    const k=a.paciente_id||("n:"+normNome(a.paciente));
+    let c=m.get(k); if(!c){ c={k,nome:a.paciente,tel:null,telData:"",nasc:null,local:null,locData:"",locais:new Set(),procs:[],ult:null}; m.set(k,c); }
+    if(String(a.paciente).length>c.nome.length) c.nome=a.paciente;
+    if(a.telefone && a.data>=c.telData){ c.tel=a.telefone; c.telData=a.data; }
+    if(a.nascimento && /^\d{4}-\d{2}-\d{2}$/.test(a.nascimento) && a.nascimento>"1900") c.nasc=a.nascimento;
+    const feito = a.data<=hj && !/CANCEL|MISSED/.test(a.status||"");
+    if(a.local){ c.locais.add(a.local); if(feito && a.data>=c.locData){ c.local=a.local; c.locData=a.data; } }
+    if(feito){ if(!c.ult||a.data>c.ult) c.ult=a.data;
+      const cl=classeItem(a.itens); if(["cirurgia","injecao","laser"].includes(cl)) c.procs.push({cl,data:a.data,local:a.local,txt:a.itens||""}); }
+  }
+  const v=[...m.values()].map(c=>{
+    if(!c.local) c.local=[...c.locais][0]||"";
+    if(!c.tel){ const cad=pacPorNome(c.nome); if(cad&&cad.telefone) c.tel=cad.telefone; }
+    c.procs.sort((a,b)=>a.data.localeCompare(b.data)); c.tipos=[...new Set(c.procs.map(p=>p.cl))];
+    return c; }).sort((a,b)=>a.nome.localeCompare(b.nome,"pt-BR"));
+  S._ctCache={n:(S.atend||[]).length,p:S.pacientes.length,v}; return v;
+}
+function aniversariantes(dias){
+  const hj=parse(hojeISO()), out=[];
+  for(const c of listaContatos()){ if(!c.nasc) continue;
+    const [y,mo,d]=c.nasc.split("-").map(Number);
+    let prox=new Date(hj.getFullYear(),mo-1,d); if(mo===2&&d===29&&prox.getMonth()!==1) prox=new Date(hj.getFullYear(),1,28);
+    if(prox<hj) prox=new Date(hj.getFullYear()+1,mo-1,d);
+    const em=diff(prox,hj); if(em<=dias) out.push({c,em,idade:prox.getFullYear()-y,dia:iso(prox)}); }
+  return out.sort((a,b)=>a.em-b.em||a.c.nome.localeCompare(b.c.nome,"pt-BR"));
+}
+function linkMsg(c,tipo){ const t=telIntl(c.tel); if(!t) return null; return `https://wa.me/${t}?text=${encodeURIComponent(msgDe(tipo).replace(/\{nome\}/g,primeiroNome(c.nome)))}`; }
+async function marcaPref(k,campos){ const row=Object.assign({paciente_id:k,atualizado_em:new Date().toISOString()},campos);
+  const {error}=await sb.from("contatos_prefs").upsert(row); if(error){ toast("Não foi possível salvar: "+error.message); return false; }
+  S.cprefs=S.cprefs||{}; S.cprefs[k]=Object.assign({},S.cprefs[k],row); return true; }
+
+function telaContatos(){
+  const cs=listaContatos(), ano=anoAtual();
+  const comTel=cs.filter(c=>telIntl(c.tel)).length, comNasc=cs.filter(c=>c.nasc).length;
+  const aviso = S.semTelCol ? `<div class="msg err" style="margin-bottom:12px">⚠️ O banco ainda não guarda os telefones da agenda (falta aplicar a atualização do banco). Por enquanto só aparecem os telefones do cadastro de indicações.</div>` : "";
+  // Aniversariantes
+  const per=S.anivPer||"7", dias={hoje:0,"7":7,"30":30}[per];
+  const anv=aniversariantes(dias);
+  const linhaAniv=x=>{ const c=x.c, p=prefDe(c.k), l=linkMsg(c,"aniversario"), env=p.aniv_ano===ano&&x.em<=0;
+    const quando=x.em===0?"<b>hoje</b>":x.em===1?"amanhã":`${["dom","seg","ter","qua","qui","sex","sáb"][parse(x.dia).getDay()]} ${dm(x.dia)}`;
+    const acao=p.nao_enviar?`<span class="chip">não enviar</span>`:env?`<span class="chip ok">✔ enviado</span>`:l?`<a class="btn small okb" href="${l}" target="_blank" rel="noopener" data-ctmsg="aniversario" data-k="${esc(c.k)}">🎉 Parabéns</a>`:`<span class="meta">sem telefone</span>`;
+    return `<div class="tk-row"><div class="inj-nome"><b>${esc(nomeTitulo(c.nome))}</b><small>${quando} · faz ${x.idade} anos · ${esc(c.local||"—")}</small></div><div class="inj-acts">${acao}</div></div>`; };
+  const pAniv=`<div class="panel"><div class="panel-h"><h3>🎂 Aniversariantes</h3><button class="linkbtn" data-act="ct-msg" data-tipo="aniversario">Editar mensagem →</button></div>
+    <div class="seg">${[["hoje","Hoje"],["7","Próximos 7 dias"],["30","Próximos 30 dias"]].map(([k,t])=>`<button data-anivper="${k}" aria-pressed="${per===k}">${t} (${aniversariantes({hoje:0,"7":7,"30":30}[k]).length})</button>`).join("")}</div>
+    ${anv.length?anv.map(linhaAniv).join(""):`<div class="empty">Nenhum aniversariante ${per==="hoje"?"hoje":"no período"}.</div>`}
+    <p class="sub" style="margin-top:8px">O botão abre o WhatsApp com a mensagem pronta; é só conferir e tocar em enviar.</p></div>`;
+  // Natal
+  const nl=S.natalLoc||"", natal=cs.filter(c=>telIntl(c.tel)&&!prefDe(c.k).nao_enviar&&(!nl||c.local===nl));
+  const falta=natal.filter(c=>prefDe(c.k).natal_ano!==ano);
+  const pNatal=`<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>🎄 Mensagem de Natal</h3><button class="linkbtn" data-act="ct-msg" data-tipo="natal">Editar mensagem →</button></div>
+    <div class="seg"><button data-natloc="" aria-pressed="${!nl}">Todas as clínicas</button>${LOCAIS.map(l=>`<button data-natloc="${esc(l)}" aria-pressed="${nl===l}">${esc(l)}</button>`).join("")}</div>
+    <p class="sub">${natal.length} pacientes com telefone · ${natal.length-falta.length} já receberam em ${ano} · <b>${falta.length} a enviar</b></p>
+    ${S.natalAberto?`<div style="max-height:420px;overflow:auto;margin-top:8px">${falta.slice(0,300).map(c=>`<div class="tk-row"><div class="inj-nome"><b>${esc(nomeTitulo(c.nome))}</b><small>${esc(c.local||"—")}</small></div><div class="inj-acts"><a class="btn small okb" href="${linkMsg(c,"natal")}" target="_blank" rel="noopener" data-ctmsg="natal" data-k="${esc(c.k)}">🎄 Enviar</a></div></div>`).join("")}${falta.length>300?`<p class="sub">Mostrando os primeiros 300.</p>`:""}</div>`
+      :`<button class="btn small ghost" data-act="ct-natal-abrir" style="margin-top:8px">Mostrar lista para envio</button>`}
+    <p class="sub" style="margin-top:8px">Para muitos envios de uma vez, use uma <b>lista de transmissão</b> no WhatsApp Business (a mensagem só chega para quem tem o número da clínica salvo) e cole o texto. <button class="linkbtn" data-act="ct-copiar" data-tipo="natal">Copiar texto</button></p></div>`;
+  // Exportar
+  const xl=S.expLoc||"", xp=S.expProc||"", xn=S.expNovos!==false;
+  const sel=cs.filter(c=>telIntl(c.tel)&&(!xl||c.locais.has(xl))&&(!xp||(xp==="consulta"?!c.tipos.length:c.tipos.includes(xp)))&&(!xn||!prefDe(c.k).exportado_em));
+  const pExp=`<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>📇 Salvar contatos no celular do WhatsApp Business</h3></div>
+    <div class="form" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr));display:grid;gap:10px">
+      <label>Clínica<select id="xLoc"><option value="">Todas</option>${LOCAIS.map(l=>`<option ${xl===l?"selected":""}>${esc(l)}</option>`).join("")}</select></label>
+      <label>Procedimento<select id="xProc"><option value="">Todos os pacientes</option><option value="cirurgia" ${xp==="cirurgia"?"selected":""}>Fez cirurgia</option><option value="injecao" ${xp==="injecao"?"selected":""}>Fez injeção</option><option value="laser" ${xp==="laser"?"selected":""}>Fez laser</option><option value="consulta" ${xp==="consulta"?"selected":""}>Só consulta/exames</option></select></label>
+      <div style="align-self:end;display:flex;gap:8px;align-items:center;font-size:.9rem"><input type="checkbox" id="xNovos" style="width:auto" ${xn?"checked":""}><label for="xNovos" style="margin:0">Só quem ainda não foi exportado</label></div></div>
+    <p class="sub" style="margin:8px 0"><b>${sel.length}</b> contato(s) no arquivo · nome como “Maria Silva · ICOG Palmas”, procedimentos na observação e data de aniversário no campo próprio.</p>
+    <button class="btn" data-act="ct-vcf" ${sel.length?"":"disabled"}>⬇ Baixar contatos (.vcf)</button>
+    <details style="margin-top:10px"><summary class="sub"><b>Como importar</b></summary><ol class="sub" style="margin:6px 0 0 18px;display:grid;gap:4px">
+      <li>No computador, abra <b>contacts.google.com</b> com a conta Google do celular do WhatsApp Business.</li>
+      <li>Clique em <b>Importar</b> e escolha o arquivo baixado.</li>
+      <li>Em poucos minutos os contatos aparecem no celular e no WhatsApp Business. As etiquetas do WhatsApp (Cirurgia, Injeção…) continuam sendo marcadas no próprio app.</li></ol></details></div>`;
+  // Lista
+  const q=normNome(S.ctBusca||""); const achados=q?cs.filter(c=>normNome(c.nome).includes(q)).slice(0,40):[];
+  const pLista=`<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>🔎 Pacientes</h3><span class="sub">marque “não enviar” para quem pediu para não receber mensagens</span></div>
+    <input id="ctBusca" type="search" placeholder="Buscar paciente pelo nome" value="${esc(S.ctBusca||"")}" style="width:100%;margin:6px 0 4px">
+    ${achados.map(c=>{ const p=prefDe(c.k); return `<div class="tk-row"><div class="inj-nome"><b>${esc(nomeTitulo(c.nome))}</b><small>${esc([...c.locais].join(", "))} · ${c.nasc?"nasc. "+br(c.nasc):"sem data de nascimento"} · ${telIntl(c.tel)?"tel. ok":"sem telefone"}</small>${c.procs.length?`<small>${c.procs.slice(-3).map(x=>CLASSE_LBL[x.cl][0]+" "+br(x.data)).join(" · ")}</small>`:""}</div>
+      <div class="inj-acts">${contato(c.tel)}<label class="sub" style="display:flex;gap:4px;align-items:center"><input type="checkbox" data-ctopt="${esc(c.k)}" ${p.nao_enviar?"checked":""}> não enviar</label></div></div>`; }).join("")}
+    ${q&&!achados.length?`<div class="empty">Nenhum paciente encontrado.</div>`:""}</div>`;
+  return `<div class="page-h"><div><h2>Contatos e aniversários</h2><p class="sub">Pacientes da agenda (EyecareBI + Amigo)</p></div></div>${aviso}
+    <div class="kpis"><div class="kpi"><b>${cs.length}</b><span>pacientes</span></div><div class="kpi"><b>${comTel}</b><span>com telefone</span></div><div class="kpi"><b>${comNasc}</b><span>com data de nascimento</span></div><div class="kpi"><b>${aniversariantes(0).length}</b><span>aniversariantes hoje</span></div></div>
+    ${pAniv}${pNatal}${pExp}${pLista}`;
+}
+
+// .vcf (vCard 3.0)
+function vcfEsc(s){ return String(s||"").replace(/\\/g,"\\\\").replace(/\n/g,"\\n").replace(/,/g,"\\,").replace(/;/g,"\\;"); }
+function vcardDe(c){
+  const nome=nomeTitulo(c.nome), fn=`${nome} · ${c.local||"Paciente"}`;
+  const resumo=t=>String(t||"").replace(/Consulta em consultório \(no horário normal ou preestabelecido\)/gi,"Consulta").replace(/ - (MONOCULAR|BINOCULAR)/gi,"").replace(/PCT-?(HOSP|HM)?\s*-\s*/gi,"").replace(/\s+/g," ").trim().slice(0,70);
+  const nota=[`Paciente Dra. Renata Bertazzi · ${[...c.locais].join(", ")}`, ...c.procs.map(p=>`${CLASSE_LBL[p.cl][0]} ${br(p.data)} (${p.local}): ${resumo(p.txt)}`), c.ult?`Último atendimento: ${br(c.ult)}`:""].filter(Boolean).join("\n");
+  const cats=["Pacientes Dra Renata", c.local, ...c.tipos.map(t=>CLASSE_LBL[t][0])].filter(Boolean).map(vcfEsc).join(",");
+  return ["BEGIN:VCARD","VERSION:3.0",`N:;${vcfEsc(fn)};;;`,`FN:${vcfEsc(fn)}`,`TEL;TYPE=CELL:+${telIntl(c.tel)}`, c.nasc?`BDAY:${c.nasc}`:null, `CATEGORIES:${cats}`, `NOTE:${vcfEsc(nota)}`,"END:VCARD"].filter(Boolean).join("\r\n");
+}
+async function exportarVcf(){
+  const cs=listaContatos(), xl=S.expLoc||"", xp=S.expProc||"", xn=S.expNovos!==false;
+  const sel=cs.filter(c=>telIntl(c.tel)&&(!xl||c.locais.has(xl))&&(!xp||(xp==="consulta"?!c.tipos.length:c.tipos.includes(xp)))&&(!xn||!prefDe(c.k).exportado_em));
+  // mesmo telefone + mesmo nome (paciente cadastrado nos dois sistemas) vira um contato só
+  const vist=new Set(), uni=sel.filter(c=>{ const k=telIntl(c.tel)+"|"+normNome(c.nome).split(" ").slice(0,2).join(" "); if(vist.has(k)) return false; vist.add(k); return true; });
+  if(!uni.length){ toast("Nenhum contato para exportar"); return; }
+  const blob=new Blob([uni.map(vcardDe).join("\r\n")+"\r\n"],{type:"text/vcard;charset=utf-8"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=`contatos-dra-renata-${hojeISO()}${xl?"-"+normNome(xl).toLowerCase().replace(/ /g,"-"):""}.vcf`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  const agora=new Date().toISOString(), rows=sel.map(c=>{ const p=prefDe(c.k); return {paciente_id:c.k,nao_enviar:!!p.nao_enviar,consentimento:p.consentimento||null,aniv_ano:p.aniv_ano??null,natal_ano:p.natal_ano??null,obs:p.obs??null,exportado_em:agora,atualizado_em:agora}; });
+  for(let i=0;i<rows.length;i+=500){ const {error}=await sb.from("contatos_prefs").upsert(rows.slice(i,i+500)); if(error){ toast("Arquivo baixado, mas não marquei como exportado: "+error.message); return; } }
+  rows.forEach(r=>{ S.cprefs[r.paciente_id]=r; }); toast(`${uni.length} contatos no arquivo ✔`); render();
+}
+function folhaMsgContato(tipo){
+  const tit={aniversario:"Mensagem de aniversário",natal:"Mensagem de Natal"}[tipo]; const atual=S.modelos.find(m=>m.tipo===tipo);
+  abrir(`<header><div><h2>${tit}</h2><div class="sub">Use {nome} para o primeiro nome do paciente</div></div><button class="close" data-close aria-label="Fechar">×</button></header>
+    <form id="fct" class="form"><label>Texto<textarea id="ctTxt" rows="6">${esc(msgDe(tipo))}</textarea></label><button class="btn" type="submit">Salvar</button></form>`);
+  $("#fct").addEventListener("submit",async e=>{ e.preventDefault(); const texto=$("#ctTxt").value.trim(); if(!texto) return;
+    const q = atual ? sb.from("modelos").update({texto}).eq("id",atual.id) : sb.from("modelos").insert({tipo,nome:tit,para:"todos",texto});
+    if(await salvar(q,"Mensagem salva ✔")) fechar(); });
+}
+document.addEventListener("click",async e=>{
+  const t=e.target.closest("[data-ctmsg],[data-anivper],[data-natloc],[data-act^='ct-'],[data-ctopt]"); if(!t) return; e.stopPropagation();
+  if(t.dataset.ctmsg){ const campo=t.dataset.ctmsg==="natal"?"natal_ano":"aniv_ano"; await marcaPref(t.dataset.k,{[campo]:anoAtual()}); setTimeout(render,300); return; }
+  if(t.dataset.anivper!==undefined){ S.anivPer=t.dataset.anivper; render(); return; }
+  if(t.dataset.natloc!==undefined){ S.natalLoc=t.dataset.natloc; render(); return; }
+  if(t.dataset.ctopt){ await marcaPref(t.dataset.ctopt,{nao_enviar:t.checked}); toast(t.checked?"Não receberá mensagens":"Liberado para mensagens"); return; }
+  const a=t.dataset.act;
+  if(a==="ct-msg") return folhaMsgContato(t.dataset.tipo);
+  if(a==="ct-natal-abrir"){ S.natalAberto=true; render(); return; }
+  if(a==="ct-vcf") return exportarVcf();
+  if(a==="ct-copiar"){ const tx=msgDe(t.dataset.tipo).replace(/\{nome\}/g,"").replace(/Olá, !/,"Olá!"); (navigator.clipboard?navigator.clipboard.writeText(tx):Promise.reject()).then(()=>toast("Texto copiado")).catch(()=>prompt("Copie o texto:",tx)); return; }
+},true);
+document.addEventListener("change",e=>{
+  if(e.target.id==="xLoc"){ S.expLoc=e.target.value; render(); } else if(e.target.id==="xProc"){ S.expProc=e.target.value; render(); } else if(e.target.id==="xNovos"){ S.expNovos=e.target.checked; render(); }
+});
+document.addEventListener("input",e=>{ if(e.target.id==="ctBusca"){ S.ctBusca=e.target.value; clearTimeout(S._ctT); S._ctT=setTimeout(()=>{ const pos=e.target.selectionStart; render(); const el=$("#ctBusca"); if(el){ el.focus(); el.setSelectionRange(pos,pos); } },250); } });
+
 /* ================= Telas ================= */
 function render(){
-  if(S.tab==="ind"||!["agenda","repasse","lentes","painel","semana","cir","trat","laser","pac","recados"].includes(S.tab)) S.tab=tabDoFiltro();
+  if(S.tab==="ind"||!["agenda","repasse","lentes","painel","semana","cir","trat","laser","pac","recados","cont"].includes(S.tab)) S.tab=tabDoFiltro();
   document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-current", b.dataset.tab===S.tab?"page":"false"));
   const m=$("#main");
-  m.innerHTML = ({agenda:telaAgenda, repasse:telaRepasse, lentes:telaLentes, recados:telaRecados, painel:telaPainel, semana:telaSemana, cir:()=>telaPipe("cirurgia"), trat:()=>telaPipe("injecao"), laser:()=>telaPipe("laser"), pac:telaPac}[S.tab])();
+  m.innerHTML = ({agenda:telaAgenda, repasse:telaRepasse, lentes:telaLentes, recados:telaRecados, painel:telaPainel, semana:telaSemana, cir:()=>telaPipe("cirurgia"), trat:()=>telaPipe("injecao"), laser:()=>telaPipe("laser"), pac:telaPac, cont:telaContatos}[S.tab])();
   if(S.tab==="repasse"&&$("#fRep")) $("#fRep").addEventListener("submit",async e=>{ e.preventDefault(); const v=$("#rVl").value.trim(); await salvar(sb.from("repasses").update({status:$("#rSt").value,recebido_em:$("#rDt").value||null,valor_recebido:v?parseFloat(v.replace(/\./g,"").replace(",",".")):null}).eq("id",S.repSel),"Repasse atualizado ✔"); });
   if(S.tab==="lentes"){ const f=$("#frLentes"); const envia=()=>{ try{ f.contentWindow.postMessage({tipo:"precos",rows:S.precos,tabela:(S.fLocal||"").startsWith("ICOG")||!S.fLocal?"ICOG":"padrao"},"*"); }catch(e){} }; f.addEventListener("load",envia); envia(); }
+  { const ano=anoAtual(), na=aniversariantes(0).filter(x=>!prefDe(x.c.k).nao_enviar&&prefDe(x.c.k).aniv_ano!==ano&&telIntl(x.c.tel)).length; const ba=$("#nAniv"); if(ba) ba.textContent=na||""; }
   const nr=(S.recados||[]).filter(r=>r.status==="novo").length; const nb=$("#nRec"); if(nb) nb.textContent=nr?`(${nr} novo${nr>1?"s":""})`:"";
   m.insertAdjacentHTML("beforeend", `<p class="footnote">Dados protegidos · acesso restrito à equipe · ${S.pacientes.length} pacientes cadastrados</p>`);
 }
@@ -814,6 +966,16 @@ function blocoDia(){
     ${tot?bloco("cirurgia","🔪 Cirurgias")+bloco("injecao","💉 Injeções")+bloco("laser","✨ Laser"):`<div class="empty">Nenhum procedimento finalizado no prontuário neste dia${off===0?" (a agenda de hoje atualiza na sincronização da noite)":""}.</div>`}</div>`;
 }
 function noLocalNome(l){ return !S.fLocal||S.fLocal===l; }
+function blocoAniversarios(){
+  const ano=anoAtual(), lst=aniversariantes(6).filter(x=>!S.fLocal||x.c.local===S.fLocal);
+  if(!lst.length) return "";
+  const hojeL=lst.filter(x=>x.em===0), falta=hojeL.filter(x=>!prefDe(x.c.k).nao_enviar&&prefDe(x.c.k).aniv_ano!==ano&&telIntl(x.c.tel));
+  const lin=x=>{ const c=x.c,p=prefDe(c.k),l=linkMsg(c,"aniversario"); const quando=x.em===0?"<b>hoje</b>":x.em===1?"amanhã":`${["dom","seg","ter","qua","qui","sex","sáb"][parse(x.dia).getDay()]} ${dm(x.dia)}`;
+    const ac=p.nao_enviar?`<span class="chip">não enviar</span>`:(p.aniv_ano===ano&&x.em===0)?`<span class="chip ok">✔ enviado</span>`:x.em>0?"":l?`<a class="btn small okb" href="${l}" target="_blank" rel="noopener" data-ctmsg="aniversario" data-k="${esc(c.k)}">🎉 Parabéns</a>`:`<span class="meta">sem telefone</span>`;
+    return `<div class="tk-row"><div class="inj-nome"><b>${esc(nomeTitulo(c.nome))}</b><small>${quando} · ${x.idade} anos · ${esc(c.local||"—")}</small></div><div class="inj-acts">${ac}</div></div>`; };
+  return `<div class="panel" style="margin-bottom:14px"><div class="panel-h"><h3>🎂 Aniversários da semana <span class="count">${lst.length}</span></h3><span class="sub">${hojeL.length?`${hojeL.length} hoje${falta.length?` · <b>${falta.length} para parabenizar</b>`:" · todos parabenizados ✔"}`:"nenhum hoje"}</span></div>
+    ${lst.slice(0,6).map(lin).join("")}${lst.length>6?`<button class="linkbtn" data-tab="cont" style="margin-top:6px">Ver todos os ${lst.length} →</button>`:`<button class="linkbtn" data-tab="cont" style="margin-top:6px">Contatos e aniversários →</button>`}</div>`;
+}
 function telaPainel(){
   const h=hoje(); const F=fasesPainel();
   const sel=S.fase?F.find(f=>f.id===S.fase):null;
@@ -828,6 +990,7 @@ function telaPainel(){
   return `<div class="sec-head"><div><h2>Painel</h2><div class="sub">${d}</div></div><button class="btn" data-act="novo">+ Nova indicação</button></div>
   ${selLocal()}
   ${blocoDia()}
+  ${blocoAniversarios()}
   ${blocoAcaoImediata()}
   <div class="trilha-t">Fases · toque para ver os pacientes</div>
   <div class="trilha-t sm">💉 Injeção e laser · ciclo de 3 aplicações</div>
@@ -919,7 +1082,7 @@ function folhaModelos(){
   const PARA={todos:"Todos",cirurgia:"Cirurgia",injecao:"Injeção",laser:"Laser"};
   const item=m=>`<div class="tk-row"><div class="inj-nome"><b>${m.tipo==="video"?"🎬 ":"💬 "}${esc(m.nome)}</b><small>${PARA[m.para]||m.para}${m.link?" · "+esc(m.link):""}</small>${m.texto?`<small>${esc(m.texto).slice(0,140)}${m.texto.length>140?"…":""}</small>`:""}</div><div class="inj-acts"><button class="btn small ghost" data-act="mod-del" data-mid="${m.id}">Excluir</button></div></div>`;
   abrir(`<header><div><h2>Modelos de WhatsApp</h2><div class="sub">Use {nome}, {procedimento}, {olho} e {data} no texto</div></div><button class="close" data-close aria-label="Fechar">×</button></header>
-  <div class="inj-list">${S.modelos.map(item).join("")||'<div class="empty">Nenhum modelo ainda.</div>'}</div>
+  <div class="inj-list">${S.modelos.filter(m=>["mensagem","video"].includes(m.tipo)).map(item).join("")||'<div class="empty">Nenhum modelo ainda.</div>'}</div>
   <form id="fm" class="form" style="margin-top:12px"><h3>Novo modelo</h3>
     <label>Tipo<select id="mTipo"><option value="mensagem">Mensagem</option><option value="video">Vídeo</option></select></label>
     <label>Nome<input id="mNome" required placeholder="Ex.: Cuidados pós-catarata"></label>
