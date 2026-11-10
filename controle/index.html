@@ -436,6 +436,7 @@ const ETAPAS_IND = [
   ["indicado","Nova indicação","Enviar orçamento (particular) ou guia/pedido (convênio)",3],
   ["orcamento","Orçamento / guia enviado","Esperando o paciente ou o convênio responder",7],
   ["aguardando","Aguardando resposta","Particular: decidindo · Convênio: em autorização",15],
+  ["duvida","Em dúvida · aquecendo","Enviar vídeos e conteúdos para dar segurança",7],
   ["fechado","Fechado","Cirurgia: falta agendar",7],
 ];
 // Quadro de EXECUÇÃO das cirurgias (depois de fechado)
@@ -446,8 +447,9 @@ const ETAPAS_EXE = [
   ["pos_op","Pós-operatório","Retornos 1, 7 e 30 dias",45],
   ["finalizado","Alta","Acompanhamento concluído",null],
 ];
-const ETAPA_LABEL = {indicado:"Nova indicação",orcamento:"Orçamento/guia enviado",aguardando:"Aguardando resposta",fechado:"Fechado",agendado:"Agendado",realizado:"Realizado",pos_op:"Pós-operatório",finalizado:"Alta",em_tratamento:"Em tratamento",desistiu:"Perdido / não fará"};
-const ABERTAS = ["indicado","orcamento","aguardando"];
+const ETAPA_LABEL = {indicado:"Nova indicação",orcamento:"Orçamento/guia enviado",aguardando:"Aguardando resposta",duvida:"Em dúvida · aquecendo",fechado:"Fechado",agendado:"Agendado",realizado:"Realizado",pos_op:"Pós-operatório",finalizado:"Alta",em_tratamento:"Em tratamento",desistiu:"Perdido / não fará"};
+const ABERTAS = ["indicado","orcamento","aguardando","duvida"];
+const AQUECER_DIAS = 7; // em dúvida: um contato (vídeo/conteúdo) por semana
 // Prazo para considerar convênio "travado" (dias desde o envio da guia sem fechar)
 const PRAZO_CONVENIO = 15, PRAZO_PARTICULAR = 3;
 // Injeções/laser: lembrete D+20, vencimento D+30
@@ -485,6 +487,9 @@ function chipInt(c){ const i=INTERESSE[c.interesse||"medio"]; return `<button cl
 /* ================= Regras ================= */
 // Situação de uma indicação aberta: o que precisa ser feito e se está atrasada
 function situacaoInd(c){
+  if (c.etapa==="duvida"){ const u=ultAquec(c), d=u?desde(u):null; const n=aquecDe(c).length;
+    if (d!==null && d>=AQUECER_DIAS) return {nivel:"warn", txt:`Em dúvida · ${d} dias sem contato · enviar um conteúdo`};
+    return {nivel:"", txt:`Em dúvida · ${n?plural(n,"conteúdo enviado","conteúdos enviados")+" · último "+dm(u):"nenhum conteúdo enviado ainda"}`}; }
   const dEt = desde([c.etapa_desde, c.etapa==="indicado"?c.data_indicacao:null].filter(Boolean).sort().at(-1)||null), dInd = desde(c.data_indicacao || c.criado_em);
   const dEnv = desde(c.orcamento_em);
   if (c.etapa==="indicado" && dEt!==null && dEt>3) return {nivel:"warn", txt:`Há ${plural(dEt,"dia","dias")} sem ${ehConv(c)?"enviar a guia":"enviar orçamento"}`};
@@ -535,6 +540,7 @@ async function carregar(){
   const colsAt="id,data,inicio,local,unidade,paciente,paciente_id,nascimento,plano,itens,tipo,status,descricao";
   let at=[]; S.semTelCol=false; for(let k=0;k<50;k++){ let r=await sb.from("atendimentos").select(S.semTelCol?colsAt:colsAt+",telefone").range(k*1000,k*1000+999);
     if(r.error&&!S.semTelCol&&/telefone/.test(r.error.message||"")){ S.semTelCol=true; k--; continue; } if(r.error||!r.data) break; at=at.concat(r.data); if(r.data.length<1000) break; } S.atend=at;
+  const aq=await sb.from("aquecimentos").select("*").order("em"); S.aquec=aq.error?[]:(aq.data||[]);
   const cp=await sb.from("contatos_prefs").select("*"); S.cprefs={}; (cp.data||[]).forEach(x=>{ S.cprefs[x.paciente_id]=x; });
   const rc=await sb.from("recados_site").select("*").order("criado_em",{ascending:false}).limit(500); S.recados=rc.error?null:(rc.data||[]);
   const sc=await sb.from("sincronizacoes").select("*").order("em",{ascending:false}).limit(30); S.syncs=sc.data||[]; S.ultSync=S.syncs.find(x=>(x.origem||"eyecare")==="eyecare")||null;
@@ -547,7 +553,8 @@ async function salvar(prom, ok){ const {error} = await prom; if(error){ toast("N
 function cardInd(c){
   const p=pacOf(c), st=situacaoInd(c);
   const idx=ETAPAS_IND.findIndex(e=>e[0]===c.etapa);
-  const prox = idx>=0 && idx<ETAPAS_IND.length-1 ? ETAPAS_IND[idx+1] : null;
+  let prox = idx>=0 && idx<ETAPAS_IND.length-1 ? ETAPAS_IND[idx+1] : null;
+  if(prox&&prox[0]==="duvida") prox=ETAPAS_IND[idx+2];
   return `<div class="item card-dd ${st.nivel}" data-card="${c.id}">
     <div class="row"><span class="grip" data-grip="${c.id}" title="Arraste para mudar de etapa" aria-hidden="true">⠿</span><div class="name"><button data-pac="${p.id}">${esc(nomeCurto(p.nome))}</button></div>${c.etapa==="fechado"?"":chipInt(c)}</div>
     <div class="row meta"><span class="chip blue">${TIPO_LABEL[c.tipo]}</span>${chipPag(c)}${c.local?`<span class="chip">${esc(c.local)}</span>`:""}</div>
@@ -555,7 +562,7 @@ function cardInd(c){
     ${st.txt?`<div class="row"><span class="chip ${st.nivel==="late"?"late":st.nivel==="warn"?"warn":""}">${esc(st.txt)}</span></div>`:""}
     ${(()=>{ const o=orcDoCaso(c); return o?`<div class="meta">💰 Orçamento ${o.enviado_em?"enviado "+dm(o.enviado_em):"salvo"} · ${o.opcoes.length} opç${o.opcoes.length>1?"ões":"ão"} · ${moeda(Math.min(...o.opcoes.map(x=>x.vista)))}–${moeda(Math.max(...o.opcoes.map(x=>x.vista)))}/olho${o.escolhida?` · escolheu ${esc(o.escolhida)}`:""}</div>`:""; })()}
     <div class="row" style="justify-content:space-between">${contato(p.telefone)}
-      <span class="actions">${!ehConv(c)||c.tipo==="cirurgia"?`<button class="btn small ghost" data-act="orcamento" data-id="${c.id}">💰 ${orcDoCaso(c)?"Novo orçamento":"Orçamento"}</button>`:""}${prox&&c.etapa!=="fechado"&&!(prox[0]==="orcamento"&&!ehConv(c))?`<button class="btn small" data-act="mover-ind" data-id="${c.id}" data-to="${prox[0]}">→ ${prox[0]==="orcamento"?(ehConv(c)?"Guia enviada":"Orçamento enviado"):prox[1]}</button>`:""}<button class="btn small ghost" data-act="menu" data-id="${c.id}" aria-label="Mais opções">⋯</button></span></div>
+      <span class="actions">${c.etapa==="duvida"?`<button class="btn small okb" data-act="aquecer" data-id="${c.id}">📲 Aquecer</button>`:""}${!ehConv(c)||c.tipo==="cirurgia"?`<button class="btn small ghost" data-act="orcamento" data-id="${c.id}">💰 ${orcDoCaso(c)?"Novo orçamento":"Orçamento"}</button>`:""}${prox&&c.etapa!=="fechado"&&!(prox[0]==="orcamento"&&!ehConv(c))?`<button class="btn small" data-act="mover-ind" data-id="${c.id}" data-to="${prox[0]}">→ ${prox[0]==="orcamento"?(ehConv(c)?"Guia enviada":"Orçamento enviado"):prox[1]}</button>`:""}<button class="btn small ghost" data-act="menu" data-id="${c.id}" aria-label="Mais opções">⋯</button></span></div>
   </div>`;
 }
 
@@ -647,7 +654,7 @@ function aniversariantes(dias){
     const em=diff(prox,hj); if(em<=dias) out.push({c,em,idade:prox.getFullYear()-y,dia:iso(prox)}); }
   return out.sort((a,b)=>a.em-b.em||a.c.nome.localeCompare(b.c.nome,"pt-BR"));
 }
-function linkMsg(c,tipo){ const t=telIntl(c.tel); if(!t) return null; return `https://wa.me/${t}?text=${encodeURIComponent(msgDe(tipo).replace(/\{nome\}/g,primeiroNome(c.nome)))}`; }
+function linkMsg(c,tipo){ const t=telIntl(c.tel); if(!t) return null; return `https://api.whatsapp.com/send?phone=${t}&text=${encodeURIComponent(msgDe(tipo).replace(/\{nome\}/g,primeiroNome(c.nome)))}`; }
 async function marcaPref(k,campos){ const row=Object.assign({paciente_id:k,atualizado_em:new Date().toISOString()},campos);
   const {error}=await sb.from("contatos_prefs").upsert(row); if(error){ toast("Não foi possível salvar: "+error.message); return false; }
   S.cprefs=S.cprefs||{}; S.cprefs[k]=Object.assign({},S.cprefs[k],row); return true; }
@@ -666,7 +673,7 @@ function enviarParabens(k){
     cartaoBlob().then(b=>{ const f=new File([b],"feliz-aniversario.png",{type:"image/png"});
       const dados=navigator.canShare&&navigator.canShare({files:[f]})?{files:[f],text:texto}:{text:texto};
       return navigator.share(dados).then(marcar); })
-     .catch(e=>{ if(e&&e.name==="AbortError") return; location.href=`https://wa.me/${tel}?text=${encodeURIComponent(texto)}`; marcar(); });
+     .catch(e=>{ if(e&&e.name==="AbortError") return; location.href=`https://api.whatsapp.com/send?phone=${tel}&text=${encodeURIComponent(texto)}`; marcar(); });
     return;
   }
   let copia=null;
@@ -818,12 +825,12 @@ function fasesPainel(){
   const estTrat = c=>statusTrat(c).estado;
   return [
     {id:"c1", trilha:"cir", nome:"Indicado", sub:"enviar orçamento/guia", casos:cir.filter(c=>c.etapa==="indicado"), al:alInd, card:cardInd},
-    {id:"c2", trilha:"cir", nome:"Orçamento enviado", sub:"aguardando resposta", casos:cir.filter(c=>["orcamento","aguardando"].includes(c.etapa)), al:alInd, card:cardInd},
+    {id:"c2", trilha:"cir", nome:"Orçamento enviado", sub:"aguardando resposta", casos:cir.filter(c=>["orcamento","aguardando","duvida"].includes(c.etapa)), al:alInd, card:cardInd},
     {id:"c3", trilha:"cir", nome:"Fechado", sub:"falta agendar", casos:cir.filter(c=>c.etapa==="fechado"), al:alInd, card:cardExe},
     {id:"c4", trilha:"cir", nome:"Agendado", sub:"data marcada", casos:cir.filter(c=>c.etapa==="agendado").sort((a,b)=>(a.data_agendada||"").localeCompare(b.data_agendada||"")), al:()=>0, card:cardExe},
     {id:"c5", trilha:"cir", nome:"Operado", sub:"pós-op até a alta", casos:cir.filter(c=>["realizado","pos_op"].includes(c.etapa)), al:()=>0, card:cardExe},
     {id:"i1", trilha:"inj", nome:"Indicado", sub:"enviar orçamento/guia", casos:inj.filter(c=>c.etapa==="indicado"), al:alInd, card:cardInd},
-    {id:"i2", trilha:"inj", nome:"Aguardando", sub:"resposta / autorização", casos:inj.filter(c=>["orcamento","aguardando"].includes(c.etapa)), al:alInd, card:cardInd},
+    {id:"i2", trilha:"inj", nome:"Aguardando", sub:"resposta / autorização", casos:inj.filter(c=>["orcamento","aguardando","duvida"].includes(c.etapa)), al:alInd, card:cardInd},
     {id:"i3", trilha:"inj", nome:"1ª aplicação", sub:"fechado · agendar", casos:inj.filter(c=>!ABERTAS.includes(c.etapa)&&estTrat(c)==="primeira"), al:alTrat, card:cardTrat},
     {id:"i4", trilha:"inj", nome:"Em ciclo", sub:"D+14 agendar · D+30 vence", casos:inj.filter(c=>!ABERTAS.includes(c.etapa)&&["ok","lembrar","late","agendado"].includes(estTrat(c))), al:alTrat, card:cardTrat},
     {id:"i5", trilha:"inj", nome:"Ciclo concluído", sub:"reavaliar novo ciclo", casos:inj.filter(c=>!ABERTAS.includes(c.etapa)&&estTrat(c)==="avaliar"), al:()=>0, card:cardTrat},
@@ -1013,6 +1020,64 @@ function blocoDia(){
     ${tot?bloco("cirurgia","🔪 Cirurgias")+bloco("injecao","💉 Injeções")+bloco("laser","✨ Laser"):`<div class="empty">Nenhum procedimento finalizado no prontuário neste dia${off===0?" (a agenda de hoje atualiza na sincronização da noite)":""}.</div>`}</div>`;
 }
 function noLocalNome(l){ return !S.fLocal||S.fLocal===l; }
+/* ===== Em dúvida · aquecimento (vídeos e conteúdos para dar segurança) ===== */
+const SITE="https://www.drarenatabertazzi.com.br/";
+const AQ_PADRAO=[
+  {k:"catarata",nome:"Cirurgia de catarata · como funciona",link:SITE+"cirurgia-de-catarata-palmas.html",tema:"a cirurgia de catarata",p:c=>c.tipo==="cirurgia"&&/FACO|FACECT|CATARAT|LIO/i.test(c.procedimento||"")},
+  {k:"lente",nome:"Qual lente escolher na catarata",link:SITE+"qual-lente-para-catarata.html",tema:"as opções de lente",p:c=>c.tipo==="cirurgia"&&/FACO|FACECT|CATARAT|LIO/i.test(c.procedimento||"")},
+  {k:"retina",nome:"Cirurgia de retina · como funciona",link:SITE+"cirurgia-de-retina-palmas.html",tema:"a cirurgia de retina",p:c=>c.tipo==="cirurgia"&&/VVPP|VITRECT|RETIN|DESCOL|MEMBRAN|BURACO/i.test(c.procedimento||"")},
+  {k:"descolamento",nome:"Descolamento de retina",link:SITE+"descolamento-de-retina.html",tema:"o descolamento de retina",p:c=>c.tipo==="cirurgia"&&/DESCOL|VVPP|RETIN/i.test(c.procedimento||"")},
+  {k:"injecao",nome:"Injeção intravítrea e laser · como é feito",link:SITE+"injecao-intravitrea-e-laser-palmas.html",tema:"o tratamento com injeção e laser",p:c=>c.tipo!=="cirurgia"},
+  {k:"dmri",nome:"Degeneração macular (DMRI)",link:SITE+"degeneracao-macular.html",tema:"a degeneração macular",p:c=>c.tipo==="injecao"},
+  {k:"diabetes",nome:"Retinopatia diabética",link:SITE+"retinopatia-diabetica.html",tema:"a retinopatia diabética",p:c=>c.tipo!=="cirurgia"||/DIAB|DRR/i.test(c.procedimento||"")},
+  {k:"conteudos",nome:"Vídeos e orientações da Dra.",link:SITE+"conteudos.html",tema:"os cuidados com a visão",p:()=>true},
+  {k:"instagram",nome:"Instagram da Dra. (rotina e depoimentos)",link:"https://www.instagram.com/dra.renatabertazzi/",tema:"a rotina da Dra. Renata",p:()=>true},
+];
+const AQ_MSG="Olá, {nome}! Aqui é da equipe da Dra. Renata Bertazzi. Separamos este conteúdo para você conhecer melhor {tema} e decidir com tranquilidade:\n{link}\n\nSe surgir qualquer dúvida, é só nos chamar por aqui. Estamos à disposição!";
+const aquecDe=c=>(S.aquec||[]).filter(a=>a.caso_id===c.id);
+const ultAquec=c=>[c.ultimo_contato,c.etapa_desde,...aquecDe(c).map(a=>a.em)].filter(Boolean).sort().at(-1)||null;
+function conteudosAquec(c){
+  const proprios=S.modelos.filter(m=>m.tipo==="aquecimento"&&(m.para==="todos"||m.para===c.tipo)).map(m=>({k:"m:"+m.id,nome:m.nome,link:m.link||"",texto:m.texto,proprio:true}));
+  const sug=AQ_PADRAO.filter(x=>x.p(c)); const resto=AQ_PADRAO.filter(x=>!x.p(c));
+  return [...proprios,...sug,...resto.map(x=>({...x,outro:true}))];
+}
+function textoAquec(c,x){ const p=pacOf(c); const t=(x.texto||AQ_MSG).replace(/\{nome\}/g,primeiroNome(p.nome)).replace(/\{tema\}/g,x.tema||x.nome).replace(/\{link\}/g,x.link||"").replace(/\{procedimento\}/g,c.procedimento||TIPO_LABEL[c.tipo]); return x.link&&!t.includes(x.link)?t+"\n"+x.link:t; }
+function folhaAquecer(c){
+  const p=pacOf(c), hist=aquecDe(c).slice().reverse(), enviados=new Set(aquecDe(c).map(a=>a.conteudo));
+  const lista=conteudosAquec(c); const tel=telIntl(p.telefone);
+  const linha=(x,i)=>`<div class="tk-row"><div class="inj-nome"><b>${x.proprio?"⭐ ":x.outro?"":"👉 "}${esc(x.nome)}</b><small>${enviados.has(x.nome)?"✔ já enviado":x.outro?"outros temas":"sugerido para este paciente"}</small></div>
+    <div class="inj-acts">${tel?`<button class="btn small ${enviados.has(x.nome)?"ghost":"okb"}" data-aqenv="${i}">Enviar no WhatsApp</button>`:`<span class="meta">sem telefone</span>`}</div></div>`;
+  const vis=lista.filter(x=>!x.outro), out=lista.filter(x=>x.outro);
+  abrir(`<header><div><h2>📲 Aquecer · ${esc(nomeCurto(p.nome))}</h2><div class="sub">${TIPO_LABEL[c.tipo]} ${esc(c.procedimento||"")} · envie um conteúdo por semana até a decisão</div></div><button class="close" data-close aria-label="Fechar">×</button></header>
+    <div class="inj-list">${vis.map((x,i)=>linha(x,lista.indexOf(x))).join("")}</div>
+    ${out.length?`<details style="margin-top:8px"><summary class="sub"><b>Outros conteúdos</b></summary><div class="inj-list">${out.map(x=>linha(x,lista.indexOf(x))).join("")}</div></details>`:""}
+    <form id="fAqOutro" class="form" style="margin-top:12px"><label>Registrar outro contato (ligação, conversa, áudio…)<input id="aqOutro" placeholder="Ex.: Liguei, tirou dúvidas sobre a anestesia"></label><button class="btn small ghost" type="submit">Registrar</button></form>
+    <h3 style="margin-top:14px">Histórico</h3>${hist.length?hist.map(a=>`<div class="meta">${br(a.em)} · ${esc(a.conteudo)}</div>`).join(""):`<div class="sub">Nenhum contato registrado ainda.</div>`}
+    <p class="sub" style="margin-top:12px">⭐ Conteúdos próprios (vídeos da Dra. etc.): <button type="button" class="linkbtn" data-act="aq-modelos">cadastrar conteúdo</button></p>`);
+  const registra=async(conteudo)=>{ const hoje=hojeISO(); const r=await sb.from("aquecimentos").insert({caso_id:c.id,em:hoje,conteudo}); if(r.error){ toast("Não foi possível registrar: "+r.error.message); return; } await sb.from("casos").update({ultimo_contato:hoje}).eq("id",c.id); await carregar(); render(); folhaAquecer(S.casos.find(x=>x.id===c.id)||c); };
+  document.querySelectorAll("[data-aqenv]").forEach(b=>b.addEventListener("click",()=>{ const x=lista[+b.dataset.aqenv]; window.open(`https://api.whatsapp.com/send?phone=${tel}&text=${encodeURIComponent(textoAquec(c,x))}`,"_blank","noopener"); registra(x.nome); }));
+  $("#fAqOutro").addEventListener("submit",e=>{ e.preventDefault(); const v=$("#aqOutro").value.trim(); if(v) registra(v); });
+}
+function folhaModelosAquec(){
+  const PARA={todos:"Todos",cirurgia:"Cirurgia",injecao:"Injeção",laser:"Laser"}; const ms=S.modelos.filter(m=>m.tipo==="aquecimento");
+  abrir(`<header><div><h2>Conteúdos para aquecer</h2><div class="sub">Vídeos da Dra., depoimentos, orientações. Use {nome} e {link} no texto.</div></div><button class="close" data-close aria-label="Fechar">×</button></header>
+    <div class="inj-list">${ms.map(m=>`<div class="tk-row"><div class="inj-nome"><b>⭐ ${esc(m.nome)}</b><small>${PARA[m.para]||m.para}${m.link?" · "+esc(m.link):""}</small></div><div class="inj-acts"><button class="btn small ghost" data-act="mod-del" data-mid="${m.id}">Excluir</button></div></div>`).join("")||'<div class="empty">Nenhum conteúdo próprio ainda. Os do site já aparecem como sugestão.</div>'}</div>
+    <form id="fmAq" class="form" style="margin-top:12px"><h3>Novo conteúdo</h3>
+      <label>Nome<input id="aqNome" required placeholder="Ex.: Vídeo · como é a cirurgia de catarata"></label>
+      <label>Para<select id="aqPara">${Object.entries(PARA).map(([k,v])=>`<option value="${k}">${v}</option>`).join("")}</select></label>
+      <label>Link (YouTube, Instagram, Google Drive…)<input id="aqLink" type="url" placeholder="https://"></label>
+      <label>Mensagem (opcional)<textarea id="aqTexto" rows="4" placeholder="Olá, {nome}! Gravamos este vídeo para explicar… {link}"></textarea></label>
+      <button class="btn" type="submit">Salvar conteúdo</button></form>`);
+  $("#fmAq").addEventListener("submit",async e=>{ e.preventDefault(); const row={tipo:"aquecimento",nome:$("#aqNome").value.trim(),para:$("#aqPara").value,link:$("#aqLink").value.trim()||null,texto:$("#aqTexto").value.trim()||null};
+    if(await salvar(sb.from("modelos").insert(row),"Conteúdo salvo ✔")) folhaModelosAquec(); });
+}
+function blocoAquecer(){
+  const lst=S.casos.filter(c=>c.etapa==="duvida"&&noLocal(c)).map(c=>({c,u:ultAquec(c)})).map(x=>({...x,d:x.u?desde(x.u):999})).sort((a,b)=>b.d-a.d);
+  if(!lst.length) return "";
+  const pend=lst.filter(x=>x.d>=AQUECER_DIAS);
+  return `<div class="panel" style="margin-bottom:14px"><div class="panel-h"><h3>💭 Em dúvida · aquecendo <span class="count">${lst.length}</span></h3><span class="sub">${pend.length?`<b>${pend.length} sem contato há ${AQUECER_DIAS}+ dias</b>`:"todos com contato nesta semana ✔"}</span></div>
+    ${lst.slice(0,6).map(x=>{ const p=pacOf(x.c); return `<div class="tk-row"><div class="inj-nome"><button data-pac="${p.id}">${esc(nomeCurto(p.nome))}</button><small>${TIPO_LABEL[x.c.tipo]} ${esc(x.c.procedimento||"")}${x.c.local?" · "+esc(x.c.local):""} · ${x.d>=999?"sem contato":x.d===0?"contato hoje":`último contato há ${x.d} dias`} · ${plural(aquecDe(x.c).length,"conteúdo","conteúdos")}</small></div><div class="inj-acts"><button class="btn small ${x.d>=AQUECER_DIAS?"okb":"ghost"}" data-act="aquecer" data-id="${x.c.id}">📲 Aquecer</button></div></div>`; }).join("")}</div>`;
+}
 function blocoAniversarios(){
   const ano=anoAtual(), lst=aniversariantes(6).filter(x=>!S.fLocal||x.c.local===S.fLocal);
   if(!lst.length) return "";
@@ -1039,6 +1104,7 @@ function telaPainel(){
   ${blocoDia()}
   <form class="panel" id="fQuem" style="margin-bottom:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b style="white-space:nowrap">🔎 Quem é?</b><input id="pnBusca" type="search" placeholder="Telefone ou nome do paciente" style="flex:1;min-width:180px"><button class="btn small" type="submit">Buscar</button></form>
   ${blocoAniversarios()}
+  ${blocoAquecer()}
   ${blocoAcaoImediata()}
   <div class="trilha-t">Fases · toque para ver os pacientes</div>
   <div class="trilha-t sm">💉 Injeção e laser · ciclo de 3 aplicações</div>
@@ -1123,7 +1189,7 @@ function folhaWhats(key){
     const sug = alvo && (msgs.find(m=>alvo.test(m.nome)&&(faco||!/FACO/i.test(m.nome))&&(vv||!/VVPP/i.test(m.nome)))||msgs.find(m=>alvo.test(m.nome)));
     if(sug){ $("#wMsg").value=sug.id; monta(); } else if(msgs.length===1){ $("#wMsg").value=msgs[0].id; monta(); } }
   const grava=()=>{ const mm=$("#wMsg").value||null, vv=$("#wVid").value||null; fechar(); salvaPos(x,{whatsapp_em:iso(hoje()),modelo_msg:mm,modelo_video:vv}); };
-  $("#fw").addEventListener("submit",e=>{ e.preventDefault(); if(f){ const intl=f.length<=11?"55"+f:f; window.open(`https://wa.me/${intl}?text=${encodeURIComponent($("#wTxt").value)}`,"_blank","noopener"); } grava(); });
+  $("#fw").addEventListener("submit",e=>{ e.preventDefault(); if(f){ const intl=f.length<=11?"55"+f:f; window.open(`https://api.whatsapp.com/send?phone=${intl}&text=${encodeURIComponent($("#wTxt").value)}`,"_blank","noopener"); } grava(); });
   $("#wSo").addEventListener("click",grava);
 }
 function folhaModelos(){
@@ -1216,7 +1282,7 @@ function folhaOrcamento(c){
   desenha();
   const grava=async(enviar)=>{ const o=coleta(); if(!o.opcoes.length){ $("#oErr").textContent="Marque pelo menos uma opção."; return; }
     const f=fones(p.telefone)[0];
-    if(enviar&&f){ const intl=f.length<=11?"55"+f:f; window.open(`https://wa.me/${intl}?text=${encodeURIComponent($("#oTxt").value)}`,"_blank","noopener"); }
+    if(enviar&&f){ const intl=f.length<=11?"55"+f:f; window.open(`https://api.whatsapp.com/send?phone=${intl}&text=${encodeURIComponent($("#oTxt").value)}`,"_blank","noopener"); }
     const row={caso_id:c.id,numero:o.numero,olhos:o.olhos,primeiro_olho:o.primeiro_olho,torica_od:o.torica_od,torica_oe:o.torica_oe,com_plano:o.com_plano,opcoes:o.opcoes,texto:$("#oTxt").value,enviado_em:enviar?iso(hoje()):null,criado_por:S.user?.email||null};
     fechar();
     if(await salvar(sb.from("orcamentos").insert(row), enviar?(f?"Orçamento salvo e WhatsApp aberto ✔":"Orçamento salvo ✔ (paciente sem telefone)"):"Orçamento salvo ✔") && enviar && c.etapa==="indicado")
@@ -1927,18 +1993,20 @@ const PIPE = {
   cirurgia:{titulo:"Cirurgias", sub:"Da indicação até a alta · arraste pela alça ⠿", cols:[
     ["indicado","Nova indicação","Enviar orçamento (particular) ou guia (convênio)",3],
     ["orcamento","Orçamento / guia · aguardando","Esperando o paciente decidir ou o convênio autorizar",15,["orcamento","aguardando"]],
+    ["duvida","Em dúvida · aquecendo","Enviar um vídeo ou conteúdo por semana para dar segurança",AQUECER_DIAS],
     ["fechado","Fechado · agenda","Sem data = marcar no centro cirúrgico · com data = agendado",null,["fechado","agendado"]],
     ["realizado","Operado · fazer contato","Ligar ou mandar WhatsApp no dia seguinte",1,["realizado","pos_op"],c=>!posDe(c)?.contato_em],
-    ["pos_op","Em contato · pós-op","Contato feito · retornos 1, 7 e 30 dias",45,["realizado","pos_op"],c=>!!posDe(c)?.contato_em],
-    ["finalizado","Alta","Últimos 60 dias",null]]},
+    ["pos_op","Em contato · pós-op","Contato feito · retornos 1, 7 e 30 dias",45,["realizado","pos_op"],c=>!!posDe(c)?.contato_em]]},
   injecao:{titulo:"Injeções", sub:"Da indicação ao ciclo de aplicações · agendar a partir de D+14 · vence em D+30", cols:[
     ["indicado","Nova indicação","Enviar orçamento ou guia",3],
     ["orcamento","Orçamento / guia · aguardando","Esperando o paciente decidir ou o convênio autorizar",15,["orcamento","aguardando"]],
+    ["duvida","Em dúvida · aquecendo","Enviar um vídeo ou conteúdo por semana para dar segurança",AQUECER_DIAS],
     ["em_tratamento","Em tratamento","Ciclo de aplicações com as datas",null],
     ["finalizado","Concluído","Últimos 60 dias",null]]},
   laser:{titulo:"Laser", sub:"Da indicação às sessões realizadas", cols:[
     ["indicado","Nova indicação","Enviar orçamento ou guia",3],
     ["orcamento","Orçamento / guia · aguardando","Esperando o paciente decidir ou o convênio autorizar",15,["orcamento","aguardando"]],
+    ["duvida","Em dúvida · aquecendo","Enviar um vídeo ou conteúdo por semana para dar segurança",AQUECER_DIAS],
     ["em_tratamento","Agendar / sessões","Marcar e registrar as sessões",null],
     ["finalizado","Realizado","Últimos 60 dias",null]]},
 };
@@ -2237,7 +2305,7 @@ function folhaData(titulo, rotulo, valor, onOk){
 
 function folhaMenu(c){
   const p=pacOf(c);
-  const opts = c.tipo==="cirurgia" ? [...ETAPAS_IND.slice(0,3),...ETAPAS_EXE].map(e=>[e[0],e[1]]) : [...ETAPAS_IND.slice(0,3).map(e=>[e[0],e[1]]),["fechado","Fechado · iniciar aplicações"]];
+  const opts = c.tipo==="cirurgia" ? [...ETAPAS_IND.slice(0,4),...ETAPAS_EXE].map(e=>[e[0],e[1]]) : [...ETAPAS_IND.slice(0,4).map(e=>[e[0],e[1]]),["fechado","Fechado · iniciar aplicações"]];
   abrir(`<header><div><h2>${esc(nomeCurto(p.nome))}</h2><div class="sub">${TIPO_LABEL[c.tipo]} ${esc(c.procedimento||"")} · agora em ${ETAPA_LABEL[c.etapa]}</div></div><button class="close" data-close aria-label="Fechar">×</button></header>
   <div class="move-list">${[...opts,["desistiu","Perdido / não fará"]].map(([k,t])=>`<button class="btn ${k===c.etapa?"":"ghost"}" data-moveto="${k}" ${k===c.etapa?"disabled":""}>${k===c.etapa?"● ":""}${t}</button>`).join("")}</div>
   <button class="btn ghost" data-act="editar" data-id="${c.id}">Editar dados da indicação</button>`);
@@ -2269,6 +2337,8 @@ async function acao(act, el){
   if(act==="pos-contato") return salvaPos(achaProc(el.dataset.key),{contato_em:iso(hoje())});
   if(act==="pos-whats") return folhaWhats(el.dataset.key);
   if(act==="modelos") return folhaModelos();
+  if(act==="aquecer") return folhaAquecer(c);
+  if(act==="aq-modelos") return folhaModelosAquec();
   if(act==="mod-del"){ if(confirmar("Excluir este modelo?")){ if(await salvar(sb.from("modelos").delete().eq("id",el.dataset.mid),"Modelo excluído")) folhaModelos(); } return; }
   if(act==="orcamento") return folhaOrcamento(c);
   if(act==="precos") return folhaPrecos();
