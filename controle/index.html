@@ -676,6 +676,20 @@ function enviarParabens(k){
   copia.then(()=>toast("Cartão copiado! Na conversa, cole (Cmd+V ou Ctrl+V) e envie.")).catch(()=>toast("Texto pronto no WhatsApp. Para o cartão, use “Baixar cartão”."));
   marcar();
 }
+// Busca por telefone (qualquer parte, com ou sem 55/9º dígito) ou por nome, na agenda e no cadastro de indicações
+function buscaPaciente(txt){
+  const q=String(txt||"").trim(); if(!q) return {res:[],porTel:false,mais:false};
+  const dig=q.replace(/\D/g,""), porTel=dig.length>=4&&dig.length>=q.replace(/[\s()+.-]/g,"").length-1;
+  const sem55=x=>x.replace(/^55(?=\d{10,11}$)/,"");
+  const bate=tel=>fones(tel).some(f=>{ const x=sem55(f), d=sem55(dig); return x.includes(d)||(d.length>=8&&x.slice(-8)===d.slice(-8)); });
+  const nq=normNome(q); const cs=listaContatos();
+  let res=porTel?cs.filter(c=>bate(c.tel)):cs.filter(c=>normNome(c.nome).includes(nq));
+  const ja=new Set(res.map(c=>normNome(c.nome)));
+  (S.pacientes||[]).filter(p=>!ja.has(normNome(p.nome))&&(porTel?bate(p.telefone):normNome(p.nome).includes(nq)))
+    .forEach(p=>res.push({k:null,nome:p.nome,tel:p.telefone,nasc:null,locais:new Set(S.casos.filter(c=>c.paciente_id===p.id&&c.local).map(c=>c.local)),procs:[],ult:null,cad:true}));
+  res.sort((a,b)=>(b.ult||"").localeCompare(a.ult||""));
+  return {res:res.slice(0,30),porTel,mais:res.length>30};
+}
 function telaContatos(){
   const cs=listaContatos(), ano=anoAtual();
   const comTel=cs.filter(c=>telIntl(c.tel)).length, comNasc=cs.filter(c=>c.nasc).length;
@@ -715,15 +729,21 @@ function telaContatos(){
       <li>Clique em <b>Importar</b> e escolha o arquivo baixado.</li>
       <li>Em poucos minutos os contatos aparecem no celular e no WhatsApp Business. As etiquetas do WhatsApp (Cirurgia, Injeção…) continuam sendo marcadas no próprio app.</li></ol></details></div>`;
   // Lista
-  const q=normNome(S.ctBusca||""); const achados=q?cs.filter(c=>normNome(c.nome).includes(q)).slice(0,40):[];
-  const pLista=`<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>🔎 Pacientes</h3><span class="sub">marque “não enviar” para quem pediu para não receber mensagens</span></div>
-    <input id="ctBusca" type="search" placeholder="Buscar paciente pelo nome" value="${esc(S.ctBusca||"")}" style="width:100%;margin:6px 0 4px">
-    ${achados.map(c=>{ const p=prefDe(c.k); return `<div class="tk-row"><div class="inj-nome"><b>${esc(nomeTitulo(c.nome))}</b><small>${esc([...c.locais].join(", "))} · ${c.nasc?"nasc. "+br(c.nasc):"sem data de nascimento"} · ${telIntl(c.tel)?"tel. ok":"sem telefone"}</small>${c.procs.length?`<small>${c.procs.slice(-3).map(x=>CLASSE_LBL[x.cl][0]+" "+br(x.data)).join(" · ")}</small>`:""}</div>
-      <div class="inj-acts">${contato(c.tel)}<label class="sub" style="display:flex;gap:4px;align-items:center"><input type="checkbox" data-ctopt="${esc(c.k)}" ${p.nao_enviar?"checked":""}> não enviar</label></div></div>`; }).join("")}
-    ${q&&!achados.length?`<div class="empty">Nenhum paciente encontrado.</div>`:""}</div>`;
+  const busca=buscaPaciente(S.ctBusca||""), q=(S.ctBusca||"").trim(), achados=busca.res;
+  const fmtTel=t=>{ const f=fones(t)[0]; if(!f) return ""; const x=f.replace(/^55(?=\d{10,11}$)/,""); return x.length===11?`(${x.slice(0,2)}) ${x.slice(2,7)}-${x.slice(7)}`:x.length===10?`(${x.slice(0,2)}) ${x.slice(2,6)}-${x.slice(6)}`:f; };
+  const idade=n=>{ if(!n) return ""; const h=parse(hojeISO()), d=parse(n); let a=h.getFullYear()-d.getFullYear(); if(h<new Date(h.getFullYear(),d.getMonth(),d.getDate())) a--; return a+" anos"; };
+  const pLista=`<div class="panel" style="margin-bottom:14px"><div class="panel-h"><h3>🔎 Quem é este paciente?</h3><span class="sub">busque pelo telefone (ou parte dele) ou pelo nome</span></div>
+    <input id="ctBusca" type="search" inputmode="search" placeholder="Ex.: 99275-8319 ou Maria" value="${esc(S.ctBusca||"")}" style="width:100%;margin:6px 0 4px;font-size:1.05rem">
+    ${achados.map(c=>{ const p=prefDe(c.k); const ult=c.ult?`último atendimento ${br(c.ult)}`:""; return `<div class="tk-row"><div class="inj-nome"><b>${esc(nomeTitulo(c.nome))}</b>
+      <small><b style="color:var(--accent)">${esc([...c.locais].join(" · ")||"—")}</b>${ult?" · "+ult:""}</small>
+      <small>${fmtTel(c.tel)||"sem telefone"}${c.nasc?" · nasc. "+br(c.nasc)+" ("+idade(c.nasc)+")":""}${c.cad?" · indicação no portal":""}</small>
+      ${c.procs&&c.procs.length?`<small>${c.procs.slice(-3).map(x=>CLASSE_LBL[x.cl][0]+" "+br(x.data)+" ("+esc(x.local||"")+")").join(" · ")}</small>`:""}</div>
+      <div class="inj-acts">${contato(c.tel)}${c.k?`<label class="sub" style="display:flex;gap:4px;align-items:center"><input type="checkbox" data-ctopt="${esc(c.k)}" ${p.nao_enviar?"checked":""}> não enviar</label>`:""}</div></div>`; }).join("")}
+    ${busca.mais?`<p class="sub">Mostrando os primeiros 30. Digite mais do nome ou do número.</p>`:""}
+    ${q&&!achados.length?`<div class="empty">${busca.porTel?"Nenhum paciente com esse telefone na agenda nem no cadastro.":"Nenhum paciente encontrado."}</div>`:""}</div>`;
   return `<div class="page-h"><div><h2>Contatos e aniversários</h2><p class="sub">Pacientes da agenda (EyecareBI + Amigo)</p></div></div>${aviso}
     <div class="kpis"><div class="kpi"><b>${cs.length}</b><span>pacientes</span></div><div class="kpi"><b>${comTel}</b><span>com telefone</span></div><div class="kpi"><b>${comNasc}</b><span>com data de nascimento</span></div><div class="kpi"><b>${aniversariantes(0).length}</b><span>aniversariantes hoje</span></div></div>
-    ${pAniv}${pNatal}${pExp}${pLista}`;
+    ${pLista}${pAniv}${pNatal}${pExp}`;
 }
 
 // .vcf (vCard 3.0)
@@ -772,6 +792,7 @@ document.addEventListener("click",async e=>{
 document.addEventListener("change",e=>{
   if(e.target.id==="xLoc"){ S.expLoc=e.target.value; render(); } else if(e.target.id==="xProc"){ S.expProc=e.target.value; render(); } else if(e.target.id==="xNovos"){ S.expNovos=e.target.checked; render(); }
 });
+document.addEventListener("submit",e=>{ if(e.target.id==="fQuem"){ e.preventDefault(); S.ctBusca=$("#pnBusca").value; S.tab="cont"; render(); window.scrollTo(0,0); const el=$("#ctBusca"); if(el) el.focus(); } });
 document.addEventListener("input",e=>{ if(e.target.id==="ctBusca"){ S.ctBusca=e.target.value; clearTimeout(S._ctT); S._ctT=setTimeout(()=>{ const pos=e.target.selectionStart; render(); const el=$("#ctBusca"); if(el){ el.focus(); el.setSelectionRange(pos,pos); } },250); } });
 
 /* ================= Telas ================= */
@@ -1016,6 +1037,7 @@ function telaPainel(){
   return `<div class="sec-head"><div><h2>Painel</h2><div class="sub">${d}</div></div><button class="btn" data-act="novo">+ Nova indicação</button></div>
   ${selLocal()}
   ${blocoDia()}
+  <form class="panel" id="fQuem" style="margin-bottom:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b style="white-space:nowrap">🔎 Quem é?</b><input id="pnBusca" type="search" placeholder="Telefone ou nome do paciente" style="flex:1;min-width:180px"><button class="btn small" type="submit">Buscar</button></form>
   ${blocoAniversarios()}
   ${blocoAcaoImediata()}
   <div class="trilha-t">Fases · toque para ver os pacientes</div>
