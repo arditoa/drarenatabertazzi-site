@@ -29,7 +29,7 @@ PAGES = [
 <h2>Como é a cirurgia de catarata</h2>
 <p>A técnica usada é a <strong>facoemulsificação</strong>. Por uma abertura de cerca de 2 milímetros, o cristalino opaco é fragmentado com ultrassom e aspirado. No lugar dele, é implantada uma <strong>lente intraocular</strong> dobrável, que fica no olho para sempre.</p>
 <ul>
-  <li><strong>Anestesia:</strong> na maioria dos casos, com colírio, às vezes com sedação leve. O paciente fica acordado e tranquilo.</li>
+  <li><strong>Anestesia:</strong> um médico anestesista fica na sala durante toda a cirurgia, cuidando do seu conforto. O paciente fica acordado e tranquilo.</li>
   <li><strong>Duração:</strong> em geral de 15 a 30 minutos por olho.</li>
   <li><strong>Alta:</strong> no mesmo dia, com acompanhante.</li>
   <li><strong>Um olho de cada vez:</strong> o segundo olho costuma ser operado dias ou semanas depois.</li>
@@ -71,7 +71,7 @@ PAGES = [
 </div>
 """,
  "faq": [
-  ("A cirurgia de catarata dói?", "Na maioria dos casos a anestesia é feita com colírio, às vezes com sedação leve. O paciente fica acordado e pode sentir apenas uma leve pressão no olho."),
+  ("A cirurgia de catarata dói?", "Não. Um médico anestesista fica na sala durante toda a cirurgia, cuidando do seu conforto. O paciente fica acordado e pode sentir apenas uma leve pressão no olho."),
   ("Quanto tempo dura a cirurgia de catarata?", "Em geral, de 15 a 30 minutos por olho. O paciente volta para casa no mesmo dia."),
   ("A catarata pode voltar depois da cirurgia?", "Não. O cristalino opaco é retirado. Com o tempo, a membrana que segura a lente pode ficar opaca (opacificação da cápsula posterior), o que é tratado com um laser rápido no consultório, o YAG laser."),
   ("Quando posso voltar a dirigir?", "Depende da recuperação da visão e da liberação no retorno. Muitos pacientes voltam em poucos dias, sempre com orientação médica."),

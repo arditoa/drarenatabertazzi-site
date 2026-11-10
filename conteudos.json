@@ -1,0 +1,25 @@
+{
+  "_como_usar": [
+    "Cada item da lista 'itens' vira um card na página Conteúdos. Os 3 mais recentes aparecem também na página inicial.",
+    "tipo: 'video' ou 'artigo'. data: AAAA-MM-DD (define a ordem; o mais novo primeiro). tema: Catarata, Retina, Diabetes, Cirurgia, Pós-operatório ou Prevenção.",
+    "Vídeo do Instagram: coloque o link do post/reel em 'instagram' e uma imagem de capa em 'capa' (opcional).",
+    "Vídeo do YouTube: coloque o link em 'youtube'. A capa vem automática.",
+    "Vídeo próprio: coloque o arquivo .mp4 na pasta img/ e o caminho em 'arquivo'.",
+    "Artigo do próprio site: use 'pagina' com o endereço da página (ex.: 'retinopatia-diabetica'); título, resumo e foto vêm da página. Artigo externo: use 'link'.",
+    "Depois de editar, rode: python3 build.py"
+  ],
+  "itens": [
+    {"tipo": "video", "data": "2026-11-09", "tema": "Cirurgia", "titulo": "Bastidores: como a sala é preparada para a sua cirurgia",
+     "resumo": "Antes de cada paciente entrar, o instrumental, o equipamento e o microscópio são conferidos um a um.",
+     "arquivo": "img/bastidores-sala-cirurgica.mp4", "capa": "img/preparo-instrumental-cirurgico.webp"},
+    {"tipo": "artigo", "data": "2026-11-08", "tema": "Catarata", "pagina": "cirurgia-de-catarata-palmas"},
+    {"tipo": "artigo", "data": "2026-11-07", "tema": "Catarata", "pagina": "qual-lente-para-catarata",
+     "titulo": "Qual lente escolher na cirurgia de catarata?", "resumo": "Responda quatro perguntas sobre o seu dia a dia e veja, numa simulação, como enxergaria com cada tipo de lente.",
+     "capa": "img/preparo-facoemulsificador.webp"},
+    {"tipo": "artigo", "data": "2026-11-06", "tema": "Diabetes", "pagina": "retinopatia-diabetica"},
+    {"tipo": "artigo", "data": "2026-11-05", "tema": "Retina", "pagina": "descolamento-de-retina"},
+    {"tipo": "artigo", "data": "2026-11-04", "tema": "Retina", "pagina": "degeneracao-macular"},
+    {"tipo": "artigo", "data": "2026-11-03", "tema": "Retina", "pagina": "injecao-intravitrea-e-laser-palmas"},
+    {"tipo": "artigo", "data": "2026-11-02", "tema": "Retina", "pagina": "cirurgia-de-retina-palmas"}
+  ]
+}

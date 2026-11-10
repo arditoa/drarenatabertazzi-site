@@ -7,7 +7,27 @@ from content import PAGES
 SITE = "https://drarenatabertazzi.com.br"
 IG = "https://www.instagram.com/dra.renatabertazzi/"
 DM = "https://ig.me/m/dra.renatabertazzi"   # abre conversa direta no Instagram
+# WhatsApp da equipe para agendamento: preencha só com números, com DDI e DDD (ex.: "5563999999999").
+# Vazio = os botões continuam abrindo a conversa no Instagram.
+WHATSAPP = "5511978806444"
+_WA_MSG = "Olá! Vim pelo site da Dra. Renata Bertazzi e gostaria de agendar uma consulta."
+from urllib.parse import quote as _q
+BOOK = f"https://wa.me/{WHATSAPP}?text={_q(_WA_MSG)}" if WHATSAPP else DM
+BOOK_VIA = "WhatsApp" if WHATSAPP else "Instagram"
 BYSLUG = {p["slug"]: p for p in PAGES}
+
+# Banco do portal /controle (Supabase). A chave publicável só permite ENVIAR recados (ver controle/sql/recados_site.sql).
+SUPABASE_URL = "https://avbmtrvxieetoptmzere.supabase.co"
+SUPABASE_KEY = "sb_publishable_Ohqe8a6rhGEwOImU302jjw_69V8kcJ7"
+
+# Agenda semanal da Dra. Renata (aparece em "Onde atendo"). Atualize aqui se mudar.
+AGENDA = [
+    ("Segunda", [("Manhã e tarde", "Oftalmologia Avançada", "Palmas")]),
+    ("Terça", [("", "Oftalmologia Avançada", "Paraíso do Tocantins")]),
+    ("Quarta", [("Manhã", "ICOG", "Palmas"), ("Tarde", "OPUS", "Palmas")]),
+    ("Quinta", [("", "ICOG", "Porto Nacional")]),
+    ("Sexta", [("Manhã", "OPUS", "Palmas"), ("Tarde", "Oftalmologia Avançada", "Palmas")]),
+]
 
 CTA_MAIN = "Agendar consulta de avaliação"
 CTA_TALK = "Tirar dúvidas com a equipe"
@@ -20,7 +40,7 @@ CLINICS = [
      "phone": "+55-63-3215-3335", "phone_txt": "(63) 3215-3335",
      "maps": "https://www.google.com/maps/search/?api=1&query=Oftalmologia+Avan%C3%A7ada+104+Norte+Palmas+TO"},
     {"name": "OPUS", "street": "Quadra 702 Sul, Av. Joaquim Teotônio Segurado, 15, Conj. 01, Sala 02 · Plano Diretor Sul", "city": "Palmas", "zip": None,
-     "phone": None, "phone_txt": None,
+     "phone": "+55-63-3028-1483", "phone_txt": "(63) 3028-1483",
      "maps": "https://www.google.com/maps/search/?api=1&query=OPUS+702+Sul+Avenida+Joaquim+Teot%C3%B4nio+Segurado+Palmas+TO"},
 ]
 
@@ -82,12 +102,12 @@ def head(title, desc, slug, schema, og_img="img/dra-renata-bertazzi-oftalmologis
 """
 
 def header(current):
-    links = [("index.html#seguranca", "Segurança", "seguranca"),
-             ("index.html#jornada", "Como funciona", "jornada"),
+    links = [("index.html#sobre", "Sobre", "sobre"),
              ("cirurgia-de-catarata-palmas.html", "Catarata", "cirurgia-de-catarata-palmas"),
-             ("qual-lente-para-catarata.html", "Qual lente?", "qual-lente-para-catarata"),
              ("cirurgia-de-retina-palmas.html", "Retina", "cirurgia-de-retina-palmas"),
-             ("index.html#onde-atendo", "Onde atendo", "onde")]
+             ("index.html#seguranca", "Segurança", "seguranca"),
+             ("conteudos.html", "Conteúdos", "conteudos"),
+             ("index.html#atendimento", "Onde atendo", "onde")]
     nav = "\n".join(f'      <a href="{h}"{" aria-current=\"page\"" if k == current else ""}>{t}</a>' for h, t, k in links)
     return f"""<header class="top">
   <div class="wrap">
@@ -97,21 +117,21 @@ def header(current):
     </a>
     <nav class="nav" aria-label="Principal">
 {nav}
-      <a class="btn" href="{DM}" target="_blank" rel="noopener">Agendar consulta</a>
+      <a class="btn" href="{BOOK}" target="_blank" rel="noopener">Agendar consulta</a>
     </nav>
   </div>
 </header>
 """
 
 MBAR = f"""<div class="mbar" role="region" aria-label="Contato rápido">
-  <a class="btn soft" href="{DM}" target="_blank" rel="noopener">{svg("chat")} Tirar dúvidas</a>
-  <a class="btn" href="{DM}" target="_blank" rel="noopener">Agendar consulta</a>
+  <a class="btn soft" href="{BOOK}" target="_blank" rel="noopener">{svg("chat")} Tirar dúvidas</a>
+  <a class="btn" href="{BOOK}" target="_blank" rel="noopener">Agendar consulta</a>
 </div>
 """
 
 def footer():
     names = {"cirurgia-de-catarata-palmas": "Cirurgia de catarata", "cirurgia-de-retina-palmas": "Cirurgia de retina"}
-    pages = "\n".join(f'        <li><a href="{p["slug"]}.html">{names.get(p["slug"], p["nav"])}</a></li>' for p in PAGES) + '\n        <li><a href="qual-lente-para-catarata.html">Qual lente para catarata? Simulador</a></li>'
+    pages = "\n".join(f'        <li><a href="{p["slug"]}.html">{names.get(p["slug"], p["nav"])}</a></li>' for p in PAGES) + '\n        <li><a href="qual-lente-para-catarata.html">Qual lente para catarata? Simulador</a></li>\n        <li><a href="conteudos.html">Conteúdos: vídeos e orientações</a></li>\n        <li><a href="index.html#fale">Deixe um recado ou envie sua dúvida</a></li>'
     cl = "\n".join(f'        <li><b>{c["name"]}</b><br>{c["street"]} · {c["city"]} (TO){" · " + c["phone_txt"] if c["phone_txt"] else ""}</li>' for c in CLINICS)
     return f"""<footer class="site-foot">
   <div class="wrap foot-grid">
@@ -127,9 +147,10 @@ def footer():
       </ul>
     </div>
     <div class="stack">
-      <b>Onde atendo em Palmas</b>
+      <b>Onde atendo</b>
       <ul class="foot-list">
 {cl}
+        <li>Também atende em <b>Paraíso do Tocantins</b> (terças) e <b>Porto Nacional</b> (quintas)</li>
       </ul>
     </div>
   </div>
@@ -174,8 +195,8 @@ CTA = f"""<section class="band cta">
       <p>Mande uma mensagem e diga a cidade de sua preferência. A equipe responde suas dúvidas e encontra o melhor horário para a sua consulta de avaliação.</p>
     </div>
     <div class="actions">
-      <a class="btn" href="{DM}" target="_blank" rel="noopener">{CTA_MAIN}</a>
-      <a class="btn soft" href="{DM}" target="_blank" rel="noopener">{CTA_TALK}</a>
+      <a class="btn" href="{BOOK}" target="_blank" rel="noopener">{CTA_MAIN}</a>
+      <a class="btn soft" href="{BOOK}" target="_blank" rel="noopener">{CTA_TALK}</a>
     </div>
   </div>
 </section>"""
@@ -214,7 +235,7 @@ for p in PAGES:
       <h1>{p["h1"]}</h1>
       <p class="lead">{p["lead"]}</p>
       <p class="cred">Por <b>Dra. Renata Carneiro Bertazzi</b>, médica oftalmologista · CRM-TO 7132 · RQE 3562 · Membro da SBRV</p>
-      <div class="actions"><a class="btn" href="{DM}" target="_blank" rel="noopener">{CTA_MAIN}</a><a class="btn soft" href="{DM}" target="_blank" rel="noopener">{CTA_TALK}</a></div>
+      <div class="actions"><a class="btn" href="{BOOK}" target="_blank" rel="noopener">{CTA_MAIN}</a><a class="btn soft" href="{BOOK}" target="_blank" rel="noopener">{CTA_TALK}</a></div>
     </div>
     {img}
   </div>
@@ -283,7 +304,7 @@ lbody = f"""<main>
   <div class="wrap">
     <div class="head"><span class="eyebrow">Próximo passo</span><h2>A escolha certa é feita na consulta</h2></div>
     <p class="lead" style="max-width:62ch">A simulação ajuda a entender as diferenças. A indicação da lente de cada olho depende da biometria, da saúde da retina e da córnea, do astigmatismo e do que é importante para você. Traga o resultado do quiz para a consulta: ele ajuda a conversa.</p>
-    <div class="actions"><a class="btn" href="{DM}" target="_blank" rel="noopener">{CTA_MAIN}</a><a class="btn soft" href="{DM}" target="_blank" rel="noopener">{CTA_TALK}</a></div>
+    <div class="actions"><a class="btn" href="{BOOK}" target="_blank" rel="noopener">{CTA_MAIN}</a><a class="btn soft" href="{BOOK}" target="_blank" rel="noopener">{CTA_TALK}</a></div>
   </div>
 </section>
 </main>
@@ -293,10 +314,12 @@ open(LENTE_SLUG + ".html", "w").write(head(lt, ld, LENTE_SLUG, lschema) + header
 # =================== página inicial ===================
 HOME_FAQ = [
     ("A primeira consulta já define a cirurgia?", "Não necessariamente. A primeira consulta serve para examinar seus olhos com calma, entender suas queixas e explicar as opções. Quando há indicação de cirurgia, os exames e o planejamento são feitos em seguida, sem pressa."),
-    ("A cirurgia de catarata dói?", "Na maioria dos casos a anestesia é feita com colírio, às vezes com sedação leve. O paciente fica acordado, tranquilo, e pode sentir apenas uma leve pressão no olho."),
+    ("A cirurgia de catarata dói?", "Não. Um médico anestesista fica na sala durante toda a cirurgia, cuidando do seu conforto. Você fica acordado e tranquilo, e pode sentir apenas uma leve pressão no olho."),
     ("Vou conseguir tirar dúvidas depois da cirurgia?", "Sim. Você sai com as orientações por escrito, os retornos já programados e um canal direto com a equipe para dúvidas no pós-operatório."),
     ("Tenho diabetes e enxergo bem. Preciso examinar a retina?", "Sim. A retinopatia diabética pode avançar sem sintomas. O exame anual de fundo de olho é a forma de encontrar alterações a tempo de tratar."),
-    ("Como faço para agendar?", "Envie uma mensagem pelo Instagram @dra.renatabertazzi informando a cidade de sua preferência. A equipe responde e combina o melhor horário."),
+    ("Como faço para agendar?", f"Envie uma mensagem pelo {BOOK_VIA} informando a cidade de sua preferência. A equipe responde e combina o melhor horário. Se preferir, ligue direto para a clínica mais perto de você."),
+    ("A consulta é particular? Aceita convênio?", "O atendimento é particular. Os convênios aceitos variam de clínica para clínica, então pergunte à equipe na hora de agendar. Ela também explica os valores e as formas de pagamento da cirurgia, sem compromisso."),
+    ("Posso ir dirigindo para a consulta?", "O ideal é vir acompanhado. Na consulta completa os olhos costumam ser dilatados com colírio, e a visão fica embaçada e sensível à luz por algumas horas."),
 ]
 
 clinic_cards = []
@@ -339,6 +362,73 @@ if _dep:
 else:
     DEPO = ""
 
+agenda_html = "\n".join(
+    f'      <div class="day" role="listitem"><b>{d}</b>' + "".join(
+        f'<span class="slot">{(f"<i>{p}</i>") if p else ""}<span>{lugar}</span><span class="muted">{cidade}</span></span>' for p, lugar, cidade in slots) + '</div>'
+    for d, slots in AGENDA)
+
+from conteudos import conteudos_home, build_conteudos
+
+FALE = f"""<section class="band sand" id="fale-com-a-dra">
+  <div class="wrap grid-2 fale">
+    <div class="stack">
+      <span class="eyebrow">Fale com a Dra. Renata</span>
+      <h2>Deixe um recado ou envie a sua dúvida</h2>
+      <p class="muted">Foi paciente e quer contar como foi? Ficou com alguma pergunta sobre catarata, retina ou cirurgia? Escreva aqui. A mensagem chega direto para a Dra. Renata e a equipe, e ninguém mais vê.</p>
+      <p class="muted">As dúvidas que mais aparecem viram vídeos e orientações na página de <a href="conteudos.html">Conteúdos</a>, sempre sem o nome de quem perguntou.</p>
+      <div class="alert" role="note" style="margin-top:6px">
+        <h3>Não use este espaço para urgências</h3>
+        <p>Dor forte, perda súbita de visão, clarões ou uma sombra na visão pedem atendimento no mesmo dia. <a href="{BOOK}" target="_blank" rel="noopener">Fale com a equipe pelo WhatsApp</a>.</p>
+      </div>
+    </div>
+    <form class="card fale-form" id="fFale" novalidate>
+      <fieldset class="seg">
+        <legend class="sr">O que você quer enviar?</legend>
+        <label><input type="radio" name="tipo" value="recado" checked><span>Deixar um recado</span></label>
+        <label><input type="radio" name="tipo" value="duvida"><span>Enviar uma dúvida</span></label>
+      </fieldset>
+      <label class="fld">Seu nome<input name="nome" required maxlength="80" autocomplete="name"></label>
+      <div class="two">
+        <label class="fld">Cidade<input name="cidade" maxlength="60" autocomplete="address-level2"></label>
+        <label class="fld">WhatsApp <small>(opcional, para resposta)</small><input name="contato" maxlength="30" inputmode="tel" autocomplete="tel"></label>
+      </div>
+      <label class="fld"><span data-lbl>Seu recado</span><textarea name="mensagem" required minlength="5" maxlength="1500" rows="5"></textarea></label>
+      <p class="hint">Não envie exames, documentos ou dados de saúde que não sejam necessários para a sua pergunta.</p>
+      <label class="hp" aria-hidden="true">Não preencha<input name="site" tabindex="-1" autocomplete="off"></label>
+      <label class="chk"><input type="checkbox" name="publicar"><span data-pub>Autorizo que meu recado seja publicado no site, só com o meu primeiro nome.</span></label>
+      <label class="chk"><input type="checkbox" name="consentimento" required><span>Concordo que a equipe da Dra. Renata use estes dados apenas para ler e responder a minha mensagem.</span></label>
+      <button class="btn" type="submit">Enviar</button>
+      <p class="fale-msg" role="status" aria-live="polite"></p>
+    </form>
+  </div>
+</section>
+<script>
+(function(){{
+  var f=document.getElementById('fFale'); if(!f) return;
+  var msg=f.querySelector('.fale-msg'), btn=f.querySelector('button[type=submit]');
+  var TXT={{recado:['Seu recado','Autorizo que meu recado seja publicado no site, só com o meu primeiro nome.'],
+            duvida:['Sua dúvida','Autorizo que minha dúvida seja respondida em vídeos ou textos, sem o meu nome.']}};
+  f.addEventListener('change',function(e){{ if(e.target.name==='tipo'){{ var t=TXT[e.target.value]; f.querySelector('[data-lbl]').textContent=t[0]; f.querySelector('[data-pub]').textContent=t[1]; }} }});
+  function wa(d){{ return '{"https://wa.me/" + WHATSAPP if WHATSAPP else DM}'+({"'?text='+encodeURIComponent((d.tipo==='duvida'?'Dúvida':'Recado')+' pelo site, de '+d.nome+(d.cidade?' ('+d.cidade+')':'')+': '+d.mensagem)" if WHATSAPP else "''"}); }}
+  f.addEventListener('submit',function(e){{
+    e.preventDefault(); msg.className='fale-msg';
+    var d={{tipo:f.tipo.value,nome:f.nome.value.trim(),cidade:f.cidade.value.trim()||null,contato:f.contato.value.trim()||null,
+           mensagem:f.mensagem.value.trim(),autoriza_publicar:f.publicar.checked,consentimento:f.consentimento.checked}};
+    if(f.site.value) return;
+    if(d.nome.length<2){{ msg.textContent='Escreva o seu nome.'; f.nome.focus(); return; }}
+    if(d.mensagem.length<5){{ msg.textContent='Escreva a sua mensagem.'; f.mensagem.focus(); return; }}
+    if(!d.consentimento){{ msg.textContent='Para enviar, marque a autorização de uso dos dados.'; return; }}
+    btn.disabled=true; btn.textContent='Enviando…';
+    fetch('{SUPABASE_URL}/rest/v1/recados_site',{{method:'POST',headers:{{'apikey':'{SUPABASE_KEY}','Authorization':'Bearer {SUPABASE_KEY}','Content-Type':'application/json','Prefer':'return=minimal'}},body:JSON.stringify(d)}})
+      .then(function(r){{ if(!r.ok) throw r; f.reset(); f.dispatchEvent(new Event('change')); msg.className='fale-msg ok';
+        msg.textContent=d.tipo==='duvida'?'Obrigada! Sua dúvida chegou para a Dra. Renata.'+(d.contato?' A equipe pode responder pelo WhatsApp.':''):'Obrigada pelo carinho! Seu recado chegou para a Dra. Renata.'; }})
+      .catch(function(){{ msg.className='fale-msg erro'; msg.innerHTML='Não conseguimos enviar agora. <a href="'+wa(d)+'" target="_blank" rel="noopener">Envie pelo WhatsApp</a>, a mensagem já vai escrita.'; }})
+      .finally(function(){{ btn.disabled=false; btn.textContent='Enviar'; }});
+  }});
+}})();
+</script>"""
+CONTEUDOS_HOME = conteudos_home(svg)
+
 HOME = f"""<main id="inicio">
 
 <section class="hero">
@@ -350,19 +440,18 @@ HOME = f"""<main id="inicio">
     <div class="hero-text">
       <div class="hero-name">
         <strong>Dra. Renata Bertazzi</strong>
-        <span>Médica oftalmologista · Catarata e Retina · Palmas (TO)</span>
+        <span>Médica oftalmologista · Catarata e Retina · Palmas, Paraíso e Porto Nacional (TO)</span>
       </div>
       <ul class="creds" aria-label="Credenciais">
         <li class="key">{svg("id")} CRM-TO 7132</li>
         <li class="key">{svg("shield")} RQE 3562 · Oftalmologia</li>
         <li>{svg("award")} Membro da SBRV</li>
-        <li>{svg("hospital")} Cirurgias no Oftalmologia Avançada</li>
       </ul>
-      <h1>Cirurgia com rigor técnico e o cuidado que você merece em cada etapa.</h1>
-      <p class="lead">Da primeira consulta ao último retorno, você é acompanhado pela mesma médica, com explicações claras e tempo para todas as suas dúvidas.</p>
+      <h1>Cuidar da sua visão com técnica, calma e explicação clara.</h1>
+      <p class="lead">Da primeira consulta ao último retorno, você é acompanhado pela mesma médica, com tempo para todas as suas dúvidas e as da sua família.</p>
       <div class="actions">
-        <a class="btn" href="{DM}" target="_blank" rel="noopener">{CTA_MAIN}</a>
-        <a class="btn soft" href="{DM}" target="_blank" rel="noopener">{svg("chat")} {CTA_TALK}</a>
+        <a class="btn" href="{BOOK}" target="_blank" rel="noopener">{svg("chat")} {CTA_MAIN}</a>
+        <a class="btn soft" href="#onde-atendo">Ver dias e locais de atendimento</a>
       </div>
     </div>
   </div>
@@ -371,9 +460,9 @@ HOME = f"""<main id="inicio">
 <section class="trust" aria-label="Em números">
   <div class="wrap">
     <div><b>+500</b><span>cirurgias realizadas</span></div>
-    <div><b>RQE 3562</b><span>especialista registrada em Oftalmologia</span></div>
     <div><b>SBRV</b><span>membro da Sociedade Brasileira de Retina e Vítreo</span></div>
-    <div><b>3 clínicas</b><span>em Palmas, com atendimento à região</span></div>
+    <div><b>6 anos</b><span>de experiência no SUS em São Paulo</span></div>
+    <div><b>3 cidades</b><span>Palmas, Paraíso do Tocantins e Porto Nacional</span></div>
   </div>
 </section>
 
@@ -383,15 +472,16 @@ HOME = f"""<main id="inicio">
     <div class="stack">
       <span class="eyebrow">Sobre a médica</span>
       <h2>Experiência no centro cirúrgico. Escuta no consultório.</h2>
-      <p class="muted">A Dra. Renata Carneiro Bertazzi é médica oftalmologista com atuação dedicada à catarata e às doenças da retina, no consultório e no centro cirúrgico. Já realizou mais de 500 cirurgias e atende pacientes de Palmas e da região central do Tocantins.</p>
+      <p class="muted">A Dra. Renata Carneiro Bertazzi é médica oftalmologista com atuação dedicada à catarata e às doenças da retina. Formou-se em Medicina pela PUC Goiás e fez residência em Oftalmologia e fellowship no IPEPO, em São Paulo.</p>
+      <p class="muted">Antes de chegar ao Tocantins, trabalhou seis anos no SUS em São Paulo, cuidando de pacientes de todas as idades e realidades e ganhando experiência e volume de atendimento. Desde 2024 atende em Palmas e na região, onde já soma mais de 500 cirurgias.</p>
       <ul class="ticks">
         <li><a href="cirurgia-de-catarata-palmas.html">Cirurgia de catarata</a> por facoemulsificação</li>
         <li><a href="cirurgia-de-retina-palmas.html">Cirurgia de retina</a> (vitrectomia) e tratamento do descolamento de retina</li>
         <li><a href="injecao-intravitrea-e-laser-palmas.html">Injeções intravítreas e laser</a> para retinopatia diabética e degeneração macular</li>
       </ul>
       <div class="cred-box">
-        <div class="cred-num"><b>5%</b><span>dos oftalmologistas do país</span></div>
-        <div><b>Membro da SBRV</b><p>A Dra. Renata passou pela prova de admissão da Sociedade Brasileira de Retina e Vítreo. Estima-se que apenas 5% dos oftalmologistas do país sejam membros.</p></div>
+        {ico("award", "b")}
+        <div><b>Membro da Sociedade Brasileira de Retina e Vítreo</b><p>Aprovada na prova de admissão da SBRV, que avalia o conhecimento em doenças e cirurgias da retina.</p></div>
       </div>
     </div>
   </div>
@@ -407,8 +497,7 @@ HOME = f"""<main id="inicio">
     <div class="safe-list">
       <div class="safe">{ico("clipboard")}<div><h3>Avaliação completa antes de operar</h3><p>Exames dos olhos que medem cada detalhe, como a biometria, o mapeamento de retina e a tomografia (OCT), e uma revisão da sua saúde geral: pressão, glicemia, alergias e remédios em uso.</p></div></div>
       <div class="safe">{ico("hospital", "b")}<div><h3>Centro cirúrgico preparado</h3><p>As cirurgias são feitas em centro cirúrgico com equipamentos modernos, material esterilizado e estrutura de apoio para qualquer imprevisto.</p></div></div>
-      <div class="safe">{ico("people", "p")}<div><h3>Equipe que trabalha junta</h3><p>Médico anestesista e equipe de enfermagem acostumados com cirurgia ocular. Todos sabem o que fazer em cada momento, e isso se traduz em calma para você.</p></div></div>
-      <div class="safe">{ico("pulse")}<div><h3>Monitoramento contínuo</h3><p>Durante todo o procedimento, seus batimentos, sua pressão e a oxigenação são acompanhados em tempo real.</p></div></div>
+      <div class="safe">{ico("people", "p")}<div><h3>Equipe e monitoramento</h3><p>Anestesista e enfermagem acostumados com cirurgia ocular. Seus batimentos, a pressão e a oxigenação são acompanhados do começo ao fim.</p></div></div>
     </div>
     <div class="checklist">
       <h3>Checklist de cirurgia segura</h3>
@@ -450,7 +539,29 @@ HOME = f"""<main id="inicio">
     <div class="stack">
       <span class="eyebrow">Durante a cirurgia</span>
       <h2>Você fica acordado. E não fica sozinho.</h2>
-      <p>Na cirurgia de catarata, a anestesia costuma ser feita com colírio. A equipe conversa com você, explica o que está acontecendo e garante que você se sinta seguro do começo ao fim.</p>
+      <p>Um médico anestesista acompanha você na sala durante toda a cirurgia, cuidando do seu conforto. A equipe conversa com você, explica o que está acontecendo e garante que você se sinta seguro do começo ao fim.</p>
+    </div>
+  </div>
+</section>
+
+<section class="band sand" id="antes-da-consulta">
+  <div class="wrap grid-2">
+    <div class="stack">
+      <span class="eyebrow">Antes da consulta</span>
+      <h2>Para a sua consulta ser tranquila</h2>
+      <ul class="ticks">
+        <li><b>Venha acompanhado.</b> O colírio que dilata a pupila deixa a visão embaçada por algumas horas. Evite dirigir na volta.</li>
+        <li><b>Traga seus óculos</b> e, se tiver, receitas e exames de olho antigos.</li>
+        <li><b>Traga a lista dos remédios</b> que você usa, principalmente para pressão, diabetes e para afinar o sangue.</li>
+        <li><b>Reserve um tempo.</b> A consulta completa é feita com calma, com intervalo para a dilatação agir.</li>
+      </ul>
+    </div>
+    <div class="card family">
+      {ico("people", "p")}
+      <h3>Seu pai ou sua mãe está enxergando menos?</h3>
+      <p>Dificuldade para ler, para reconhecer rostos, para enxergar à noite ou tropeços frequentes podem ser sinais de catarata ou de doença na retina. Muitas vezes quem percebe primeiro é a família.</p>
+      <p>Você pode agendar pela pessoa e vir junto na consulta. As explicações são para os dois.</p>
+      <a class="btn" href="{BOOK}" target="_blank" rel="noopener">Agendar para um familiar</a>
     </div>
   </div>
 </section>
@@ -477,14 +588,22 @@ HOME = f"""<main id="inicio">
   <div class="wrap">
     <div class="head">
       <span class="eyebrow">Onde atendo</span>
-      <h2>Três clínicas em Palmas, perto de você.</h2>
-      <p>Pacientes de Paraíso do Tocantins, Porto Nacional e região são atendidos em Palmas.</p>
+      <h2>Dias e locais de atendimento</h2>
+      <p>Escolha o dia e a cidade que ficam melhor para você. Horários sujeitos a mudança: confirme com a equipe ao agendar.</p>
     </div>
+    <div class="agenda" role="list">
+{agenda_html}
+    </div>
+    <h3 class="sub">Endereços em Palmas</h3>
     <div class="clinic-grid">
 {chr(10).join(clinic_cards)}
     </div>
   </div>
 </section>
+
+{CONTEUDOS_HOME}
+
+{FALE}
 
 <section class="band" id="duvidas">
   <div class="wrap">
@@ -502,11 +621,56 @@ home_schema = {"@context": "https://schema.org", "@graph": [
     physician_schema(), faq_schema(HOME_FAQ)]}
 home_title = "Oftalmologista em Palmas (TO) | Catarata e Retina | Dra. Renata Bertazzi"
 home_desc = "Dra. Renata Bertazzi, oftalmologista em Palmas (TO): cirurgia de catarata, cirurgia de retina, injeção intravítrea e laser. CRM-TO 7132, RQE 3562, membro da SBRV."
-open("index.html", "w").write(head(home_title, home_desc, "index", home_schema) + header("index") + "\n" + HOME + "\n" + footer())
+# A página inicial agora é a landing em React (pasta landing/). Para mudar o visual ou os textos dela,
+# edite landing/App.jsx e rode:  cd landing && npm install && npm run build   e depois  python3 build.py
+import hashlib
+_body = open("landing/body.html", encoding="utf-8").read()
+_ver = hashlib.md5((open("assets/landing.js", "rb").read() + open("assets/landing.css", "rb").read())).hexdigest()[:8]
+_lschema = {"@context": "https://schema.org", "@graph": [
+    {"@type": "WebSite", "@id": SITE + "/#site", "url": SITE + "/", "name": "Dra. Renata Bertazzi · Oftalmologista em Palmas", "inLanguage": "pt-BR"},
+    physician_schema()]}
+_ltitle = "Oftalmologista em Palmas (TO) | Retina e Catarata | Dra. Renata Bertazzi"
+_ldesc = "Dra. Renata Bertazzi, oftalmologista em Palmas, Paraíso do Tocantins e Porto Nacional: retina, catarata, injeção intravítrea e laser. CRM-TO 7132, RQE 3562, membro da SBRV."
+open("index.html", "w").write(f"""<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{html.escape(_ltitle)}</title>
+<meta name="description" content="{html.escape(_ldesc)}">
+<link rel="canonical" href="{SITE}/">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:site_name" content="Dra. Renata Bertazzi">
+<meta property="og:title" content="{html.escape(_ltitle)}">
+<meta property="og:description" content="{html.escape(_ldesc)}">
+<meta property="og:url" content="{SITE}/">
+<meta property="og:image" content="{SITE}/img/dra-renata-consultorio.webp">
+<meta name="theme-color" content="#F6F9FD">
+<link rel="icon" type="image/png" href="img/simbolo.png">
+<link rel="apple-touch-icon" href="img/simbolo-grande.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/landing.css?v={_ver}">
+<link rel="preload" as="image" href="img/dra-renata-consultorio.webp">
+<script type="application/ld+json">
+{json.dumps(_lschema, ensure_ascii=False, indent=1)}
+</script>
+</head>
+<body>
+<div id="root">{_body}</div>
+<script src="assets/landing.js?v={_ver}" defer></script>
+</body>
+</html>
+""")
+
+# =================== conteúdos ===================
+build_conteudos(head=head, header=header, footer=footer, url=url, SITE=SITE, physician_schema=physician_schema, CTA=CTA)
 
 # =================== sitemap / robots ===================
 today = date.today().isoformat()
-urls = [("index", "1.0")] + [(p["slug"], "0.8") for p in PAGES] + [(LENTE_SLUG, "0.8")]
+urls = [("index", "1.0")] + [(p["slug"], "0.8") for p in PAGES] + [(LENTE_SLUG, "0.8"), ("conteudos", "0.7")]
 open("sitemap.xml", "w").write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + "".join(
     f"  <url><loc>{url(sl)}</loc><lastmod>{today}</lastmod><priority>{pr}</priority></url>\n" for sl, pr in urls) + "</urlset>\n")
 open("robots.txt", "w").write(f"User-agent: *\nAllow: /\nDisallow: /controle/\n\nSitemap: {SITE}/sitemap.xml\n")
