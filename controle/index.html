@@ -398,6 +398,8 @@ legend{font-size:.86rem;font-weight:700;color:var(--soft);padding:0;margin-botto
         <button data-act="sync">🔄 Sincronizar</button>
         <small>Consulta</small>
         <button data-tab="lentes">👁 Simulador de lentes</button>
+        <small>Site</small>
+        <button data-tab="recados">💬 Recados e dúvidas do site <b id="nRec"></b></button>
         <hr><button id="bOut">Sair</button>
       </div></details>
   </header>
@@ -528,6 +530,7 @@ async function carregar(){
   const rp=await sb.from("repasses").select("*").order("periodo_fim",{ascending:false}); S.reps=rp.data||[];
   let ri=[]; for(let k=0;k<50;k++){ const r=await sb.from("repasse_itens").select("*").range(k*1000,k*1000+999); if(r.error||!r.data) break; ri=ri.concat(r.data); if(r.data.length<1000) break; } S.repItens=ri;
   let at=[]; for(let k=0;k<50;k++){ const r=await sb.from("atendimentos").select("id,data,inicio,local,unidade,paciente,plano,itens,tipo,status,descricao").range(k*1000,k*1000+999); if(r.error||!r.data) break; at=at.concat(r.data); if(r.data.length<1000) break; } S.atend=at;
+  const rc=await sb.from("recados_site").select("*").order("criado_em",{ascending:false}).limit(500); S.recados=rc.error?null:(rc.data||[]);
   const sc=await sb.from("sincronizacoes").select("*").order("em",{ascending:false}).limit(30); S.syncs=sc.data||[]; S.ultSync=S.syncs.find(x=>(x.origem||"eyecare")==="eyecare")||null;
   const err = p.error||c.error||s.error; if (err) { toast("Erro ao carregar: "+err.message); return; }
   S.pacientes=p.data; S.casos=c.data; S.sessoes=s.data;
@@ -596,12 +599,13 @@ function cardTrat(c){
 
 /* ================= Telas ================= */
 function render(){
-  if(S.tab==="ind"||!["agenda","repasse","lentes","painel","semana","cir","trat","laser","pac"].includes(S.tab)) S.tab=tabDoFiltro();
+  if(S.tab==="ind"||!["agenda","repasse","lentes","painel","semana","cir","trat","laser","pac","recados"].includes(S.tab)) S.tab=tabDoFiltro();
   document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-current", b.dataset.tab===S.tab?"page":"false"));
   const m=$("#main");
-  m.innerHTML = ({agenda:telaAgenda, repasse:telaRepasse, lentes:telaLentes, painel:telaPainel, semana:telaSemana, cir:()=>telaPipe("cirurgia"), trat:()=>telaPipe("injecao"), laser:()=>telaPipe("laser"), pac:telaPac}[S.tab])();
+  m.innerHTML = ({agenda:telaAgenda, repasse:telaRepasse, lentes:telaLentes, recados:telaRecados, painel:telaPainel, semana:telaSemana, cir:()=>telaPipe("cirurgia"), trat:()=>telaPipe("injecao"), laser:()=>telaPipe("laser"), pac:telaPac}[S.tab])();
   if(S.tab==="repasse"&&$("#fRep")) $("#fRep").addEventListener("submit",async e=>{ e.preventDefault(); const v=$("#rVl").value.trim(); await salvar(sb.from("repasses").update({status:$("#rSt").value,recebido_em:$("#rDt").value||null,valor_recebido:v?parseFloat(v.replace(/\./g,"").replace(",",".")):null}).eq("id",S.repSel),"Repasse atualizado ✔"); });
   if(S.tab==="lentes"){ const f=$("#frLentes"); const envia=()=>{ try{ f.contentWindow.postMessage({tipo:"precos",rows:S.precos,tabela:(S.fLocal||"").startsWith("ICOG")||!S.fLocal?"ICOG":"padrao"},"*"); }catch(e){} }; f.addEventListener("load",envia); envia(); }
+  const nr=(S.recados||[]).filter(r=>r.status==="novo").length; const nb=$("#nRec"); if(nb) nb.textContent=nr?`(${nr} novo${nr>1?"s":""})`:"";
   m.insertAdjacentHTML("beforeend", `<p class="footnote">Dados protegidos · acesso restrito à equipe · ${S.pacientes.length} pacientes cadastrados</p>`);
 }
 
@@ -1837,6 +1841,37 @@ function folhaEditSessao(id){
     await salvar(sb.from("sessoes").update(upd).eq("id",id),"Data atualizada ✔"); fechar(); });
   $("#edsDel").addEventListener("click",async()=>{ if(!confirm("Excluir esta aplicação?")) return; await salvar(sb.from("sessoes").delete().eq("id",id),"Aplicação excluída"); fechar(); });
 }
+/* ================= Recados e dúvidas do site ================= */
+const REC_ST = { novo:["Novo","warn"], respondido:["Respondido","ok"], virou_conteudo:["Virou conteúdo","blue"], arquivado:["Arquivado",""] };
+function telaRecados(){
+  if(S.recados===null) return `<div class="sec-head"><div><h2>Recados e dúvidas do site</h2></div></div>
+    <div class="empty">A tabela de recados ainda não foi criada no banco. Rode o arquivo <b>controle/sql/recados_site.sql</b> no SQL Editor do Supabase (uma vez só) e recarregue esta página.</div>`;
+  const f=S.recFil||"novo", fT=S.recTipo||"";
+  const todos=S.recados||[];
+  const lista=todos.filter(r=>(f==="todos"||r.status===f)&&(!fT||r.tipo===fT));
+  const n=k=>todos.filter(r=>r.status===k).length;
+  const segSt=[["novo","Novos"],["respondido","Respondidos"],["virou_conteudo","Viraram conteúdo"],["arquivado","Arquivados"],["todos","Todos"]]
+    .map(([k,t])=>`<button data-recf="${k}" aria-pressed="${f===k}">${t}${k!=="todos"?` (${n(k)})`:""}</button>`).join("");
+  const segT=[["","Recados e dúvidas"],["recado","Só recados"],["duvida","Só dúvidas"]].map(([k,t])=>`<button data-rect="${k}" aria-pressed="${fT===k}">${t}</button>`).join("");
+  const quando=d=>new Date(d).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"});
+  return `<div class="sec-head"><div><h2>Recados e dúvidas do site</h2><div class="sub">Mensagens enviadas pelo formulário "Fale com a Dra." · só a equipe vê</div></div></div>
+  <div class="seg">${segSt}</div><div class="seg">${segT}</div>
+  <div class="list">${lista.map(r=>`<div class="item">
+    <div class="row" style="justify-content:space-between"><div class="name">${esc(r.nome)}${r.cidade?` <span class="meta">· ${esc(r.cidade)}</span>`:""}</div><span class="meta">${quando(r.criado_em)}</span></div>
+    <div class="row"><span class="chip ${r.tipo==="duvida"?"blue":"sage"}">${r.tipo==="duvida"?"Dúvida":"Recado"}</span><span class="chip ${REC_ST[r.status][1]}">${REC_ST[r.status][0]}</span>${r.autoriza_publicar?`<span class="chip ok">${r.tipo==="duvida"?"Pode virar conteúdo":"Pode publicar (1º nome)"}</span>`:`<span class="chip">Não publicar</span>`}</div>
+    <p style="margin:8px 0;white-space:pre-wrap">${esc(r.mensagem)}</p>
+    <div class="row" style="justify-content:space-between;gap:8px;flex-wrap:wrap">${r.contato?contato(r.contato):'<span class="meta">sem contato</span>'}
+      <span style="display:flex;gap:6px;flex-wrap:wrap">${r.status!=="respondido"?`<button class="btn small ghost" data-recst="respondido" data-rid="${r.id}">Respondido</button>`:""}${r.tipo==="duvida"&&r.status!=="virou_conteudo"?`<button class="btn small ghost" data-recst="virou_conteudo" data-rid="${r.id}">Virou conteúdo</button>`:""}${r.status!=="arquivado"?`<button class="btn small ghost" data-recst="arquivado" data-rid="${r.id}">Arquivar</button>`:`<button class="btn small ghost" data-recst="novo" data-rid="${r.id}">Voltar p/ novos</button>`}<button class="btn small ghost" data-recdel="${r.id}">Apagar</button></span></div>
+  </div>`).join("")||`<div class="empty">${f==="novo"?"Nenhum recado novo. 🎉":"Nada por aqui."}</div>`}</div>`;
+}
+document.addEventListener("click", async e=>{
+  const t=e.target.closest("[data-recf],[data-rect],[data-recst],[data-recdel]"); if(!t) return;
+  if(t.dataset.recf!==undefined){ S.recFil=t.dataset.recf; render(); return; }
+  if(t.dataset.rect!==undefined){ S.recTipo=t.dataset.rect; render(); return; }
+  if(t.dataset.recst){ await salvar(sb.from("recados_site").update({status:t.dataset.recst}).eq("id",t.dataset.rid), "Recado atualizado ✔"); return; }
+  if(t.dataset.recdel){ if(!confirmar("Apagar esta mensagem de vez?")) return; await salvar(sb.from("recados_site").delete().eq("id",t.dataset.recdel), "Mensagem apagada"); return; }
+});
+
 function telaPac(){
   const q=S.busca.trim().toLowerCase(), qd=q.replace(/\D/g,"");
   const list=S.pacientes.filter(p=>!q||p.nome.toLowerCase().includes(q)||(qd&&(p.telefone||"").replace(/\D/g,"").includes(qd)));
