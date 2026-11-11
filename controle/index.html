@@ -183,6 +183,13 @@ main{max-width:1480px;margin:0 auto;padding:16px 14px 24px}
 .tp-row input{padding:8px;border:1px solid var(--line);border-radius:8px;font:inherit;width:100%}
 @media(max-width:600px){.tp-row{grid-template-columns:1fr 1fr 1fr}.tp-row>div{grid-column:1/-1}}
 .kpis.rep{grid-template-columns:repeat(auto-fit,minmax(165px,1fr))}
+.grp-panel{margin-top:14px}.kpis.grp{margin-top:8px}
+.kpis.grp .kpi{text-align:left;position:relative;padding-bottom:18px}
+.kpis.grp .kpi strong{font-weight:700;color:var(--ink,#1e2b3a)}
+.kpis.grp .barra{position:absolute;left:14px;right:14px;bottom:8px;height:5px;border-radius:9px;background:rgba(0,0,0,.07);display:block}
+.kpis.grp .barra i{display:block;height:100%;border-radius:9px;background:#2F7FDC}
+.kpis.grp .grp-exame .barra i{background:#3E9C86}.kpis.grp .grp-proc .barra i{background:#004AAD}
+.grp-tbl td small{display:block;opacity:.7}
 .kpi.warn{border-left-color:var(--warn)} .kpi.warn b{color:var(--warn)}
 .insight ul{margin:0;padding-left:18px;display:grid;gap:6px;font-size:.92rem}
 .panel.alerta{border-left:5px solid var(--warn)}
@@ -1331,7 +1338,9 @@ const REP = (() => {
   const limpa = s => String(s || "").replace(/\s+/g, " ").replace(/\s*…$/, "…").trim();
 
   function categoria(proc) {
-    const p = String(proc || "").toUpperCase();
+    const p = String(proc || "").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (/^EM CONSULT/.test(p)) return "consulta";
+    if (/CALAZ/.test(p)) return "cirurgia";
     if (/RETORNO/.test(p) && !/CONSULTA/.test(p)) return "retorno";
     if (/FACECTOMIA|FACO|VITRECTOMIA|VVPP|IMPLANTE DE LENTE|PTERIG|TRABECULEC|CIRURGIA|IMPLANTE SECUND/.test(p)) return "cirurgia";
     if (/LUCENTIS|AVASTIN|EYLIA|VABYSMO|INTRAV|ANTI-?ANGIO|QUIMIOTER|PCT-HM|TRATAMENTO OCULAR/.test(p)) return "injecao";
@@ -1740,6 +1749,24 @@ function repFiltrados(){
 }
 function periodoComum(){ const rs=S.reps.filter(r=>r.periodo_ini&&r.periodo_fim); if(rs.length<2) return null; const de=rs.map(r=>r.periodo_ini).sort().at(-1), ate=rs.map(r=>r.periodo_fim).sort()[0]; return de<=ate?[de,ate]:null; }
 const DIAS_SEM=["dom","seg","ter","qua","qui","sex","sáb"];
+/* Repasse em 3 grupos: consultas (com retornos), exames e procedimentos (cirurgia, injeção, laser) */
+const GRUPOS_REP=[["consulta","Consultas",["consulta","retorno"]],["exame","Exames",["exame"]],["proc","Procedimentos",["cirurgia","injecao","laser"]]];
+function catItem(i){ const p=String(i.procedimento||"").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g,""); if(/^EM CONSULT/.test(p)) return "consulta"; if(/CALAZ/.test(p)) return "cirurgia"; return i.categoria; }
+function grupoRep(i){ const c=catItem(i); return ["consulta","retorno"].includes(c)?"consulta":["cirurgia","injecao","laser"].includes(c)?"proc":"exame"; }
+function quadroGrupos(itens,porLocal){
+  const tot=itens.reduce((s,i)=>s+Number(i.valor||0),0); if(!itens.length) return "";
+  const pct=v=>tot?Math.round(v/tot*1000)/10:0, pf=v=>String(v).replace(".",",")+"%";
+  const g=GRUPOS_REP.map(([k,nome,cats])=>{ const its=itens.filter(i=>grupoRep(i)===k); const v=its.reduce((s,i)=>s+Number(i.valor||0),0); const pagos=its.filter(i=>Number(i.valor||0)>0); return {k,nome,cats,v,n:its.length,med:pagos.length?v/pagos.length:0}; });
+  const cards=g.map(x=>`<button class="kpi grp-${x.k}" ${rl({cat:x.cats,titulo:x.nome})}><b>${moeda(x.v)}</b><span><strong>${x.nome} · ${pf(pct(x.v))}</strong><br>${x.n} ${x.n===1?"item":"itens"} · média ${moeda(x.med)} por item pago</span><i class="barra"><i style="width:${pct(x.v)}%"></i></i></button>`).join("");
+  let comp="";
+  const locs=porLocal?[...new Set(itens.map(locItem).filter(Boolean))].sort():[];
+  if(locs.length>1){
+    const lin=locs.map(l=>{ const its=itens.filter(i=>locItem(i)===l); const t=its.reduce((s,i)=>s+Number(i.valor||0),0);
+      return `<tr><td><b>${esc(l)}</b></td>${GRUPOS_REP.map(([k])=>{ const v=its.filter(i=>grupoRep(i)===k).reduce((s,i)=>s+Number(i.valor||0),0); return `<td>${moeda0(v)}<small>${t?pf(Math.round(v/t*1000)/10):"—"}</small></td>`; }).join("")}<td><b>${moeda0(t)}</b></td></tr>`; }).join("");
+    comp=`<div class="tbl-wrap" style="margin-top:10px"><table class="tbl grp-tbl"><thead><tr><th>Clínica</th>${GRUPOS_REP.map(([,n])=>`<th>${n}</th>`).join("")}<th>Total</th></tr></thead><tbody>${lin}</tbody></table></div>`;
+  }
+  return `<div class="panel grp-panel"><div class="panel-h"><h3>Consultas · Exames · Procedimentos</h3><span class="sub">toque em um grupo para ver os pacientes</span></div><div class="kpis rep grp">${cards}</div>${comp}</div>`;
+}
 function metricasLocal(itens){
   const total=itens.reduce((s,i)=>s+Number(i.valor||0),0);
   const pac=new Set(itens.map(i=>normNome(i.paciente)).filter(Boolean));
@@ -1839,7 +1866,7 @@ function telaRepasse(){
     <div class="row meta"><b style="color:var(--ink);font-size:1.05rem">${moeda(c.soma)}</b>${r.total_informado!=null?(c.ok?`<span class="chip ok">✔ total confere com o extrato</span>`:`<span class="chip late">Total do extrato ${moeda(r.total_informado)} · diferença ${moeda(c.dif)}</span>`):""}${c.zeros.length?`<span class="chip late">${c.zeros.length} procedimento(s) com R$ 0</span>`:""}${c.falt.length?`<span class="chip warn">${c.falt.length} do portal não aparecem</span>`:""}<span class="chip">${c.conf}/${c.it.length} conferidos</span></div>
     ${r.recebido_em?`<div class="meta">Recebido em ${br(r.recebido_em)}${r.valor_recebido!=null?` · ${moeda(r.valor_recebido)}`:""}</div>`:""}
     <div class="row" style="justify-content:flex-end"><button class="btn small" data-act="rep-abrir" data-rid="${r.id}">Conferir</button></div></div>`; };
-  return head+filtros+kpis+
+  return head+filtros+kpis+quadroGrupos(itens,true)+
   (ins.length?`<div class="panel insight"><div class="panel-h"><h3>💡 O que os números mostram</h3></div><ul>${ins.map(x=>`<li>${x}</li>`).join("")}</ul></div>`:"")+
   `<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>Comparativo por clínica</h3><span class="sub">ordenado por R$ por dia de atendimento</span></div>${tabLoc}
    <div class="sub" style="font-size:.78rem">Dias = dias com consulta no extrato. Compare clínicas no mesmo período: os extratos podem cobrir semanas diferentes.</div></div>
@@ -1882,6 +1909,7 @@ function telaConferencia(id){
     <div class="kpi ${c.zeros.length?"late":""}"><b>${c.zeros.length}</b><span>Procedimentos com R$ 0</span></div>
     <div class="kpi ${c.falt.length?"warn":""}"><b>${c.falt.length}</b><span>Do portal que não aparecem</span></div>
     <div class="kpi"><b>${c.conf}/${c.it.length}</b><span>Itens conferidos</span></div></div>
+  ${quadroGrupos(S.repItens.filter(i=>i.repasse_id===r.id),false)}
   <div class="panel"><div class="panel-h"><h3>Status do repasse</h3></div>
     <form id="fRep" class="grid3"><label>Situação<select id="rSt">${["a conferir","conferido","pago"].map(s=>`<option ${r.status===s?"selected":""}>${s}</option>`).join("")}</select></label>
     <label>Recebido em<input type="date" id="rDt" value="${r.recebido_em||""}"></label>
