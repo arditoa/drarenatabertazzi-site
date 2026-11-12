@@ -2334,19 +2334,29 @@ function blocoSimExames(){
    - glaucoma/suspeita: acompanhamento com campo visual e OCT de nervo óptico em intervalos de meses (PPP Glaucoma)
    O sistema só sugere: a indicação final é da Dra. na consulta. */
 const EX_GRUPOS=[
-  {k:"retina",nome:"Retina · tratamento ou cirurgia",cor:"late",dias:90,ex:["OCT de mácula","Retinografia","Mapeamento de retina"],por:"já tratou retina (injeção, laser ou vitrectomia): controle a cada 3 meses"},
-  {k:"diabetes",nome:"Diabetes",cor:"late",dias:180,ex:["Mapeamento de retina","Retinografia","OCT de mácula"],por:"diabetes: AAO recomenda reavaliar a retina a cada 3–12 meses"},
-  {k:"glaucoma",nome:"Glaucoma ou suspeita",cor:"warn",dias:180,ex:["Campimetria","OCT de nervo óptico","Tonometria","Paquimetria"],por:"sinais de investigação de glaucoma: campo visual + OCT de nervo a cada 6 meses"},
-  {k:"poscir",nome:"Pós-cirurgia de catarata",cor:"warn",dias:180,ex:["Mapeamento de retina","Tonometria","Microscopia especular"],por:"operou catarata: revisão da retina e da pressão do olho (regra da clínica: convênio a cada 6 meses)"},
-  {k:"cat70",nome:"70+ sem cirurgia de catarata",cor:"warn",dias:180,ex:["Mapeamento de retina","Microscopia especular","Ceratoscopia","Biometria"],por:"70+ sem cirurgia de catarata registrada: a catarata é muito frequente nessa idade; reavaliar o cristalino a cada 6 meses com os exames que já preparam uma eventual cirurgia"},
-  {k:"idoso",nome:"65 a 69 anos",cor:"blue",dias:180,ex:["Tonometria","Mapeamento de retina","Retinografia","OCT de mácula"],por:"65+: maior risco de glaucoma, DMRI e catarata (AAO: exame completo ao menos a cada 1–2 anos; regra da clínica: 6 meses)"},
+  {k:"retdiab",nome:"Retinopatia diabética",cor:"late",dias:90,ex:["OCT de mácula","Retinografia","Mapeamento de retina"],por:"retinopatia diabética (CID H36.0) ou diabetes com retina já tratada: AAO recomenda reavaliar a cada 3–6 meses conforme a gravidade"},
+  {k:"retina",nome:"Retina · tratada ou DMRI",cor:"late",dias:90,ex:["OCT de mácula","Retinografia","Mapeamento de retina"],por:"retina já tratada (injeção, laser, vitrectomia, descolamento) ou DMRI (H35.3): controle com OCT a cada 3 meses"},
+  {k:"glaucoma",nome:"Glaucoma",cor:"late",dias:180,ex:["Campimetria","OCT de nervo óptico","Tonometria","Gonioscopia"],por:"glaucoma (H40.1–H40.9): AAO recomenda campo visual e OCT de nervo periodicamente; regra da clínica 6 meses"},
+  {k:"diabetes",nome:"Diabetes sem retinopatia",cor:"warn",dias:180,ex:["Mapeamento de retina","Retinografia","OCT de mácula"],por:"diabetes (E10–E14) sem retinopatia registrada: AAO pede exame de retina dilatado ao menos 1x/ano; regra da clínica 6 meses"},
+  {k:"suspglauc",nome:"Suspeita de glaucoma",cor:"warn",dias:180,ex:["Campimetria","OCT de nervo óptico","Tonometria","Paquimetria"],por:"suspeita de glaucoma (H40.0), glaucoma na família ou exames de investigação no histórico: reavaliar nervo e pressão a cada 6–12 meses"},
+  {k:"catarata",nome:"Catarata a operar",cor:"warn",dias:180,ex:["Biometria","Microscopia especular","Ceratoscopia","Mapeamento de retina"],por:"catarata diagnosticada (H25–H26) e ainda não operada: reavaliar e deixar os exames pré-operatórios prontos"},
+  {k:"poscir",nome:"Pós-cirurgia de catarata",cor:"blue",dias:180,ex:["Mapeamento de retina","Tonometria","Microscopia especular"],por:"pseudofacia (Z96.1) ou cirurgia de catarata no histórico: revisão da retina e da pressão do olho"},
+  {k:"cat70",nome:"70+ sem cirurgia de catarata",cor:"blue",dias:180,ex:["Mapeamento de retina","Microscopia especular","Ceratoscopia","Biometria"],por:"70+ sem cirurgia de catarata registrada: catarata é muito frequente nessa idade; avaliar o cristalino com os exames que já preparam uma eventual cirurgia"},
+  {k:"idoso",nome:"65 a 69 anos",cor:"blue",dias:180,ex:["Tonometria","Mapeamento de retina","Retinografia","OCT de mácula"],por:"65+: maior risco de glaucoma, DMRI e catarata (AAO: exame completo ao menos a cada 1–2 anos; regra da clínica 6 meses)"},
+  {k:"has",nome:"Hipertensão ou alta miopia",cor:"",dias:180,ex:["Mapeamento de retina","Retinografia","Tonometria"],por:"hipertensão (I10) pede olhar a retina (retinopatia hipertensiva); alta miopia (H52.1) tem mais risco de descolamento e glaucoma"},
   {k:"checkup",nome:"Checkup ocular",cor:"",dias:180,ex:["Tonometria","Mapeamento de retina","Retinografia"],por:"sem fator de risco registrado: checkup pelo convênio após 6 meses sem exames"}];
 const EX_G=Object.fromEntries(EX_GRUPOS.map(g=>[g.k,g]));
-const EX_COND=[["diabetes","Diabetes"],["glaucoma","Glaucoma / suspeita"],["dmri","DMRI"],["has","Hipertensão"],["fam_glaucoma","Glaucoma na família"],["miopia","Alta miopia"]];
+const EX_COND=[["diabetes","Diabetes (E10–E14)"],["ret_diab","Retinopatia diabética (H36.0)"],["glaucoma","Glaucoma (H40.1–H40.9)"],["susp_glauc","Suspeita de glaucoma (H40.0)"],["fam_glaucoma","Glaucoma na família"],["dmri","DMRI (H35.3)"],["descol","Descolamento / retina operada (H33)"],["catarata","Catarata não operada (H25–H26)"],["pseudo","Já operou catarata (Z96.1)"],["has","Hipertensão (I10)"],["miopia","Alta miopia (H52.1)"]];
+// CID / texto do diagnóstico -> condição (para importar planilha do prontuário)
+const EX_CID=[["ret_diab",/H36\.?0|RETINOPATIA DIAB|EDEMA MACULAR DIAB|\bRDNP\b|\bRDP\b|\bEMD\b/],["diabetes",/\bE1[0-4]|DIABET|\bDM ?(I|II|1|2)?\b/],["susp_glauc",/H40\.?0|SUSPEIT[AO] DE GLAUC|HIPERTENSAO OCULAR/],["glaucoma",/H40\.?[1-9]|H42|(?<!SUSPEITA DE |SUSPEITO DE )GLAUCOMA/],["dmri",/H35\.?3|DMRI|DEGENERACAO MACULAR/],["descol",/H33|DESCOLAMENTO DE RETINA|BURACO MACULAR/],["pseudo",/Z96\.?1|PSEUDOFAC/],["catarata",/H2[5-6]|CATARATA/],["has",/\bI10\b|HIPERTENSAO ARTERIAL|\bHAS\b/],["miopia",/H52\.?1|ALTA MIOPIA|MIOPIA/]];
 const EX_MSG={
   checkup:"Olá, {nome}! Tudo bem? Aqui é da equipe da Dra. Renata Bertazzi. 👁️\n\nJá faz mais de 6 meses desde o seu último atendimento ({data}){feitos_frase_curta}. Que tal completarmos o seu checkup ocular pelo seu convênio? Pelo seu histórico, a Dra. Renata sugere fecharmos esse checkup com {sugeridos}.\n\nÉ só responder esta mensagem que a gente combina o melhor dia e horário para você, a partir do mês que vem. Será um prazer receber você! 💙",
   retina:"Olá, {nome}! Tudo bem? Aqui é da equipe da Dra. Renata Bertazzi. 👁️\n\nNo seu último atendimento ({data}) {feitos_frase}. Como a sua retina já precisou de tratamento, a Dra. Renata gosta de acompanhar você de pertinho. Pelo seu histórico, ela sugere agora {sugeridos}, para seguirmos cuidando bem da sua visão.\n\nÉ só responder esta mensagem que a gente combina o melhor dia e horário para você, a partir do mês que vem. Será um prazer receber você! 💙",
   diabetes:"Olá, {nome}! Tudo bem? Aqui é da equipe da Dra. Renata Bertazzi. 👁️\n\nNo seu último atendimento ({data}) {feitos_frase}. Para quem tem diabetes, acompanhar a retina com regularidade é a melhor forma de proteger a visão. Pelo seu histórico, a Dra. Renata sugere agora {sugeridos}.\n\nÉ só responder esta mensagem que a gente combina o melhor dia e horário para você, a partir do mês que vem. Será um prazer receber você! 💙",
+  retdiab:"Olá, {nome}! Tudo bem? Aqui é da equipe da Dra. Renata Bertazzi. 👁️\n\nNo seu último atendimento ({data}) {feitos_frase}. Para quem tem diabetes e alterações na retina, acompanhar de perto faz toda a diferença para proteger a visão. Pelo seu histórico, a Dra. Renata sugere agora {sugeridos}.\n\nÉ só responder esta mensagem que a gente combina o melhor dia e horário para você, a partir do mês que vem. Será um prazer receber você! 💙",
+  suspglauc:"Olá, {nome}! Tudo bem? Aqui é da equipe da Dra. Renata Bertazzi. 👁️\n\nNo seu último atendimento ({data}) {feitos_frase}. Para seguirmos acompanhando com segurança a pressão e o nervo do olho, pelo seu histórico a Dra. Renata sugere agora {sugeridos}.\n\nÉ só responder esta mensagem que a gente combina o melhor dia e horário para você, a partir do mês que vem. Será um prazer receber você! 💙",
+  catarata:"Olá, {nome}! Tudo bem? Aqui é da equipe da Dra. Renata Bertazzi. 👁️\n\nNo seu último atendimento ({data}) {feitos_frase}. Como a Dra. Renata acompanha a sua catarata, é importante reavaliarmos como está a sua visão. Pelo seu histórico, ela sugere {sugeridos}, que também já deixam tudo pronto caso seja o momento de operar.\n\nÉ só responder esta mensagem que a gente combina o melhor dia e horário para você, a partir do mês que vem. Será um prazer receber você! 💙",
+  has:"Olá, {nome}! Tudo bem? Aqui é da equipe da Dra. Renata Bertazzi. 👁️\n\nJá faz mais de 6 meses desde o seu último atendimento ({data}){feitos_frase_curta}. Pelo seu histórico, é importante olharmos a retina com atenção, e a Dra. Renata sugere fecharmos o seu checkup com {sugeridos}.\n\nÉ só responder esta mensagem que a gente combina o melhor dia e horário para você, a partir do mês que vem. Será um prazer receber você! 💙",
   glaucoma:"Olá, {nome}! Tudo bem? Aqui é da equipe da Dra. Renata Bertazzi. 👁️\n\nNo seu último atendimento ({data}) {feitos_frase}. Para acompanhar com segurança a pressão e o nervo do olho, pelo seu histórico a Dra. Renata sugere agora {sugeridos}.\n\nÉ só responder esta mensagem que a gente combina o melhor dia e horário para você, a partir do mês que vem. Será um prazer receber você! 💙",
   poscir:"Olá, {nome}! Tudo bem? Aqui é da equipe da Dra. Renata Bertazzi. 👁️\n\nEsperamos que esteja enxergando muito bem depois da cirurgia! No último atendimento ({data}) {feitos_frase}. Para a sua revisão, pelo seu histórico a Dra. Renata sugere {sugeridos}.\n\nÉ só responder esta mensagem que a gente combina o melhor dia e horário para você, a partir do mês que vem. Será um prazer receber você! 💙",
   cat70:"Olá, {nome}! Tudo bem? Aqui é da equipe da Dra. Renata Bertazzi. 👁️\n\nNo seu último atendimento ({data}) {feitos_frase}. Com o passar dos anos é comum a visão ir ficando mais embaçada por causa da catarata, e a Dra. Renata gostaria de reavaliar a sua visão. Pelo seu histórico, ela sugere {sugeridos}.\n\nÉ só responder esta mensagem que a gente combina o melhor dia e horário para você, a partir do mês que vem. Será um prazer receber você! 💙",
@@ -2367,18 +2377,34 @@ function classificaEx(P){
   if(las) sinais.push("laser de retina"); else if(/FOTOCOAG|PANFOTO/.test(ts)) sinais.push("laser de retina no histórico");
   if(vv) sinais.push("cirurgia de retina"); else if(/VITRECTOMIA/.test(ts)) sinais.push("vitrectomia no histórico");
   const retina=sinais.length>0;
-  const diab=cond.includes("diabetes")||/DIABET|RETINOPATIA DIAB|\bEMD\b/.test(ts+" "+cs.map(c=>(c.procedimento||"")+" "+(c.obs||"")).join(" ").toUpperCase());
-  if(diab) sinais.push(cond.includes("diabetes")?"diabetes (marcado pela equipe)":"diabetes citado no histórico");
-  const gl=cond.includes("glaucoma")||cond.includes("fam_glaucoma")||/CAMPIMETR|CAMPO VISUAL|GONIOSCOP|GLAUC|OCT[^|]*PAPILA|\bPIO\b/.test(ts);
-  if(gl) sinais.push(cond.includes("glaucoma")?"glaucoma (marcado pela equipe)":cond.includes("fam_glaucoma")?"glaucoma na família":"exames de investigação de glaucoma no histórico");
+  const diab=cond.includes("diabetes")||cond.includes("ret_diab")||/DIABET|RETINOPATIA DIAB|\bEMD\b/.test(ts+" "+cs.map(c=>(c.procedimento||"")+" "+(c.obs||"")).join(" ").toUpperCase());
+  if(diab) sinais.push(cond.includes("diabetes")?"diabetes":"diabetes citado no histórico");
+  const gl=cond.includes("fam_glaucoma")||/CAMPIMETR|CAMPO VISUAL|GONIOSCOP|GLAUC|OCT[^|]*PAPILA|\bPIO\b/.test(ts);
+  if(cond.includes("glaucoma")) sinais.push("glaucoma"); if(cond.includes("susp_glauc")) sinais.push("suspeita de glaucoma"); if(gl) sinais.push(cond.includes("fam_glaucoma")?"glaucoma na família":"exames de investigação de glaucoma no histórico");
   const faco=cs.find(c=>c.tipo==="cirurgia"&&/FACO/i.test(c.procedimento||"")&&c.data_realizado&&desde(c.data_realizado)<=730);
   const pos=!!faco||/FACECTOMIA|FACOEMULS|CAPSULOTOMIA|\bYAG\b/.test(ts);
   if(pos) sinais.push(faco?`cirurgia de catarata em ${br(faco.data_realizado)}`:"cirurgia de catarata / YAG no histórico");
-  if(cond.includes("dmri")) sinais.push("DMRI (marcado pela equipe)");
+  if(cond.includes("dmri")) sinais.push("DMRI");
   if(cond.includes("has")) sinais.push("hipertensão");
   if(cond.includes("miopia")) sinais.push("alta miopia");
+  if(cond.includes("descol")) sinais.push("descolamento / retina operada");
+  if(cond.includes("ret_diab")) sinais.push("retinopatia diabética");
+  if(cond.includes("catarata")&&!pos) sinais.push("catarata diagnosticada");
+  if(cond.includes("pseudo")&&!pos) sinais.push("já operou catarata");
   const id=P.idade; if(id!=null) sinais.push(`${id} anos`);
-  const g = retina||cond.includes("dmri") ? "retina" : diab ? "diabetes" : gl ? "glaucoma" : pos ? "poscir" : (id!=null&&id>=70) ? "cat70" : (id!=null&&id>=65) ? "idoso" : "checkup";
+  // Árvore de decisão (o primeiro ramo que se aplica)
+  const tem=k=>cond.includes(k);
+  const g = (tem("ret_diab")||(diab&&retina)) ? "retdiab"
+    : (retina||tem("dmri")||tem("descol")) ? "retina"
+    : tem("glaucoma") ? "glaucoma"
+    : diab ? "diabetes"
+    : (gl||tem("susp_glauc")) ? "suspglauc"
+    : (tem("catarata")&&!pos&&!tem("pseudo")) ? "catarata"
+    : (pos||tem("pseudo")) ? "poscir"
+    : (id!=null&&id>=70) ? "cat70"
+    : (id!=null&&id>=65) ? "idoso"
+    : (tem("has")||tem("miopia")) ? "has"
+    : "checkup";
   const emCiclo=cs.some(c=>c.tipo!=="cirurgia"&&c.etapa==="em_tratamento"&&statusTrat(c).estado!=="pausa");
   return {g,sinais,emCiclo};
 }
@@ -2426,11 +2452,11 @@ function telaExames(){
       <div class="ex-hist"><span class="ex-lab">Últimos exames${P.exData?" "+dm(P.exData):""}</span>${P.exames.length?P.exames.map(e=>`<span class="fl ex-tag">${esc(e)}</span>`).join(""):`<span class="ex-por">nenhum exame registrado</span>`}</div>
       <div class="ex-hist"><span class="ex-lab">Sugeridos</span>${P.sug.map(s=>`<span class="fl ex-sug">${esc(s.e)}${s.novo?` <i>novo</i>`:""}</span>`).join("")}</div></div>
       <div class="inj-acts">${acts}</div></div>`; };
-  return `<div class="sec-head"><div><h2>Exames</h2><div class="sub">Triagem por risco para chamar o paciente de volta e completar os exames</div></div><button class="btn ghost" data-act="ex-msg">Mensagens por grupo</button></div>
+  return `<div class="sec-head"><div><h2>Exames</h2><div class="sub">Triagem por risco para chamar o paciente de volta e completar os exames</div></div><span class="actions"><button class="btn ghost" data-act="ex-import">Importar diagnósticos</button><button class="btn ghost" data-act="ex-msg">Mensagens por grupo</button></span></div>
   <details class="panel resumo ex-como"><summary><b>Como funciona a triagem</b> · grupos, prazos e exames</summary>
     <ol><li><b>Quem entra:</b> pacientes de <b>convênio</b> atendidos (agenda do EyecareBI + Amigo, desde fev/26). Particular só entra no grupo <b>70+ sem catarata</b>. Quem está em ciclo de injeção fica de fora.</li>
-    <li><b>Mapeamos o histórico:</b> todos os exames que o paciente já fez, os procedimentos (injeção, laser, cirurgias) e a idade. Diabetes e outras condições a equipe marca em "+ condição", porque o prontuário não manda diagnóstico.</li>
-    <li><b>Definimos o grupo</b> (o primeiro que se aplica): Retina tratada → Diabetes → Glaucoma ou suspeita → Pós-catarata → 70+ sem catarata → 65 a 69 anos → Checkup.</li>
+    <li><b>Mapeamos o histórico:</b> exames já feitos, procedimentos (injeção, laser, cirurgias), idade e <b>diagnósticos (CID)</b>. Os diagnósticos entram pela planilha exportada do prontuário (botão <b>Importar diagnósticos</b>) ou marcados na mão em "+ condição".</li>
+    <li><b>Árvore de decisão</b> (o primeiro ramo que se aplica): Retinopatia diabética → Retina tratada/DMRI → Glaucoma → Diabetes sem retinopatia → Suspeita de glaucoma → Catarata a operar → Pós-catarata → 70+ sem catarata → 65 a 69 anos → Hipertensão/alta miopia → Checkup.</li>
     <li><b>Prazo:</b> conta a partir dos últimos exames (ou do último atendimento, se não fez exame). Retina 3 meses; todos os outros 6 meses. Entra em "Enviar agora" quando vence; aparece em "Vence em até 30 dias" antes.</li>
     <li><b>Mensagem:</b> conta quais exames foram feitos no último atendimento e propõe fechar o checkup com os exames do grupo. Na tela, os que o paciente <b>nunca fez</b> aparecem marcados como NOVO.</li>
     <li><b>Sai da lista sozinho</b> quando marca retorno na agenda. Lembrete enviado, adiado (30 dias) ou "não enviar" ficam registrados.</li></ol>
@@ -2469,6 +2495,28 @@ function folhaExMsg(){
   $("#exMsgG").addEventListener("change",e=>{ S.exMsgG=e.target.value; folhaExMsg(); });
   $("#fexm").addEventListener("submit",e=>{ e.preventDefault(); try{ localStorage.setItem("exMsg_"+g,$("#exMsgTx").value); }catch(err){} fechar(); toast("Mensagem salva ✔"); });
   $("#exMsgPad").addEventListener("click",()=>{ $("#exMsgTx").value=EX_MSG[g]; });
+}
+function folhaExImport(){
+  abrir(`<header><div><h2>Importar diagnósticos</h2><div class="sub">Planilha ou CSV exportado do prontuário com o nome do paciente e o CID ou diagnóstico</div></div><button class="close" data-close aria-label="Fechar">×</button></header>
+  <div class="form"><p class="sub" style="margin:0">No EyecareBI ou no Amigo, exporte um relatório de pacientes com <b>CID / diagnóstico / comorbidades</b> (Excel ou CSV). O portal procura a coluna do nome e as colunas de CID/diagnóstico/antecedentes e reconhece: diabetes (E10–E14), retinopatia diabética (H36.0), glaucoma (H40), DMRI (H35.3), descolamento (H33), catarata (H25–H26), pseudofacia (Z96.1), hipertensão (I10) e alta miopia (H52.1), também pelo texto.</p>
+  <label>Arquivo<input type="file" id="exImpF" accept=".xlsx,.xls,.csv"></label><div id="exImpR"></div></div>`);
+  $("#exImpF").addEventListener("change",async e=>{ const f=e.target.files[0]; if(!f) return; const out=$("#exImpR"); out.innerHTML='<div class="sub">Lendo…</div>';
+    try{ const X=await carregaLib("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js","XLSX"); const wb=X.read(await f.arrayBuffer(),{type:"array"});
+      const rows=wb.SheetNames.flatMap(n=>X.utils.sheet_to_json(wb.Sheets[n],{defval:""}));
+      if(!rows.length){ out.innerHTML='<div class="msg err">Planilha vazia.</div>'; return; }
+      const cols=Object.keys(rows[0]); const cN=cols.find(c=>/NOME|PACIENTE/i.test(c)); const cD=cols.filter(c=>c!==cN&&/CID|DIAGN|HIP[OÓ]TESE|ANTECED|COMORB|DOEN|CONDI|PROBLEMA|HIST/i.test(c));
+      if(!cN||!cD.length){ out.innerHTML=`<div class="msg err">Não achei a coluna do nome e/ou de diagnóstico. Colunas encontradas: ${esc(cols.join(", "))}</div>`; return; }
+      const conhecidos=new Set(pacientesExames().map(P=>P.k)); const novo={};
+      rows.forEach(r=>{ const k=chaveNome(r[cN]); if(!k) return; const t=cD.map(c=>String(r[c]||"")).join(" | ").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g,""); const cs=EX_CID.filter(([,re])=>re.test(t)).map(([c])=>c); if(!cs.length) return; (novo[k]=novo[k]||{nome:r[cN],c:new Set()}); cs.forEach(c=>novo[k].c.add(c)); });
+      const ks=Object.keys(novo), achados=ks.filter(k=>conhecidos.has(k)); const cont={}; ks.forEach(k=>novo[k].c.forEach(c=>cont[c]=(cont[c]||0)+1));
+      out.innerHTML=`<div class="msg info">${rows.length} linhas · ${ks.length} pacientes com diagnóstico reconhecido (${achados.length} estão na lista de Exames).<br>${EX_COND.filter(([c])=>cont[c]).map(([c,t])=>`${t}: <b>${cont[c]}</b>`).join(" · ")}</div><button class="btn" id="exImpOk">Salvar diagnósticos</button>`;
+      $("#exImpOk").addEventListener("click",async()=>{ fechar(); let ok=0, local=false;
+        const linhas=ks.map(k=>{ const ant=exCond(k); return {paciente:k,nome:novo[k].nome,condicoes:[...new Set([...ant,...novo[k].c])],atualizado_em:new Date().toISOString(),por:S.user?.email||null}; });
+        for(let i=0;i<linhas.length;i+=200){ const r=await sb.from("paciente_condicoes").upsert(linhas.slice(i,i+200)); if(r.error){ local=true; break; } ok+=Math.min(200,linhas.length-i); }
+        if(local){ let o={}; try{ o=JSON.parse(localStorage.getItem("exConds")||"{}"); }catch(err){} linhas.forEach(l=>o[l.paciente]=l.condicoes); try{ localStorage.setItem("exConds",JSON.stringify(o)); }catch(err){} toast(`${linhas.length} pacientes salvos neste aparelho ✔`); }
+        else { await carregaExLemb(); toast(`${ok} pacientes com diagnóstico salvos ✔`); }
+        S._exC=null; render(); });
+    }catch(err){ out.innerHTML=`<div class="msg err">${esc(err.message)}</div>`; } });
 }
 function folhaExCond(P){
   const at=exCond(P.k);
@@ -3123,6 +3171,7 @@ async function acao(act, el){
   if(act==="ex-whats"){ const P=pacientesExames().find(x=>x.k===el.dataset.k); if(P) folhaExWhats(P); return; }
   if(act==="ex-marca"){ const P=pacientesExames().find(x=>x.k===el.dataset.k); if(!P) return; const stt=el.dataset.st; return marcaExame(P,stt,stt==="adiado"?{adiar_ate:iso(addDias(hoje(),30))}:null); }
   if(act==="ex-msg") return folhaExMsg();
+  if(act==="ex-import") return folhaExImport();
   if(act==="ex-cond"){ const P=pacientesExames().find(x=>x.k===el.dataset.k); if(P) folhaExCond(P); return; }
   if(act==="pos-confirmar"){ const x=achaProc(el.dataset.key); const row={confirmado_em:iso(hoje()),atualizado_por:S.user?.email||null};
     return x.pos ? salvar(sb.from("pos_contatos").update(row).eq("id",x.pos.id),"Confirmado ✔ · liberado para contato") : salvar(sb.from("pos_contatos").insert({caso_id:x.c.id,sessao_id:x.ses?x.ses.id:null,data_procedimento:x.data,...row}),"Confirmado ✔ · liberado para contato"); }
