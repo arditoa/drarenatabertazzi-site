@@ -515,6 +515,7 @@ details.sy-d>summary small{font-weight:400;color:var(--soft);font-size:.8rem;dis
 .sy-body{padding:0 14px 14px;font-size:.88rem}
 .sy-body ol{margin:4px 0 10px 18px;padding:0}.sy-body li{margin:4px 0}
 .sy-body ul{margin:4px 0 0 18px;padding:0;color:var(--soft);font-size:.82rem}
+.fl.src{background:#eef2f8;color:#3a4a66}
 /* ===== v4.3: menu ===== */
 .top .out:focus{outline:none}.top .out:focus-visible{outline:2px solid #fff;outline-offset:2px}
 .menu[open] .out{background:rgba(255,255,255,.12)}
@@ -1411,11 +1412,33 @@ function procsAgendados(){
     out.push({c,ses:s,data:s.data_realizada,fut:true,rot:`${TIPO_LABEL[c.tipo]}${c.olho?" "+c.olho:""} · ${s.numero}ª de ${c.total_sessoes||3}${s.ciclo>1?" · ciclo "+s.ciclo:""}`,mod:modDe(s.atualizado_em)}); }
   return out.sort((a,b)=>a.data.localeCompare(b.data));
 }
+// De onde vem cada procedimento agendado (Rodada portal 12/11):
+//  • origem da indicação: planilha do Drive (OFT. AV., ICOG, OPUS) ou lançada no portal;
+//  • a data marcada é sempre do portal (as planilhas só trazem aplicações já feitas);
+//  • se a data bate com um agendamento na agenda do prontuário (EyecareBI ou Amigo);
+//  • aviso quando a data cai num domingo.
+function origemCaso(c){ const m=/Planilha (OFT\. AV\.|ICOG|OPUS)/.exec(c.obs||""); return m?m[1]:null; }
+function agendaPront(c,data){
+  const nm=pacOf(c).nome, icog=/^ICOG/.test(c.local||"");
+  const daFonte=(S.atend||[]).filter(a=>icog?/^ICOG/.test(a.local||""):!/^ICOG/.test(a.local||""));
+  const ate=daFonte.map(a=>a.data).sort().at(-1);
+  if(!ate||data>ate) return {k:"sem",tx:"Agenda do prontuário ainda não chega a esta data"};
+  const a=daFonte.find(a=>a.data===data&&a.status!=="CANCELED"&&nomeBate(a.paciente,nm));
+  return a?{k:"ok",tx:`Na agenda do prontuário${a.inicio?" · "+String(a.inicio).slice(11,16):""}`}:{k:"nao",tx:"Não está na agenda do prontuário"};
+}
+function tagsFonte(c,x){
+  const o=origemCaso(c), ag=agendaPront(c,x.data), dom=parse(x.data).getDay()===0;
+  return [
+    `<span class="fl src" title="${o?"A indicação veio da planilha do Drive":"A indicação foi lançada aqui no portal"}">${o?"Planilha "+esc(o):"Portal"}</span>`,
+    `<span class="fl ${ag.k==="ok"?"ok":ag.k==="nao"?"warn":""}" title="A data foi marcada no portal; aqui conferimos com a agenda sincronizada do EyecareBI/Amigo">${ag.tx}</span>`,
+    dom?`<span class="fl late" title="Nenhuma clínica atende aos domingos">Domingo · confira a data</span>`:""
+  ];
+}
 function linhaAgendado(x){
   const c=x.c,p=pacOf(c),passou=x.data<hojeISO(),ev=passou||x.data===hojeISO()?evolucaoPront(c,x.data):null;
   const kid=x.ses?`data-sid="${x.ses.id}"`:"";
   const nr=(S.nr||[]).filter(r=>r.caso_id===c.id).length;
-  const tags=[passou?(ev?`<span class="fl ok">Evolução no prontuário · confirme</span>`:`<span class="fl late">Passou da data · registrar</span>`):ev?`<span class="fl ok">Evolução no prontuário · confirme</span>`:"", nr?`<span class="fl">${nr}× não realizado antes</span>`:"", x.fut?`<span class="fl warn" title="Foi lançado como realizado, mas a data ainda não chegou">Lançado como feito com data futura</span>`:""].join("");
+  const tags=[passou?(ev?`<span class="fl ok">Evolução no prontuário · confirme</span>`:`<span class="fl late">Passou da data · registrar</span>`):ev?`<span class="fl ok">Evolução no prontuário · confirme</span>`:"", nr?`<span class="fl">${nr}× não realizado antes</span>`:"", x.fut?`<span class="fl warn" title="Foi lançado como realizado, mas a data ainda não chegou">Lançado como feito com data futura</span>`:"", ...tagsFonte(c,x)].join("");
   return `<div class="tk-row pr-row ${passou?"pr-late":""}"><div class="inj-nome"><button class="linklike" data-pac="${p.id}">${esc(nomeCurto(p.nome))}</button><small>${tipoTag(c.tipo)} ${esc(x.rot.replace(/^(Cirurgia|Injeção|Laser) ?/,""))}${c.local?" · "+esc(c.local):""} · ${esc(pagLabel(c))}</small>${tags?`<div class="pos-st">${tags}</div>`:""}</div>
     <div class="inj-acts">${contato(p.telefone)}<button class="btn small okb" data-act="ag-feito" data-id="${c.id}" ${kid} data-data="${x.data}">Realizado</button><button class="btn small ghost" data-act="ag-nao" data-id="${c.id}" ${kid} data-data="${x.data}">Não realizado</button><button class="btn small ghost" data-act="ag-remarcar" data-id="${c.id}" ${kid} data-data="${x.data}">Remarcar</button></div></div>`;
 }
