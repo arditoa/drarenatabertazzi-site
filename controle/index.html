@@ -2454,7 +2454,7 @@ const exMin=e=>/^OCT/.test(e)?e:e.charAt(0).toLowerCase()+e.slice(1);
 const listaPt=a=>a.length<=1?(a[0]||""):a.slice(0,-1).join(", ")+" e "+a.at(-1);
 function textoExMsg(P){ const fe=P.exames.map(exMin), sg=P.sug.map(s=>exMin(s.e));
   return exMsgDe(P.g).replace(/\{nome\}/g,primeiroNome(P.nome)).replace(/\{data\}/g,br(P.exData||P.base))
-    .replace(/\{feitos_frase\}/g,fe.length?`fizemos os exames de ${listaPt(fe)}`:"fizemos a sua avaliação").replace(/\{feitos_frase_curta\}/g,fe.length?`, quando fizemos os exames de ${listaPt(fe)}`:"")
+    .replace(/\{feitos_frase\}/g,fe.length?`fizemos ${fe.length>1?"os exames":"o exame"} de ${listaPt(fe)}`:"fizemos a sua avaliação").replace(/\{feitos_frase_curta\}/g,fe.length?`, quando fizemos ${fe.length>1?"os exames":"o exame"} de ${listaPt(fe)}`:"")
     .replace(/\{feitos\}/g,listaPt(fe)||"a avaliação").replace(/\{sugeridos\}/g,listaPt(sg)).replace(/ pelo seu convênio/g,P.conv?" pelo seu convênio":""); }
 function folhaExWhats(P){
   const f=telIntl(P.tel), G=EX_G[P.g];
