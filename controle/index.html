@@ -594,6 +594,18 @@ details.sy-d>summary small{font-weight:400;color:var(--soft);font-size:.8rem;dis
 .ex-conds{display:grid;gap:8px}.ex-ck{display:flex;gap:8px;align-items:center;font-weight:500;color:var(--ink);font-size:.92rem}.ex-ck input{width:auto}
 @media(max-width:700px){.ex-lab{min-width:0;flex-basis:100%}}
 .ex-como ol{margin:6px 0 10px;padding-left:20px;display:grid;gap:4px;font-size:.86rem}.ex-como{margin-bottom:12px}
+
+.sc-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin-top:4px}
+.sc-head>b{font-size:.92rem}
+.sc-flow{display:flex;flex-wrap:wrap;align-items:stretch;gap:6px;background:#f7f9fc;border:1px solid var(--line);border-radius:12px;padding:12px}
+.sc-s{display:grid;gap:1px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-width:92px}
+.sc-s b{font-size:1.15rem;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.sc-s span{font-size:.72rem;color:var(--soft)}
+.sc-s.hl{border-color:#bcd0ec;background:#eef4fc}.sc-s.ok{border-color:#bfe0cd;background:#e9f6ee}.sc-s.ok b{color:var(--ok)}
+.sc-op{align-self:center;font-size:1.2rem;font-weight:600;color:#8a93a3;padding:0 2px}
+.sim-eq td,.sim-eq th{text-align:right}.sim-eq td:first-child,.sim-eq th:first-child{text-align:left}
+.sim-como{display:grid;gap:4px;font-size:.78rem;color:var(--soft)}
+.sim-alerta{color:var(--warn);font-weight:500}
 </style>
 </head>
 <body>
@@ -2313,19 +2325,26 @@ function simExames(){
 }
 function blocoSimExames(){
   const R=simExames(); if(!R.tot.pl||!R.medGeral) return "";
-  const meta=metaExPlano(), f1=v=>v.toFixed(1).replace(".",",");
-  const card=(n,t,sub)=>`<div class="sim-k"><b>${n}</b><span>${t}</span>${sub?`<small>${sub}</small>`:""}</div>`;
+  const meta=Number(S.simMeta)||metaExPlano(), f1=v=>v.toFixed(1).replace(".",","), n0=v=>Math.round(v).toLocaleString("pt-BR");
+  // conta por clínica e total na meta escolhida
+  const C=R.clin.filter(c=>c.pl).map(c=>{ const esp=c.pl*meta, falta=c.falta(meta), feitos=esp-falta, v=falta*c.val; return {...c,esp,falta,feitos,v,mes:v*30/R.dias}; });
+  const T={pl:C.reduce((s,c)=>s+c.pl,0),esp:C.reduce((s,c)=>s+c.esp,0),feitos:C.reduce((s,c)=>s+c.feitos,0),falta:C.reduce((s,c)=>s+c.falta,0),v:C.reduce((s,c)=>s+c.v,0)}; T.mes=T.v*30/R.dias; T.val=T.falta?T.v/T.falta:R.medGeral;
+  const step=(n,t,cls)=>`<div class="sc-s ${cls||""}"><b>${n}</b><span>${t}</span></div>`, op=o=>`<div class="sc-op">${o}</div>`;
+  const metaChips=[3,4,5,6].map(m=>`<button class="${m===meta?"on":""}" data-pset="simMeta=${m}" aria-pressed="${m===meta}">${m} exames${m===metaExPlano()?" · meta":""}</button>`).join("");
   return `<div class="panel sim-ex"><div class="panel-h"><h3>Quanto a mais com mais exames por paciente de plano</h3><span class="sub">todas as clínicas · ${br(R.de)} a ${br(R.ate)} (${R.dias} dias)</span></div>
-  <div class="sim-ks">${card(R.tot.exTot,"Exames no período",`${R.tot.exPl} em pacientes de plano`)}${card(R.tot.pac,"Pacientes atendidos","")}${card(R.tot.pl,"Com plano (convênio)",`média ${f1(R.tot.exPl/R.tot.pl)} exames por paciente`)}${card(R.tot.sem,"Sem plano (particular)","não entram na conta")}${card(moeda(R.medGeral),"Valor médio por exame","pago pelos planos")}</div>
-  <div class="tbl-wrap"><table class="tbl sim-t"><thead><tr><th>Se cada paciente de plano fizesse pelo menos</th><th>Exames a mais</th><th>No período</th><th>Por mês (estimativa)</th><th>Por clínica</th></tr></thead><tbody>
-  ${R.linhas.map(x=>`<tr class="${x.m===meta?"meta":""}"><td><b>${x.m} exames</b>${x.m===meta?` <span class="fl blue">meta atual</span>`:""}</td><td>${x.ex}</td><td><b>+ ${moeda0(x.v)}</b></td><td><b class="sim-mes">+ ${moeda0(x.mes)}</b></td><td class="sim-det">${x.det.map(([l,,v])=>`${esc(l)} ${moeda0(v)}`).join(" · ")||"—"}</td></tr>`).join("")}
+  <div class="sim-ks">${card0(R.tot.exTot,"Exames no período",`${R.tot.exPl} em pacientes de plano`)}${card0(R.tot.pac,"Pacientes atendidos","")}${card0(R.tot.pl,"Com plano (convênio)",`hoje: ${f1(R.tot.exPl/R.tot.pl)} exame por paciente`)}${card0(R.tot.sem,"Sem plano (particular)","não entram na conta")}${card0(moeda(R.medGeral),"Valor médio por exame","pago pelos planos")}</div>
+  <div class="sc-head"><b>A conta, passo a passo</b><div class="segc">${metaChips}</div></div>
+  <div class="sc-flow">${step(T.pl,"pacientes de plano")}${op("×")}${step(meta,"exames por paciente (meta)")}${op("=")}${step(n0(T.esp),"exames esperados")}${op("−")}${step(n0(T.feitos),"já feitos*")}${op("=")}${step(n0(T.falta),"exames faltando","hl")}${op("×")}${step(moeda(T.val),"valor médio do exame")}${op("=")}${step("+ "+moeda0(T.v),`em ${R.dias} dias`,"hl")}${op("→")}${step("+ "+moeda0(T.mes),"por mês","ok")}</div>
+  <div class="tbl-wrap"><table class="tbl sim-t sim-eq"><thead><tr><th>Clínica</th><th>Pacientes de plano</th><th>× ${meta} = esperados</th><th>− já feitos*</th><th>= faltando</th><th>× valor do exame</th><th>= no período</th><th>por mês</th></tr></thead><tbody>
+  ${C.map(c=>`<tr><td><b>${esc(c.l)}</b><small class="ex-n">hoje ${f1(c.medEx)} exame/paciente</small></td><td>${c.pl}</td><td>${c.esp}</td><td>${c.feitos}</td><td><b>${c.falta}</b></td><td>${moeda(c.val)}${c.valProprio?"":`<small class="ex-n">média geral</small>`}</td><td><b>+ ${moeda0(c.v)}</b></td><td><b class="sim-mes">+ ${moeda0(c.mes)}</b></td></tr>`).join("")}
+  <tr class="soma"><td><b>Total</b></td><td><b>${T.pl}</b></td><td><b>${T.esp}</b></td><td><b>${T.feitos}</b></td><td><b>${T.falta}</b></td><td>${moeda(T.val)}</td><td><b>+ ${moeda0(T.v)}</b></td><td><b class="sim-mes">+ ${moeda0(T.mes)}</b></td></tr>
   </tbody></table></div>
-  <div class="panel-h" style="margin-top:4px"><h3 style="font-size:.9rem">Por clínica · meta de ${meta} exames</h3></div>
-  <div class="tbl-wrap"><table class="tbl sim-t"><thead><tr><th>Clínica</th><th>Pacientes</th><th>Com plano</th><th>Sem plano</th><th>Exames (total)</th><th>Exames/paciente de plano</th><th>Valor médio do exame</th><th>Exames a mais</th><th>A mais no período</th><th>Por mês</th></tr></thead><tbody>
-  ${R.clin.map(c=>{ const f=c.falta(meta), v=f*c.val; return `<tr><td><b>${esc(c.l)}</b></td><td>${c.pac}</td><td>${c.pl}</td><td>${c.sem}</td><td>${c.exTot}</td><td><span class="ex-chip ${c.medEx<meta?"baixo":"ok"}" style="cursor:default">${f1(c.medEx)}</span></td><td>${moeda(c.val)}${c.valProprio?"":`<small class="ex-n">média geral</small>`}</td><td>${f}</td><td><b>+ ${moeda0(v)}</b></td><td><b class="sim-mes">+ ${moeda0(v*30/R.dias)}</b></td></tr>`; }).join("")}
+  <div class="tbl-wrap"><table class="tbl sim-t"><thead><tr><th>Cenários</th><th>Exames faltando</th><th>No período</th><th>Por mês</th></tr></thead><tbody>
+  ${R.linhas.map(x=>`<tr class="${x.m===meta?"meta":""}"><td><b>${x.m} exames por paciente</b>${x.m===metaExPlano()?` <span class="fl blue">meta atual</span>`:""}</td><td>${x.ex}</td><td><b>+ ${moeda0(x.v)}</b></td><td><b class="sim-mes">+ ${moeda0(x.mes)}</b></td></tr>`).join("")}
   </tbody></table></div>
-  <ol class="sim-como"><li>Para cada paciente <b>de plano</b>, contamos quantos exames ele fez no período (pacientes sem plano não entram).</li><li>Vemos quantos faltam para chegar ao número da linha. Quem já fez esse número ou mais conta zero.</li><li>Multiplicamos pelo valor médio que <b>aquela clínica</b> pagou por exame de plano (se a clínica não tem exame de plano pago, usamos a média geral).</li><li>"Por mês" ajusta o valor do período para 30 dias. Esta simulação usa todas as clínicas; o filtro de clínica acima não muda ela, só o período.</li></ol></div>`;
+  <div class="sim-como"><span>* <b>Já feitos</b> conta no máximo ${meta} por paciente: quem fez mais não compensa quem fez menos. Só pacientes de plano entram; particular fica fora.</span><span><b>Valor do exame</b> = média que cada clínica pagou por exame de plano no período. <b>Por mês</b> = valor do período ÷ ${R.dias} dias × 30.</span>${C.some(c=>c.exTot<=c.pl*0.2)?`<span class="sim-alerta">Atenção: ${C.filter(c=>c.exTot<=c.pl*0.2).map(c=>esc(c.l)).join(", ")} quase não tem exame no extrato. Se os exames de lá não são repassados para você, a conta dessa clínica superestima o ganho.</span>`:""}</div></div>`;
 }
+const card0=(n,t,sub)=>`<div class="sim-k"><b>${n}</b><span>${t}</span>${sub?`<small>${sub}</small>`:""}</div>`;
 
 /* ===== Aba Exames: triagem por risco (convênio) =====
    Intervalos baseados nas diretrizes da Academia Americana de Oftalmologia (AAO, Preferred Practice Pattern):
