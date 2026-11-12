@@ -2336,9 +2336,9 @@ const EX_GRUPOS=[
   {k:"retina",nome:"Retina · tratamento ou cirurgia",cor:"late",dias:90,ex:["OCT de mácula","Retinografia","Mapeamento de retina"],por:"já tratou retina (injeção, laser ou vitrectomia): controle a cada 3 meses"},
   {k:"diabetes",nome:"Diabetes",cor:"late",dias:180,ex:["Mapeamento de retina","Retinografia","OCT de mácula"],por:"diabetes: AAO recomenda reavaliar a retina a cada 3–12 meses"},
   {k:"glaucoma",nome:"Glaucoma ou suspeita",cor:"warn",dias:180,ex:["Campimetria","OCT de nervo óptico","Tonometria","Paquimetria"],por:"sinais de investigação de glaucoma: campo visual + OCT de nervo a cada 6 meses"},
-  {k:"poscir",nome:"Pós-cirurgia de catarata",cor:"warn",dias:365,ex:["Mapeamento de retina","Tonometria","Microscopia especular"],por:"operou catarata: revisão anual da retina e da pressão do olho"},
-  {k:"cat70",nome:"70+ sem cirurgia de catarata",cor:"warn",dias:365,ex:["Mapeamento de retina","Microscopia especular","Ceratoscopia","Biometria"],por:"70+ sem cirurgia de catarata registrada: a catarata é muito frequente nessa idade; avaliação anual do cristalino com os exames que já preparam uma eventual cirurgia"},
-  {k:"idoso",nome:"65 a 69 anos",cor:"blue",dias:365,ex:["Tonometria","Mapeamento de retina","Retinografia","OCT de mácula"],por:"65+: AAO recomenda exame completo a cada 1–2 anos (rastrear glaucoma, DMRI, catarata)"},
+  {k:"poscir",nome:"Pós-cirurgia de catarata",cor:"warn",dias:180,ex:["Mapeamento de retina","Tonometria","Microscopia especular"],por:"operou catarata: revisão da retina e da pressão do olho (regra da clínica: convênio a cada 6 meses)"},
+  {k:"cat70",nome:"70+ sem cirurgia de catarata",cor:"warn",dias:180,ex:["Mapeamento de retina","Microscopia especular","Ceratoscopia","Biometria"],por:"70+ sem cirurgia de catarata registrada: a catarata é muito frequente nessa idade; reavaliar o cristalino a cada 6 meses com os exames que já preparam uma eventual cirurgia"},
+  {k:"idoso",nome:"65 a 69 anos",cor:"blue",dias:180,ex:["Tonometria","Mapeamento de retina","Retinografia","OCT de mácula"],por:"65+: maior risco de glaucoma, DMRI e catarata (AAO: exame completo ao menos a cada 1–2 anos; regra da clínica: 6 meses)"},
   {k:"checkup",nome:"Checkup ocular",cor:"",dias:180,ex:["Tonometria","Mapeamento de retina","Retinografia"],por:"sem fator de risco registrado: checkup pelo convênio após 6 meses sem exames"}];
 const EX_G=Object.fromEntries(EX_GRUPOS.map(g=>[g.k,g]));
 const EX_COND=[["diabetes","Diabetes"],["glaucoma","Glaucoma / suspeita"],["dmri","DMRI"],["has","Hipertensão"],["fam_glaucoma","Glaucoma na família"],["miopia","Alta miopia"]];
@@ -2439,8 +2439,9 @@ async function marcaExame(P,status,extra){
 }
 async function carregaExLemb(){ const r=await sb.from("exames_lembretes").select("*").order("criado_em",{ascending:false}).limit(5000); if(r.error){ S.exSemTabela=true; S.exLemb=null; } else { S.exSemTabela=false; S.exLemb=r.data||[]; }
   const c=await sb.from("paciente_condicoes").select("*"); S.exConds=c.error?null:Object.fromEntries((c.data||[]).map(x=>[x.paciente,x])); S._exC=null; }
+const exMin=e=>/^OCT/.test(e)?e:e.charAt(0).toLowerCase()+e.slice(1);
 const listaPt=a=>a.length<=1?(a[0]||""):a.slice(0,-1).join(", ")+" e "+a.at(-1);
-function textoExMsg(P){ const fe=P.exames.map(e=>e.toLowerCase()), sg=P.sug.map(s=>s.e.toLowerCase());
+function textoExMsg(P){ const fe=P.exames.map(exMin), sg=P.sug.map(s=>exMin(s.e));
   return exMsgDe(P.g).replace(/\{nome\}/g,primeiroNome(P.nome)).replace(/\{data\}/g,br(P.exData||P.base))
     .replace(/\{feitos_frase\}/g,fe.length?`fizemos ${listaPt(fe)}`:"fizemos a sua avaliação").replace(/\{feitos_frase_curta\}/g,fe.length?`, quando fizemos ${listaPt(fe)}`:"")
     .replace(/\{feitos\}/g,listaPt(fe)||"a avaliação").replace(/\{sugeridos\}/g,listaPt(sg)); }
