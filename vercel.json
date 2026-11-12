@@ -1,0 +1,6 @@
+{
+  "headers": [
+    { "source": "/controle", "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }] },
+    { "source": "/controle/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }] }
+  ]
+}
