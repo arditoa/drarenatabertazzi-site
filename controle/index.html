@@ -1427,11 +1427,11 @@ function agendaPront(c,data){
   return a?{k:"ok",tx:`Na agenda do prontuário${a.inicio?" · "+String(a.inicio).slice(11,16):""}`}:{k:"nao",tx:"Não está na agenda do prontuário"};
 }
 function tagsFonte(c,x){
-  const o=origemCaso(c), ag=agendaPront(c,x.data), dom=parse(x.data).getDay()===0;
+  const o=origemCaso(c), ag=agendaPront(c,x.data), w=parse(x.data).getDay(), dom=diaSemAtend(x.data,c.local);
   return [
     `<span class="fl src" title="${o?"A indicação veio da planilha do Drive":"A indicação foi lançada aqui no portal"}">${o?"Planilha "+esc(o):"Portal"}</span>`,
     `<span class="fl ${ag.k==="ok"?"ok":ag.k==="nao"?"warn":""}" title="A data foi marcada no portal; aqui conferimos com a agenda sincronizada do EyecareBI/Amigo">${ag.tx}</span>`,
-    dom?`<span class="fl late" title="Nenhuma clínica atende aos domingos">Domingo · confira a data</span>`:""
+    dom?`<span class="fl late" title="${w===0?"Nenhuma clínica atende aos domingos":"Sábado só tem atendimento no ICOG"}">${w===0?"Domingo":"Sábado"} · confira a data</span>`:""
   ];
 }
 function linhaAgendado(x){
@@ -2772,10 +2772,17 @@ function folhaPacEdit(id){
   $("#fp").addEventListener("submit", async e=>{ e.preventDefault(); const row={nome:$("#pNome").value.trim(),telefone:$("#pTel").value.trim()||null,obs:$("#pObs").value.trim()||null}; fechar(); await salvar(sb.from("pacientes").update(row).eq("id",id),"Paciente atualizado"); });
 }
 
-function folhaData(titulo, rotulo, valor, onOk){
+// Dias sem atendimento: domingo em todas as clínicas; sábado em todas, menos no ICOG (Palmas e Porto).
+const atendeSabado=local=>/^ICOG/.test(local||"");
+function diaSemAtend(data,local){ const w=parse(data).getDay(); return w===0||(w===6&&!atendeSabado(local)); }
+// empurra a data sugerida para o próximo dia com atendimento
+function proxDiaAtende(data,local){ let d=parse(data); for(let i=0;i<7&&diaSemAtend(iso(d),local);i++) d=addDias(d,1); return iso(d); }
+function folhaData(titulo, rotulo, valor, onOk, local){
   abrir(`<header><h2>${titulo}</h2><button class="close" data-close aria-label="Fechar">×</button></header>
   <form id="fd" class="form"><label>${rotulo}<input type="date" id="fdData" value="${valor}" required></label><button class="btn" type="submit">Salvar</button></form>`);
-  $("#fd").addEventListener("submit",e=>{ e.preventDefault(); const v=$("#fdData").value; if(!v) return; fechar(); onOk(v); });
+  $("#fd").addEventListener("submit",e=>{ e.preventDefault(); const v=$("#fdData").value; if(!v) return;
+    if(local!==undefined&&diaSemAtend(v,local)&&!confirm(`${parse(v).getDay()===0?"Domingo":"Sábado"} não tem atendimento${atendeSabado(local)?"":" nesta clínica (sábado só no ICOG)"}. Salvar mesmo assim?`)) return;
+    fechar(); onOk(v); });
 }
 
 function folhaMenu(c){
@@ -2843,20 +2850,20 @@ async function acao(act, el){
   }
   if(act==="agendar"){
     const st=statusTrat(c);
-    const sug = st.ultima ? iso(addDias(parse(st.ultima), c.intervalo_dias||VENCE_DIAS)) : iso(hoje());
+    const sug = proxDiaAtende(st.ultima ? iso(addDias(parse(st.ultima), c.intervalo_dias||VENCE_DIAS)) : iso(hoje()), c.local);
     return folhaData(`Agendar ${st.feitas.length+1}ª aplicação`,"Data", st.agendada?.data_prevista||sug, async v=>{
       const pend=st.doCiclo.find(s=>!s.data_realizada);
       await salvar(pend ? sb.from("sessoes").update({data_prevista:v}).eq("id",pend.id) : sb.from("sessoes").insert({caso_id:c.id,ciclo:st.ciclo,numero:st.feitas.length+1,data_prevista:v}),"Agendado ✔");
-    });
+    }, c.local);
   }
   if(act==="ciclo"){
     const st=statusTrat(c);
-    return folhaData("Iniciar novo ciclo (3 aplicações)","Data prevista da 1ª aplicação", iso(addDias(st.ultima?parse(st.ultima):hoje(), c.intervalo_dias||VENCE_DIAS)), v=>salvar(sb.from("sessoes").insert({caso_id:c.id,ciclo:st.ciclo+1,numero:1,data_prevista:v}),"Novo ciclo criado ✔"));
+    return folhaData("Iniciar novo ciclo (3 aplicações)","Data prevista da 1ª aplicação", proxDiaAtende(iso(addDias(st.ultima?parse(st.ultima):hoje(), c.intervalo_dias||VENCE_DIAS)),c.local), v=>salvar(sb.from("sessoes").insert({caso_id:c.id,ciclo:st.ciclo+1,numero:1,data_prevista:v}),"Novo ciclo criado ✔"), c.local);
   }
   if(act==="pos-confirmar"){ const x=achaProc(el.dataset.key); const row={confirmado_em:iso(hoje()),atualizado_por:S.user?.email||null};
     return x.pos ? salvar(sb.from("pos_contatos").update(row).eq("id",x.pos.id),"Confirmado ✔ · liberado para contato") : salvar(sb.from("pos_contatos").insert({caso_id:x.c.id,sessao_id:x.ses?x.ses.id:null,data_procedimento:x.data,...row}),"Confirmado ✔ · liberado para contato"); }
   if(act==="ag-nao") return folhaNaoRealizado(c, el.dataset.sid||null, el.dataset.data);
-  if(act==="ag-remarcar"){ const sid=el.dataset.sid; return folhaData("Remarcar","Nova data", el.dataset.data, v=>sid?salvar(sb.from("sessoes").update({data_prevista:v,data_realizada:null}).eq("id",sid),"Remarcado ✔"):salvar(sb.from("casos").update({etapa:"agendado",data_agendada:v,data_realizado:null}).eq("id",c.id),"Cirurgia remarcada ✔")); }
+  if(act==="ag-remarcar"){ const sid=el.dataset.sid; return folhaData("Remarcar","Nova data", el.dataset.data, v=>sid?salvar(sb.from("sessoes").update({data_prevista:v,data_realizada:null}).eq("id",sid),"Remarcado ✔"):salvar(sb.from("casos").update({etapa:"agendado",data_agendada:v,data_realizado:null}).eq("id",c.id),"Cirurgia remarcada ✔"), c.local); }
   if(act==="ag-feito"){ const sid=el.dataset.sid;
     if(!sid) return folhaData("Cirurgia realizada","Data da cirurgia", el.dataset.data, v=>salvar(sb.from("casos").update({etapa:"realizado",data_realizado:v,etapa_desde:v,interesse:"fechado"}).eq("id",c.id),"Cirurgia realizada ✔ · aparece em Realizados para o contato"));
     return folhaData("Aplicação realizada","Data", el.dataset.data, async v=>{ if(await salvar(sb.from("sessoes").update({data_realizada:v}).eq("id",sid))) await salvar(sb.from("casos").update({etapa:"em_tratamento",ultimo_contato:null}).eq("id",c.id),`${TIPO_LABEL[c.tipo]} de ${br(v)} registrada ✔`); }); }
