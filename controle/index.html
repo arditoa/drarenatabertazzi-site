@@ -2345,11 +2345,16 @@ const EX_GRUPOS=[
   {k:"idoso",nome:"65 a 69 anos",cor:"blue",dias:180,ex:["Tonometria","Mapeamento de retina","Retinografia","OCT de mácula"],por:"65+: maior risco de glaucoma, DMRI e catarata (AAO: exame completo ao menos a cada 1–2 anos; regra da clínica 6 meses)"},
   {k:"has",nome:"Hipertensão ou alta miopia",cor:"",dias:180,ex:["Mapeamento de retina","Retinografia","Tonometria"],por:"hipertensão (I10) pede olhar a retina (retinopatia hipertensiva); alta miopia (H52.1) tem mais risco de descolamento e glaucoma"},
   {k:"checkup",nome:"Checkup ocular",cor:"",dias:180,ex:["Tonometria","Mapeamento de retina","Retinografia"],por:"sem fator de risco registrado: checkup pelo convênio após 6 meses sem exames"}];
+const EX_PART=["retdiab","retina","cat70"]; // grupos que também incluem particular
+const EX_LEVE=["checkup","idoso","has","poscir"]; // grupos de checkup: abordagem por tempo sem retorno
 const EX_G=Object.fromEntries(EX_GRUPOS.map(g=>[g.k,g]));
 const EX_COND=[["diabetes","Diabetes (E10–E14)"],["ret_diab","Retinopatia diabética (H36.0)"],["glaucoma","Glaucoma (H40.1–H40.9)"],["susp_glauc","Suspeita de glaucoma (H40.0)"],["fam_glaucoma","Glaucoma na família"],["dmri","DMRI (H35.3)"],["descol","Descolamento / retina operada (H33)"],["catarata","Catarata não operada (H25–H26)"],["pseudo","Já operou catarata (Z96.1)"],["has","Hipertensão (I10)"],["miopia","Alta miopia (H52.1)"]];
 // CID / texto do diagnóstico -> condição (para importar planilha do prontuário)
 const EX_CID=[["ret_diab",/H36\.?0|RETINOPATIA DIAB|EDEMA MACULAR DIAB|\bRDNP\b|\bRDP\b|\bEMD\b/],["diabetes",/\bE1[0-4]|DIABET|\bDM ?(I|II|1|2)?\b/],["susp_glauc",/H40\.?0|SUSPEIT[AO] DE GLAUC|HIPERTENSAO OCULAR/],["glaucoma",/H40\.?[1-9]|H42|(?<!SUSPEITA DE |SUSPEITO DE )GLAUCOMA/],["dmri",/H35\.?3|DMRI|DEGENERACAO MACULAR/],["descol",/H33|DESCOLAMENTO DE RETINA|BURACO MACULAR/],["pseudo",/Z96\.?1|PSEUDOFAC/],["catarata",/H2[5-6]|CATARATA/],["has",/\bI10\b|HIPERTENSAO ARTERIAL|\bHAS\b/],["miopia",/H52\.?1|ALTA MIOPIA|MIOPIA/]];
 const EX_MSG={
+  retorno10:"Olá, {nome}! Tudo bem? Aqui é da equipe da Dra. Renata Bertazzi. 👁️\n\nJá faz {meses} meses desde o seu último atendimento ({data_atend}), e a Dra. Renata sentiu a sua falta! Que tal agendarmos o seu checkup ocular completo pelo seu convênio? Pelo seu histórico, ela sugere {sugeridos}.\n\nÉ só responder esta mensagem que a gente combina o melhor dia e horário para você, a partir do mês que vem. Será um prazer receber você! 💙",
+  fechar:"Olá, {nome}! Tudo bem? Aqui é da equipe da Dra. Renata Bertazzi. 👁️\n\nNo seu atendimento de {data} você fez {feitos}. Para fecharmos o seu checkup ocular completo pelo seu convênio, a Dra. Renata sugere fazermos agora {sugeridos}.\n\nÉ só responder esta mensagem que a gente combina o melhor dia e horário para você, a partir do mês que vem. Será um prazer receber você! 💙",
+  repetir:"Olá, {nome}! Tudo bem? Aqui é da equipe da Dra. Renata Bertazzi. 👁️\n\nJá faz mais de 6 meses dos seus últimos exames ({data}), quando você fez {feitos}. Para acompanharmos a evolução e mantermos o seu checkup ocular em dia pelo seu convênio, a Dra. Renata sugere repetirmos {sugeridos}.\n\nÉ só responder esta mensagem que a gente combina o melhor dia e horário para você, a partir do mês que vem. Será um prazer receber você! 💙",
   checkup:"Olá, {nome}! Tudo bem? Aqui é da equipe da Dra. Renata Bertazzi. 👁️\n\nJá faz mais de 6 meses desde o seu último atendimento ({data}){feitos_frase_curta}. Que tal completarmos o seu checkup ocular pelo seu convênio? Pelo seu histórico, a Dra. Renata sugere fecharmos esse checkup com {sugeridos}.\n\nÉ só responder esta mensagem que a gente combina o melhor dia e horário para você, a partir do mês que vem. Será um prazer receber você! 💙",
   retina:"Olá, {nome}! Tudo bem? Aqui é da equipe da Dra. Renata Bertazzi. 👁️\n\nNo seu último atendimento ({data}) {feitos_frase}. Como a sua retina já precisou de tratamento, a Dra. Renata gosta de acompanhar você de pertinho. Pelo seu histórico, ela sugere agora {sugeridos}, para seguirmos cuidando bem da sua visão.\n\nÉ só responder esta mensagem que a gente combina o melhor dia e horário para você, a partir do mês que vem. Será um prazer receber você! 💙",
   diabetes:"Olá, {nome}! Tudo bem? Aqui é da equipe da Dra. Renata Bertazzi. 👁️\n\nNo seu último atendimento ({data}) {feitos_frase}. Para quem tem diabetes, acompanhar a retina com regularidade é a melhor forma de proteger a visão. Pelo seu histórico, a Dra. Renata sugere agora {sugeridos}.\n\nÉ só responder esta mensagem que a gente combina o melhor dia e horário para você, a partir do mês que vem. Será um prazer receber você! 💙",
@@ -2423,30 +2428,34 @@ function pacientesExames(){
     const comEx=[...P.vis].reverse().find(a=>nomesExames(a).length); P.exData=comEx?comEx.data:null;
     P.exames=comEx?[...new Set(P.vis.filter(a=>a.data===comEx.data).flatMap(nomesExames))]:[];
     P.todosEx=[...new Set(P.vis.flatMap(nomesExames))];
-    Object.assign(P,classificaEx(P)); if(!P.conv&&P.g!=="cat70") return; // particular só entra no grupo 70+ sem catarata
+    Object.assign(P,classificaEx(P)); if(!P.conv&&!EX_PART.includes(P.g)) return; // particular só nos grupos de retina grave e 70+ sem catarata
     const G=EX_G[P.g];
     P.sug=G.ex.map(e=>({e,novo:!P.todosEx.includes(e)}));
     P.ref=P.exData||P.base; P.dias=desde(P.ref); P.vence=iso(addDias(parse(P.ref),G.dias)); P.falta=diff(parse(P.vence),hoje());
     P.fut.sort((x,y)=>x.data.localeCompare(y.data));
     const ls=L.filter(x=>x.paciente===P.k&&x.base_data>=P.base).sort((a,b)=>(b.em||"").localeCompare(a.em||"")); P.lemb=ls[0]||null;
     if(!P.tel){ const pp=pacPorNome(P.nome); if(pp) P.tel=pp.telefone; }
+    P.diasAt=desde(P.base);
+    if(EX_LEVE.includes(P.g)){ P.abord=P.diasAt>=300?"retorno10":"fechar"; if(P.diasAt>=300) P.falta=Math.min(P.falta,0); }
+    P.novos=P.sug.filter(x=>x.novo).map(x=>x.e);
     P.sit = P.emCiclo?"ciclo" : P.fut.length?"marcado" : P.lemb?.status==="nao_enviar"?"nao" : P.lemb?.status==="adiado"&&P.lemb.adiar_ate>h?"adiado" : P.lemb?.status==="enviado"?"enviado" : P.falta<=0?"enviar" : P.falta<=30?"breve" : "emdia";
     out.push(P); });
   S._exC={sig,v:out}; return out;
 }
 function telaExames(){
-  const todos=pacientesExames().filter(P=>(!S.fLocal||P.local===S.fLocal)&&(!S.exPlano||P.plano.toUpperCase()===S.exPlano));
+  const todos=pacientesExames().filter(P=>(!S.fLocal||P.local===S.fLocal)&&(!S.exPlano||P.plano.toUpperCase()===S.exPlano)&&(!S.exPag||(S.exPag==='conv'?P.conv:!P.conv))&&(!S.exAb||P.abord===S.exAb));
   const st=S.exSt||"enviar", gr=S.exGr||"";
   const T=todos.filter(P=>!gr||P.g===gr);
   const n=k=>T.filter(P=>P.sit===k).length;
   const L=T.filter(P=>st==="todos"?!["emdia","ciclo"].includes(P.sit):P.sit===st).sort((a,b)=>EX_GRUPOS.findIndex(g=>g.k===a.g)-EX_GRUPOS.findIndex(g=>g.k===b.g)||a.falta-b.falta);
   const ch=(k,cls,t)=>`<button class="stat ${cls} ${st===k?"on":""}" data-pset="exSt=${k}" aria-pressed="${st===k}"><b>${n(k)}</b><span>${t}</span></button>`;
   const planos=[...new Set(pacientesExames().map(P=>P.plano.toUpperCase()))].sort();
-  const gcard=G=>{ const its=todos.filter(P=>P.g===G.k), env=its.filter(P=>P.sit==="enviar").length; return `<button class="exg ${gr===G.k?"on":""} ${G.cor}" data-pset="exGr=${gr===G.k?"":G.k}" aria-pressed="${gr===G.k}"><span class="exg-n">${G.nome}</span><b>${env}</b><small>para enviar · ${its.length} no grupo · a cada ${G.dias>=365?Math.round(G.dias/365)+" ano":Math.round(G.dias/30)+" meses"}</small></button>`; };
+  const gcard=G=>{ const its=todos.filter(P=>P.g===G.k), env=its.filter(P=>P.sit==="enviar"); const ec=env.filter(P=>P.conv).length, ep=env.length-ec;
+    return `<button class="exg ${gr===G.k?"on":""} ${G.cor}" data-pset="exGr=${gr===G.k?"":G.k}" aria-pressed="${gr===G.k}"><span class="exg-n">${G.nome}</span><b>${env.length}</b><small>para enviar${EX_PART.includes(G.k)?` · ${ec} convênio · ${ep} particular`:""}</small><small>${its.length} no grupo · a cada ${Math.round(G.dias/30)} meses${EX_PART.includes(G.k)?"":" · só convênio"}</small></button>`; };
   const linha=P=>{ const f=telIntl(P.tel), G=EX_G[P.g];
     const st2= P.sit==="enviado"?`<span class="fl ok">Lembrete enviado ${dm(P.lemb.em)}</span>` : P.sit==="marcado"?`<span class="fl ok">Retorno marcado ${dm(P.fut[0].data)}</span>` : P.sit==="adiado"?`<span class="fl">Adiado até ${dm(P.lemb.adiar_ate)}</span>` : P.sit==="nao"?`<span class="fl">Não enviar</span>` : P.sit==="ciclo"?`<span class="fl blue">Em ciclo de injeção</span>` : P.falta<=0?`<span class="fl late">Venceu há ${-P.falta} dias</span>`:`<span class="fl warn">Vence em ${P.falta} dias</span>`;
     const acts=["marcado","ciclo"].includes(P.sit)?"":`${f?`<button class="btn small okb" data-act="ex-whats" data-k="${esc(P.k)}">${P.sit==="enviado"?"Reenviar":"Enviar WhatsApp"}</button>`:`<span class="fl">sem telefone</span>`}${P.sit==="enviado"?"":`<button class="btn small ghost" data-act="ex-marca" data-k="${esc(P.k)}" data-st="enviado">Marcar enviado</button>`}${["enviar","breve"].includes(P.sit)?`<button class="btn small ghost" data-act="ex-marca" data-k="${esc(P.k)}" data-st="adiado">Adiar 30 dias</button><button class="btn small ghost" data-act="ex-marca" data-k="${esc(P.k)}" data-st="nao_enviar">Não enviar</button>`:""}`;
-    return `<div class="tk-row pr-row ex-row"><div class="inj-nome"><div class="ex-l1"><b class="ex-nome">${esc(nomeCurto(P.nome))}</b><span class="ex-risco ${G.cor}">${G.nome}</span>${st2}</div>
+    return `<div class="tk-row pr-row ex-row"><div class="inj-nome"><div class="ex-l1"><b class="ex-nome">${esc(nomeCurto(P.nome))}</b><span class="ex-risco ${G.cor}">${G.nome}</span>${P.abord==="retorno10"?`<span class="fl warn">${Math.floor(P.diasAt/30)} meses sem retorno · checkup ocular</span>`:P.abord==="fechar"?`<span class="fl blue">Fechar o checkup${P.novos.length?" · faltam "+P.novos.length+" exame(s)":""}</span>`:""}${st2}</div>
       <small><span class="ttag ${P.conv?"t-injecao":"t-cirurgia"}">${esc(P.plano)}</span> ${esc(P.local||"")}${P.idade!=null?` · ${P.idade} anos`:""} · último atendimento ${br(P.base)}</small>
       <div class="ex-hist"><span class="ex-lab">Por quê</span><span class="ex-por">${esc(P.sinais.filter(x=>!/ anos$/.test(x)).join(" · ")||G.por)}</span><button class="linkbtn ex-cond" data-act="ex-cond" data-k="${esc(P.k)}">${exCond(P.k).length?"editar condições":"+ condição (diabetes, glaucoma…)"}</button></div>
       <div class="ex-hist"><span class="ex-lab">Últimos exames${P.exData?" "+dm(P.exData):""}</span>${P.exames.length?P.exames.map(e=>`<span class="fl ex-tag">${esc(e)}</span>`).join(""):`<span class="ex-por">nenhum exame registrado</span>`}</div>
@@ -2454,7 +2463,8 @@ function telaExames(){
       <div class="inj-acts">${acts}</div></div>`; };
   return `<div class="sec-head"><div><h2>Exames</h2><div class="sub">Triagem por risco para chamar o paciente de volta e completar os exames</div></div><span class="actions"><button class="btn ghost" data-act="ex-import">Importar diagnósticos</button><button class="btn ghost" data-act="ex-msg">Mensagens por grupo</button></span></div>
   <details class="panel resumo ex-como"><summary><b>Como funciona a triagem</b> · grupos, prazos e exames</summary>
-    <ol><li><b>Quem entra:</b> pacientes de <b>convênio</b> atendidos (agenda do EyecareBI + Amigo, desde fev/26). Particular só entra no grupo <b>70+ sem catarata</b>. Quem está em ciclo de injeção fica de fora.</li>
+    <ol><li><b>Quem entra:</b> pacientes de <b>convênio</b> atendidos (agenda do EyecareBI + Amigo, desde fev/26). <b>Particular</b> também entra nos grupos de cuidado de <b>retina grave</b> (retinopatia diabética, retina tratada/DMRI) e no <b>70+ sem catarata</b>. Use o filtro Pagamento para separar. Quem está em ciclo de injeção fica de fora.</li>
+    <li><b>Checkup (grupos sem doença grave):</b> duas abordagens. <b>10+ meses sem retorno</b> → convite para o checkup ocular completo. <b>Exames há 6+ meses</b> → "você fez X, agora faremos Y" para fechar o checkup com os exames que faltam.</li>
     <li><b>Mapeamos o histórico:</b> exames já feitos, procedimentos (injeção, laser, cirurgias), idade e <b>diagnósticos (CID)</b>. Os diagnósticos entram pela planilha exportada do prontuário (botão <b>Importar diagnósticos</b>) ou marcados na mão em "+ condição".</li>
     <li><b>Árvore de decisão</b> (o primeiro ramo que se aplica): Retinopatia diabética → Retina tratada/DMRI → Glaucoma → Diabetes sem retinopatia → Suspeita de glaucoma → Catarata a operar → Pós-catarata → 70+ sem catarata → 65 a 69 anos → Hipertensão/alta miopia → Checkup.</li>
     <li><b>Prazo:</b> conta a partir dos últimos exames (ou do último atendimento, se não fez exame). Retina 3 meses; todos os outros 6 meses. Entra em "Enviar agora" quando vence; aparece em "Vence em até 30 dias" antes.</li>
@@ -2463,7 +2473,7 @@ function telaExames(){
     <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Grupo</th><th>Prazo</th><th>Exames do grupo</th><th>Por quê</th></tr></thead><tbody>${EX_GRUPOS.map(G=>`<tr><td><b>${G.nome}</b></td><td>${G.dias<180?"3 meses":"6 meses"}</td><td>${G.ex.join(", ")}</td><td style="white-space:normal;font-size:.8rem;color:var(--soft)">${G.por}</td></tr>`).join("")}</tbody></table></div>
     <div class="sub" style="font-size:.76rem">Referências: AAO Preferred Practice Pattern (Comprehensive Adult Medical Eye Evaluation, 2026; Diabetic Retinopathy). Os exames são sugestão do sistema; a indicação final é da Dra. na consulta.</div></details>
   <div class="exgs">${EX_GRUPOS.map(gcard).join("")}</div>
-  <div class="filtros">${selLocal().replace('<label class="loc-sel"><span>Clínica</span>','<label class="fcampo"><span>Clínica</span>')}<label class="fcampo"><span>Convênio</span><select id="selExPlano"><option value="">Todos os convênios</option>${planos.map(p=>`<option ${S.exPlano===p?"selected":""}>${esc(p)}</option>`).join("")}</select></label></div>
+  <div class="filtros">${selLocal().replace('<label class="loc-sel"><span>Clínica</span>','<label class="fcampo"><span>Clínica</span>')}<label class="fcampo"><span>Pagamento</span><select id="selExPag"><option value="">Convênio e particular</option><option value="conv" ${S.exPag==="conv"?"selected":""}>Só convênio</option><option value="part" ${S.exPag==="part"?"selected":""}>Só particular</option></select></label><label class="fcampo"><span>Abordagem do checkup</span><select id="selExAb"><option value="">Todas</option><option value="retorno10" ${S.exAb==="retorno10"?"selected":""}>10+ meses sem retorno · checkup ocular</option><option value="fechar" ${S.exAb==="fechar"?"selected":""}>Exames há 6+ meses · fechar o checkup</option></select></label><label class="fcampo"><span>Convênio</span><select id="selExPlano"><option value="">Todos os convênios</option>${planos.map(p=>`<option ${S.exPlano===p?"selected":""}>${esc(p)}</option>`).join("")}</select></label></div>
   <div class="stats">${ch("enviar","late","Enviar agora (prazo vencido)")}${ch("breve","warn","Vence em até 30 dias")}${ch("enviado","ok","Lembrete enviado")}${ch("marcado","ok","Retorno já marcado")}${ch("adiado","","Adiados")}${ch("nao","","Não enviar")}</div>
   <div class="ptool-nota"><span>${gr?`<b>${EX_G[gr].nome}:</b> ${EX_G[gr].por}. `:""}O grupo vem do histórico (procedimentos, exames feitos e idade); diabetes e outras condições a equipe marca no paciente. Os exames sugeridos são uma sugestão do sistema: a indicação final é da Dra. na consulta. Pacientes em ciclo de injeção ficam de fora (já são acompanhados lá).</span>${gr?`<span><button class="linkbtn" data-pset="exGr=">Ver todos os grupos</button></span>`:""}</div>
   ${S.exSemTabela?`<div class="empty" style="margin-bottom:10px">Envios e condições estão sendo guardados só neste aparelho. Para valer para toda a equipe, rode uma vez o arquivo <b>controle/sql/2026-11-12-exames-lembretes.sql</b> no SQL Editor do Supabase.</div>`:""}
@@ -2478,8 +2488,9 @@ async function carregaExLemb(){ const r=await sb.from("exames_lembretes").select
   const c=await sb.from("paciente_condicoes").select("*"); S.exConds=c.error?null:Object.fromEntries((c.data||[]).map(x=>[x.paciente,x])); S._exC=null; }
 const exMin=e=>/^OCT/.test(e)?e:e.charAt(0).toLowerCase()+e.slice(1);
 const listaPt=a=>a.length<=1?(a[0]||""):a.slice(0,-1).join(", ")+" e "+a.at(-1);
-function textoExMsg(P){ const fe=P.exames.map(exMin), sg=P.sug.map(s=>exMin(s.e));
-  return exMsgDe(P.g).replace(/\{nome\}/g,primeiroNome(P.nome)).replace(/\{data\}/g,br(P.exData||P.base))
+function textoExMsg(P){ const fe=P.exames.map(exMin), nv=P.novos.map(exMin), sg=(P.abord==="fechar"&&nv.length)?nv:P.sug.map(s=>exMin(s.e));
+  const key=P.abord==="retorno10"?"retorno10":P.abord==="fechar"?(nv.length?"fechar":"repetir"):P.g;
+  return exMsgDe(key).replace(/\{meses\}/g,String(Math.floor((P.diasAt||0)/30))).replace(/\{data_atend\}/g,br(P.base)).replace(/\{nome\}/g,primeiroNome(P.nome)).replace(/\{data\}/g,br(P.exData||P.base))
     .replace(/\{feitos_frase\}/g,fe.length?`fizemos ${fe.length>1?"os exames":"o exame"} de ${listaPt(fe)}`:"fizemos a sua avaliação").replace(/\{feitos_frase_curta\}/g,fe.length?`, quando fizemos ${fe.length>1?"os exames":"o exame"} de ${listaPt(fe)}`:"")
     .replace(/\{feitos\}/g,listaPt(fe)||"a avaliação").replace(/\{sugeridos\}/g,listaPt(sg)).replace(/ pelo seu convênio/g,P.conv?" pelo seu convênio":""); }
 function folhaExWhats(P){
@@ -2490,8 +2501,8 @@ function folhaExWhats(P){
 }
 function folhaExMsg(){
   const g=S.exMsgG||"checkup";
-  abrir(`<header><div><h2>Mensagens por grupo</h2><div class="sub">Use {nome}, {data}, {feitos_frase}, {feitos} e {sugeridos}</div></div><button class="close" data-close aria-label="Fechar">×</button></header>
-  <form id="fexm" class="form"><label>Grupo<select id="exMsgG">${EX_GRUPOS.map(G=>`<option value="${G.k}" ${G.k===g?"selected":""}>${G.nome}</option>`).join("")}</select></label><label>Texto<textarea id="exMsgTx" rows="10">${esc(exMsgDe(g))}</textarea></label><button class="btn" type="submit">Salvar</button><button class="btn ghost" type="button" id="exMsgPad">Voltar ao padrão</button></form>`);
+  abrir(`<header><div><h2>Mensagens por grupo</h2><div class="sub">Use {nome}, {data} (exames), {data_atend}, {meses}, {feitos_frase}, {feitos} e {sugeridos}</div></div><button class="close" data-close aria-label="Fechar">×</button></header>
+  <form id="fexm" class="form"><label>Grupo<select id="exMsgG">${[["retorno10","Checkup · 10+ meses sem retorno"],["fechar","Checkup · fechar (fez exames há 6+ meses)"],["repetir","Checkup · repetir (já fez todos)"],...EX_GRUPOS.filter(G=>!EX_LEVE.includes(G.k)).map(G=>[G.k,G.nome])].map(([k,t])=>`<option value="${k}" ${k===g?"selected":""}>${t}</option>`).join("")}</select></label><label>Texto<textarea id="exMsgTx" rows="10">${esc(exMsgDe(g))}</textarea></label><button class="btn" type="submit">Salvar</button><button class="btn ghost" type="button" id="exMsgPad">Voltar ao padrão</button></form>`);
   $("#exMsgG").addEventListener("change",e=>{ S.exMsgG=e.target.value; folhaExMsg(); });
   $("#fexm").addEventListener("submit",e=>{ e.preventDefault(); try{ localStorage.setItem("exMsg_"+g,$("#exMsgTx").value); }catch(err){} fechar(); toast("Mensagem salva ✔"); });
   $("#exMsgPad").addEventListener("click",()=>{ $("#exMsgTx").value=EX_MSG[g]; });
@@ -3226,6 +3237,8 @@ document.addEventListener("click", e=>{
 });
 document.addEventListener("click",e=>{ const m=document.getElementById("menuTop"); if(m&&m.open&&(!m.contains(e.target)||e.target.closest(".menu-p button"))) setTimeout(()=>m.open=false,0); },true);
 document.addEventListener("change", e=>{ if(e.target.id==="selLocal"){ S.fLocal=e.target.value; S.fase=null; render(); }
+  if(e.target.id==="selExPag"){ S.exPag=e.target.value; render(); }
+  if(e.target.id==="selExAb"){ S.exAb=e.target.value; render(); }
   if(e.target.id==="selExPlano"){ S.exPlano=e.target.value; render(); }
   if(e.target.id==="selPDias"){ S.procDias=+e.target.value; render(); }
   if(e.target.id==="selProc"){ S.fProc=e.target.value; render(); } if(e.target.id==="selSub"){ S.fSub=e.target.value; render(); } if(e.target.id==="selAgLoc"){ S.agLoc=e.target.value; render(); } if(e.target.id==="selPag"){ S.fPag=e.target.value; render(); } if(e.target.id==="selSit"){ S.fSit=e.target.value; render(); }
