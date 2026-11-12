@@ -439,6 +439,30 @@ main{padding:24px 20px 32px}
 .kpi span{font-size:.8rem;font-weight:500}
 .tabs button:focus{outline:none}
 .tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:-3px}
+
+/* ===== v4.2: Repasse no padrão novo ===== */
+.rep-bar{border-radius:12px;padding:16px 18px;gap:14px;margin:0 0 16px}
+.rb-row{grid-template-columns:130px 1fr;gap:12px}
+.rb-lab{font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#7a8597}
+.rb-chips{gap:6px;align-items:center}
+.rchip{border-radius:8px;padding:6px 12px;font-size:.85rem;font-weight:500;color:var(--ink);background:#fff;border:1px solid var(--line);transition:background .12s,border-color .12s}
+.rchip:hover{border-color:#c9d2de;background:#fafbfc}
+.rchip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.rchip.sem{color:#a6adb8;border-style:dashed;background:transparent}
+.rchip.grp{background:#f3f1ec;border-color:var(--line);color:var(--soft)}
+.rchip.grp[aria-pressed="true"]{background:var(--deep);border-color:var(--deep);color:#fff}
+.rb-sep{font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#7a8597;margin:0 2px 0 10px;padding-left:12px;border-left:1px solid var(--line)}
+.rb-datas input{border-radius:8px}
+.of-loc{font-size:.85rem}.of-loc>span{font-weight:600;min-width:80px}
+.of-d{width:28px;height:28px;border-radius:6px;font-weight:500}
+.of-d[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.of-chk{font-size:.82rem;font-weight:500}
+.rb-cobre{font-size:.78rem;border-top:1px solid var(--line);padding-top:12px}
+.rb-cobre span{background:#f3f1ec;border-radius:6px;padding:2px 8px;margin:0 4px 4px 4px;color:var(--ink)}
+.kpis.rep{gap:10px}
+button.kpi:hover{box-shadow:none;border-color:#c9d2de}
+.kpi span{line-height:1.35;margin-top:2px}
+@media(max-width:700px){.rb-row{grid-template-columns:1fr;gap:6px}.rb-sep{border-left:0;padding-left:0;margin-left:0;flex-basis:100%}}
 </style>
 </head>
 <body>
@@ -2083,20 +2107,20 @@ function telaRepasse(){
   const locsVis=locais.filter(repLocOk);
   const filtros=`<div class="rep-bar">
     <div class="rb-row">
-      <div class="rb-lab">📍 Clínica</div>
+      <div class="rb-lab">Clínica</div>
       <div class="rb-chips">${(()=>{ const todas=[...new Set([...CLINICAS_TODAS,...locais])]; const grupos=[["Rede OA",todas.filter(l=>/^OA\b/.test(l))],["ICOG",todas.filter(l=>/^ICOG/.test(l))]].filter(([,ls])=>ls.length>1);
         const igual=ls=>ls.length===S.repLocs.length&&ls.every(l=>S.repLocs.includes(l));
         return `<button class="rchip" data-rloc="" aria-pressed="${!S.repLocs.length}">Todas</button>`
-          +todas.map(l=>{ const tem=locais.includes(l); return `<button class="rchip loc${tem?"":" sem"}" data-rloc="${esc(l)}" aria-pressed="${S.repLocs.includes(l)}" ${tem?"":`title="Ainda sem extrato importado"`}>${S.repLocs.includes(l)?"✓ ":""}${esc(l)}${tem?"":" · sem extrato"}</button>`; }).join("")
-          +`<span class="rb-sep">juntar:</span>`+grupos.map(([n,ls])=>`<button class="rchip grp" data-rgrp="${esc(ls.join("|"))}" aria-pressed="${igual(ls)}">${n}</button>`).join(""); })()}</div>
+          +todas.map(l=>{ const tem=locais.includes(l); return `<button class="rchip loc${tem?"":" sem"}" data-rloc="${esc(l)}" aria-pressed="${S.repLocs.includes(l)}" ${tem?"":`title="Ainda sem extrato importado"`}>${esc(l)}${tem?"":" · sem extrato"}</button>`; }).join("")
+          +`<span class="rb-sep">Agrupar</span>`+grupos.map(([n,ls])=>`<button class="rchip grp" data-rgrp="${esc(ls.join("|"))}" aria-pressed="${igual(ls)}">${n}</button>`).join(""); })()}</div>
     </div>
     <div class="rb-row">
-      <div class="rb-lab">🗓️ Período</div>
+      <div class="rb-lab">Período</div>
       <div class="rb-chips">${chips.map(([de,ate,tx])=>`<button class="rchip" data-rper="${de}|${ate}" aria-pressed="${!S.repCustom&&(S.repDe||"")===de&&(S.repAte||"")===ate}">${tx}</button>`).join("")}<button class="rchip" data-act="rep-custom" aria-pressed="${custom}">Escolher datas…</button></div>
     </div>
     ${custom?`<div class="rb-row"><div class="rb-lab"></div><div class="rb-datas"><label>de <input type="date" id="repDe" value="${S.repDe||""}"></label><label>até <input type="date" id="repAte" value="${S.repAte||""}"></label></div></div>`:""}
     <div class="rb-row">
-      <div class="rb-lab">⭐ Dias oficiais</div>
+      <div class="rb-lab">Dias oficiais</div>
       <div class="rb-of">${locsVis.map(l=>`<div class="of-loc"><span>${esc(l)}</span><div class="of-dias">${[1,2,3,4,5,6].map(w=>`<button class="of-d" data-ofloc="${esc(l)}" data-ofw="${w}" aria-pressed="${(DOf[l]||[]).includes(w)}" title="${["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][w]}">${SEM[w]}</button>`).join("")}</div></div>`).join("")}
         <label class="of-chk"><input type="checkbox" id="repSoOf" ${S.repSoOf!==false?"checked":""}> Médias por dia só com os dias oficiais</label></div>
     </div>
@@ -2130,7 +2154,7 @@ function telaRepasse(){
   const ex=itens.filter(i=>i.categoria==="exame").reduce((s,i)=>s+Number(i.valor||0),0); if(M.total) ins.push(`Exames representam <b>${Math.round(ex/M.total*100)}%</b> do repasse, com média de <b>${M.exPac.toFixed(1)} exames por paciente</b>.`);
   if(M.pProc) ins.push(`Cirurgias, injeções e laser somam <b>${Math.round(M.pProc*100)}%</b> do repasse: são o que mais pesa por atendimento.`);
   const pend=reps.map(r=>[r,conferenciaRep(r),confProntRep(r)]).filter(([r,c,cp])=>c.zeros.length||c.falt.length||(cp&&cp.pend)||(c.dif!=null&&!c.ok));
-  if(pend.length) ins.push(`⚠️ ${pend.length} relatório(s) com pontos para conferir (valores zerados, procedimentos faltando ou total diferente). Veja abaixo.`);
+  if(pend.length) ins.push(`${pend.length} relatório(s) com pontos para conferir (valores zerados, procedimentos faltando ou total diferente). Veja abaixo.`);
   // relatórios
   const cardRep=r=>{ const c=conferenciaRep(r), cp=confProntRep(r); return `<div class="item rep-card ${c.zeros.length||c.falt.length||(cp&&cp.pend)||(c.dif!=null&&!c.ok)?"warn":"okc"}">
     <div class="row"><div class="name"><b>${esc(r.local)}</b>${r.numero?` · Nº ${esc(r.numero)}`:""}</div><span class="chip ${r.status==="pago"?"ok":r.status==="conferido"?"blue":"warn"}">${esc(r.status||"a conferir")}</span></div>
