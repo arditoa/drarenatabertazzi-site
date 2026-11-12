@@ -1680,13 +1680,17 @@ function nomeBate(ext,ag){ if(mesmoPaciente(ext,ag)) return true; const A=tokN(e
 const CONF_FAM={OA:{nome:"Oftalmologia Avançada",curto:"OA",re:/^OA\b/,cirViaRepasse:false},OPUS:{nome:"OPUS",curto:"OPUS",re:/^OPUS\b/,cirViaRepasse:true}};
 const PROC_CLS=["cirurgia","injecao","laser"], PROC_NOME={cirurgia:"cirurgia",injecao:"injeção",laser:"laser"};
 const clsSemAcento=t=>classeItem(String(t||"").normalize("NFD").replace(/[\u0300-\u036f]/g,""));
-function conferenciaProntuario(famK="OA"){
+// família (OA, OPUS) do local de um relatório, ou null se a clínica não tem agenda no EyecareBI
+const famDe=l=>Object.keys(CONF_FAM).find(k=>CONF_FAM[k].re.test(l||""))||null;
+// rep: confere só aquele relatório (unidade e período dele); sem rep, todos os relatórios visíveis da família
+function conferenciaProntuario(famK="OA",rep=null){
   const F=CONF_FAM[famK]||CONF_FAM.OA;
-  const oa=S.reps.filter(r=>F.re.test(r.local)&&repLocOk(r.local)); if(!oa.length||!(S.atend||[]).length) return null;
-  const ini0=oa.map(r=>r.periodo_ini||"0000").sort()[0], ini=(S.repDe&&S.repDe>ini0)?S.repDe:ini0, fim=[...oa.map(r=>r.periodo_fim||"9999")].sort().at(-1);
-  const fimF=S.repAte&&S.repAte<fim?S.repAte:fim;
+  if(rep&&(!rep.periodo_ini||!rep.periodo_fim)) return null;
+  const oa=S.reps.filter(r=>F.re.test(r.local)&&(rep||repLocOk(r.local))); if(!oa.length||!(S.atend||[]).length) return null;
+  const ini0=rep?rep.periodo_ini:oa.map(r=>r.periodo_ini||"0000").sort()[0], ini=(!rep&&S.repDe&&S.repDe>ini0)?S.repDe:ini0, fim=rep?rep.periodo_fim:[...oa.map(r=>r.periodo_fim||"9999")].sort().at(-1);
+  const fimF=!rep&&S.repAte&&S.repAte<fim?S.repAte:fim;
   const ids=new Set(oa.map(r=>r.id)); const ext=S.repItens.filter(i=>ids.has(i.repasse_id));
-  const ag={}; S.atend.filter(a=>a.status==="FINISHED"&&F.re.test(a.local||"")&&a.data>=ini&&a.data<=fimF&&repLocOk(a.local)).forEach(a=>{ const k=a.data+"|"+normNome(a.paciente); (ag[k]=ag[k]||{data:a.data,paciente:a.paciente,local:a.local,planos:new Set(),itens:[]}); if(a.plano) ag[k].planos.add(a.plano); if(a.itens) ag[k].itens.push(a.itens); });
+  const ag={}; S.atend.filter(a=>a.status==="FINISHED"&&F.re.test(a.local||"")&&a.data>=ini&&a.data<=fimF&&(rep?a.local===rep.local:repLocOk(a.local))).forEach(a=>{ const k=a.data+"|"+normNome(a.paciente); (ag[k]=ag[k]||{data:a.data,paciente:a.paciente,local:a.local,planos:new Set(),itens:[]}); if(a.plano) ag[k].planos.add(a.plano); if(a.itens) ag[k].itens.push(a.itens); });
   const res={sem:[],zero:[],outra:[],normal:[],cir:[],procFalta:[],total:0,ini,fim:fimF};
   const dif=(a,b)=>Math.abs(parse(a)-parse(b))/864e5;
   Object.values(ag).forEach(p=>{ res.total++; p.plano=[...p.planos].join(" / "); p.proc=p.itens.join(" | ");
@@ -1704,28 +1708,31 @@ function conferenciaProntuario(famK="OA"){
   return res;
 }
 function painelConferencia(){ return Object.keys(CONF_FAM).map(k=>painelConferenciaDe(k)).filter(Boolean).join("") || painelConferenciaDe("OA",true); }
-function painelConferenciaDe(famK,vazio){
+function painelConferenciaDe(famK,vazio,rep){
   const F=CONF_FAM[famK];
   const sinc=S.ultSync?`Prontuário sincronizado em ${new Date(S.ultSync.em).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}`:"Prontuário ainda não sincronizado";
-  const c=conferenciaProntuario(famK);
+  const c=conferenciaProntuario(famK,rep);
   if(!c) return vazio?`<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>Conferência com o prontuário</h3><span class="sub">${sinc}</span></div><p class="sub">Assim que a agenda do EyecareBI for sincronizada, a conferência aparece aqui.</p></div>`:"";
   const pl=s=>s.replace(/Consulta em consultório \(no horário normal ou preestabelecido\)/gi,"Consulta").replace(/ - (MONOCULAR|BINOCULAR)/gi,"").slice(0,110);
   const linha=p=>`<tr><td>${br(p.data)}</td><td><b>${esc(p.paciente)}</b><small>${esc(p.local)} · ${esc(p.plano||"—")}</small></td><td><small>${esc(pl(p.proc||""))}</small>${p.falta?`<small class="alerta">sem repasse de: ${p.falta.map(k=>PROC_NOME[k]).join(", ")}</small>`:""}${p.pago?`<small class="ok">pago em ${p.pago.map(e=>br(e.data)+" "+moeda(Number(e.valor||0))).join("; ")}</small>`:""}</td></tr>`;
   const bloco=(tit,lst,cls,aberto)=>lst.length?`<details class="conf ${cls}" ${aberto?"open":""}><summary><b>${tit}</b> <span class="count">${lst.length}</span></summary><div class="tbl-wrap"><table class="tbl"><tbody>${lst.sort((a,b)=>a.data.localeCompare(b.data)).map(linha).join("")}</tbody></table></div></details>`:"";
-  return `<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>Conferência com o prontuário · ${F.nome}</h3><span class="sub">${sinc} · ${c.total} atendimentos finalizados de ${br(c.ini)} a ${br(c.fim)}</span></div>
+  return `<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>Conferência com o prontuário · ${rep?esc(rep.local):F.nome}</h3><span class="sub">${sinc} · ${c.total} atendimentos finalizados de ${br(c.ini)} a ${br(c.fim)}${rep?" (período deste extrato)":""}</span></div>
    <div class="conf-kpis"><div class="kpi ${c.sem.length?"alerta":""}"><b>${c.sem.length}</b><span>sem repasse</span></div><div class="kpi ${c.zero.length?"alerta":""}"><b>${c.zero.length}</b><span>vieram com R$ 0</span></div><div class="kpi ${c.procFalta.length?"alerta":""}"><b>${c.procFalta.length}</b><span>procedimento sem repasse</span></div><div class="kpi"><b>${c.outra.length}</b><span>pagos em outra data</span></div><div class="kpi"><b>${c.total-c.sem.length-c.zero.length-c.outra.length-c.normal.length-c.cir.length-c.procFalta.length}</b><span>conferidos ok</span></div></div>
    ${bloco("Atendidos sem repasse",c.sem,"sem",true)}${bloco("Repasse zerado (R$ 0)",c.zero,"zero",true)}${bloco("Procedimento sem repasse (cirurgia, injeção ou laser feito, mas não pago)",c.procFalta,"sem",true)}${bloco("Cirurgias sem repasse da clínica (confirmar se foram pela GoCare)",c.cir,"cir",false)}${bloco("Pagos em outra data",c.outra,"outra",false)}${bloco("Retornos sem cobrança (normal)",c.normal,"normal",false)}
-   ${c.sem.length||c.zero.length||c.procFalta.length?`<button class="btn" data-act="copiar-pend" data-fam="${famK}">Copiar pendências para enviar à ${F.curto}</button>`:""}</div>`;
+   ${c.sem.length||c.zero.length||c.procFalta.length?`<button class="btn" data-act="copiar-pend" data-fam="${famK}" data-rid="${rep?rep.id:""}">Copiar pendências para enviar à ${F.curto}</button>`:""}</div>`;
 }
-function textoPendencias(famK="OA"){
-  const c=conferenciaProntuario(famK); if(!c) return "";
+function textoPendencias(famK="OA",rid){
+  const rep=rid?S.reps.find(r=>r.id===rid):null;
+  const c=conferenciaProntuario(famK,rep); if(!c) return "";
   const pl=s=>(s||"").replace(/Consulta em consultório \(no horário normal ou preestabelecido\)/gi,"consulta").toLowerCase();
-  let n=0; const L=["Bom dia! Conferi os repasses da Dra. Renata Bertazzi na "+(CONF_FAM[famK]||CONF_FAM.OA).nome+" com a agenda do EyecareBI ("+br(c.ini)+" a "+br(c.fim)+") e encontrei estas pendências:",""];
+  let n=0; const L=["Bom dia! Conferi "+(rep?"o repasse "+(rep.numero?"nº "+rep.numero:"de "+br(rep.periodo_ini)+" a "+br(rep.periodo_fim)):"os repasses")+" da Dra. Renata Bertazzi na "+(CONF_FAM[famK]||CONF_FAM.OA).nome+" com a agenda do EyecareBI ("+br(c.ini)+" a "+br(c.fim)+") e encontrei estas pendências:",""];
   if(c.sem.length){ L.push("Atendimentos finalizados sem repasse:"); c.sem.forEach(p=>L.push(`${++n}. ${br(p.data)} – ${p.paciente} – ${p.plano} – ${pl(p.proc)}`)); L.push(""); }
   if(c.zero.length){ L.push("Itens com repasse zerado (R$ 0):"); c.zero.forEach(p=>L.push(`${++n}. ${br(p.data)} – ${p.paciente} – ${p.plano} – ${pl(p.proc)}`)); L.push(""); }
   if(c.procFalta.length){ L.push("Procedimentos realizados sem repasse:"); c.procFalta.forEach(p=>L.push(`${++n}. ${br(p.data)} – ${p.paciente} – ${p.plano} – ${p.falta.map(k=>PROC_NOME[k]).join(" e ")} (${pl(p.proc)})`)); L.push(""); }
   L.push("Podem verificar e, se for o caso, incluir no próximo repasse? Obrigada!"); return L.join("\n");
 }
+// resumo da conferência com o prontuário de um relatório (para o cartão e a tela de conferência)
+function confProntRep(r){ const k=famDe(r.local); if(!k) return null; const c=conferenciaProntuario(k,r); if(!c||!c.total) return null; return {c,pend:c.sem.length+c.zero.length+c.procFalta.length}; }
 function rl(f){ return `data-rlist="${esc(JSON.stringify(f))}"`; }
 function barrasR(lista,fmt){ fmt=fmt||moeda; const max=Math.max(1,...lista.map(x=>x[1])); return `<div class="funnel">${lista.map(([t,n,sub,f])=>`<button class="fn rp" ${f?rl(f):""}><span>${esc(t)}${sub?`<small>${esc(sub)}</small>`:""}</span><i style="width:${Math.max(3,Math.round(n/max*100))}%"></i><b>${fmt(n)}</b></button>`).join("")}</div>`; }
 function folhaRepLista(f){
@@ -1863,13 +1870,13 @@ function telaRepasse(){
   if(consulta.length>1) ins.push(`Consulta que mais paga: <b>${esc(consulta[0][0])}</b> (${moeda(consulta[0][1])}); a que menos paga: <b>${esc(consulta[consulta.length-1][0])}</b> (${moeda(consulta[consulta.length-1][1])}).`);
   const ex=itens.filter(i=>i.categoria==="exame").reduce((s,i)=>s+Number(i.valor||0),0); if(M.total) ins.push(`Exames representam <b>${Math.round(ex/M.total*100)}%</b> do repasse, com média de <b>${M.exPac.toFixed(1)} exames por paciente</b>.`);
   if(M.pProc) ins.push(`Cirurgias, injeções e laser somam <b>${Math.round(M.pProc*100)}%</b> do repasse: são o que mais pesa por atendimento.`);
-  const pend=reps.map(r=>[r,conferenciaRep(r)]).filter(([r,c])=>c.zeros.length||c.falt.length||(c.dif!=null&&!c.ok));
+  const pend=reps.map(r=>[r,conferenciaRep(r),confProntRep(r)]).filter(([r,c,cp])=>c.zeros.length||c.falt.length||(cp&&cp.pend)||(c.dif!=null&&!c.ok));
   if(pend.length) ins.push(`⚠️ ${pend.length} relatório(s) com pontos para conferir (valores zerados, procedimentos faltando ou total diferente). Veja abaixo.`);
   // relatórios
-  const cardRep=r=>{ const c=conferenciaRep(r); return `<div class="item rep-card ${c.zeros.length||c.falt.length||(c.dif!=null&&!c.ok)?"warn":"okc"}">
+  const cardRep=r=>{ const c=conferenciaRep(r), cp=confProntRep(r); return `<div class="item rep-card ${c.zeros.length||c.falt.length||(cp&&cp.pend)||(c.dif!=null&&!c.ok)?"warn":"okc"}">
     <div class="row"><div class="name"><b>${esc(r.local)}</b>${r.numero?` · Nº ${esc(r.numero)}`:""}</div><span class="chip ${r.status==="pago"?"ok":r.status==="conferido"?"blue":"warn"}">${esc(r.status||"a conferir")}</span></div>
     <div class="meta">${r.periodo_ini?br(r.periodo_ini):""} a ${r.periodo_fim?br(r.periodo_fim):""} · ${c.it.length} itens · ${esc(r.formato||"")}</div>
-    <div class="row meta"><b style="color:var(--ink);font-size:1.05rem">${moeda(c.soma)}</b>${r.total_informado!=null?(c.ok?`<span class="chip ok">✔ total confere com o extrato</span>`:`<span class="chip late">Total do extrato ${moeda(r.total_informado)} · diferença ${moeda(c.dif)}</span>`):""}${c.zeros.length?`<span class="chip late">${c.zeros.length} procedimento(s) com R$ 0</span>`:""}${c.falt.length?`<span class="chip warn">${c.falt.length} do portal não aparecem</span>`:""}<span class="chip">${c.conf}/${c.it.length} conferidos</span></div>
+    <div class="row meta"><b style="color:var(--ink);font-size:1.05rem">${moeda(c.soma)}</b>${r.total_informado!=null?(c.ok?`<span class="chip ok">✔ total confere com o extrato</span>`:`<span class="chip late">Total do extrato ${moeda(r.total_informado)} · diferença ${moeda(c.dif)}</span>`):""}${c.zeros.length?`<span class="chip late">${c.zeros.length} procedimento(s) com R$ 0</span>`:""}${c.falt.length?`<span class="chip warn">${c.falt.length} do portal não aparecem</span>`:""}${cp?(cp.pend?`<span class="chip late">Prontuário: ${[cp.c.sem.length?cp.c.sem.length+" atendido(s) sem repasse":"",cp.c.zero.length?cp.c.zero.length+" com R$ 0":"",cp.c.procFalta.length?cp.c.procFalta.length+" procedimento(s) sem repasse":""].filter(Boolean).join(" · ")}</span>`:`<span class="chip ok">✔ prontuário confere (${cp.c.total} atend.)</span>`):""}<span class="chip">${c.conf}/${c.it.length} conferidos</span></div>
     ${r.recebido_em?`<div class="meta">Recebido em ${br(r.recebido_em)}${r.valor_recebido!=null?` · ${moeda(r.valor_recebido)}`:""}</div>`:""}
     <div class="row" style="justify-content:flex-end"><button class="btn small" data-act="rep-abrir" data-rid="${r.id}">Conferir</button></div></div>`; };
   return head+filtros+kpis+quadroGrupos(itens,true)+
@@ -1899,7 +1906,7 @@ function telaRepasse(){
 
 function telaConferencia(id){
   const r=S.reps.find(x=>x.id===id); if(!r){ S.repSel=null; return telaRepasse(); }
-  const c=conferenciaRep(r);
+  const c=conferenciaRep(r), cp=confProntRep(r);
   const f=S.repFiltro||"todos", q=(S.repBusca||"").trim();
   const alerta=i=>Number(i.valor||0)===0&&["cirurgia","injecao","laser"].includes(i.categoria);
   let its=c.it.slice().sort((a,b)=>(a.data||"").localeCompare(b.data||"")||String(a.paciente).localeCompare(b.paciente));
@@ -1914,6 +1921,7 @@ function telaConferencia(id){
     <div class="kpi ${c.ok?"":"late"}"><b>${moeda(c.soma)}</b><span>${r.total_informado!=null?(c.ok?"✔ igual ao total do extrato":`Extrato diz ${moeda(r.total_informado)}`):"Soma dos itens"}</span></div>
     <div class="kpi ${c.zeros.length?"late":""}"><b>${c.zeros.length}</b><span>Procedimentos com R$ 0</span></div>
     <div class="kpi ${c.falt.length?"warn":""}"><b>${c.falt.length}</b><span>Do portal que não aparecem</span></div>
+    ${cp?`<div class="kpi ${cp.pend?"late":""}"><b>${cp.pend}</b><span>Pendências com o prontuário</span></div>`:""}
     <div class="kpi"><b>${c.conf}/${c.it.length}</b><span>Itens conferidos</span></div></div>
   ${quadroGrupos(S.repItens.filter(i=>i.repasse_id===r.id),false)}
   <div class="panel"><div class="panel-h"><h3>Status do repasse</h3></div>
@@ -1925,6 +1933,7 @@ function telaConferencia(id){
   ${linhasSub?`<div class="panel" style="margin-top:12px"><div class="panel-h"><h3>Subtotais por convênio</h3><span class="sub">extrato × soma dos itens</span></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Convênio</th><th>Extrato</th><th>Itens</th><th></th></tr></thead><tbody>${linhasSub}</tbody></table></div></div>`:""}
   ${c.zeros.length?`<div class="panel alerta" style="margin-top:12px"><div class="panel-h"><h3>⚠️ Procedimentos com repasse R$ 0</h3><span class="sub">pode ser glosa, pacote ou lançamento pendente · cobre a clínica</span></div>${c.zeros.map(i=>`<div class="tk-row"><div class="inj-nome"><b>${esc(i.paciente)}</b><small>${br(i.data)} · ${esc(i.procedimento)} · ${esc(i.convenio||"")}</small></div><div class="inj-acts"><button class="btn small ghost" data-act="rep-check" data-iid="${i.id}">${i.conferido?"✔ Conferido":"Marcar conferido"}</button></div></div>`).join("")}</div>`:""}
   ${c.falt.length?`<div class="panel alerta" style="margin-top:12px"><div class="panel-h"><h3>🔎 Registrados no portal, mas não aparecem neste extrato</h3><span class="sub">${esc(r.local)} · mesmo período</span></div>${c.falt.map(x=>`<div class="tk-row"><div class="inj-nome"><button class="linklike" data-pac="${x.c.paciente_id}">${esc(nomeCurto(pacOf(x.c).nome))}</button><small>${br(x.data)} · ${esc(x.txt)} · ${esc(pagLabel(x.c))}</small></div></div>`).join("")}<div class="sub" style="font-size:.78rem">Pode estar no próximo extrato ou com outro nome. Confira antes de cobrar.</div></div>`:""}
+  ${famDe(r.local)?painelConferenciaDe(famDe(r.local),true,r):""}
   ${c.difData.length?`<div class="panel" style="margin-top:12px"><div class="panel-h"><h3>📅 Pagos, mas com data diferente no portal</h3><span class="sub">o extrato pagou o procedimento em outra data (até 7 dias)</span></div>${c.difData.map(x=>`<div class="tk-row"><div class="inj-nome"><button class="linklike" data-pac="${x.c.paciente_id}">${esc(nomeCurto(pacOf(x.c).nome))}</button><small>${esc(x.txt)} · no portal: ${br(x.data)} · no extrato: <b>${br(x.pago)}</b></small></div><div class="inj-acts"><button class="btn small ghost" data-act="rep-fixdata" data-tab="${x.tab}" data-id="${x.id}" data-dt="${x.pago}">Corrigir para ${br(x.pago).slice(0,5)}</button></div></div>`).join("")}</div>`:""}
   <div class="group-title">Itens do extrato <span class="count">${its.length}</span></div>
   <div class="row" style="gap:10px;flex-wrap:wrap"><div class="seg">${fb("todos","Todos")}${fb("pend","Não conferidos")}${fb("proc","Cirurgias, injeções e laser")}${fb("alerta","R$ 0 em procedimento")}</div>
@@ -2452,7 +2461,7 @@ document.addEventListener("click", e=>{
   if(t.dataset.ofw){ const o=JSON.parse(JSON.stringify(diasOficiais())); const l=t.dataset.ofloc, w=+t.dataset.ofw; const a=o[l]||[]; o[l]=a.includes(w)?a.filter(x=>x!==w):[...a,w].sort(); salvaDiasOf(o); render(); return; }
   if(t.dataset.act==="sync"){ folhaSync(); return; }
   if(t.dataset.act==="limpa-fi"){ S.fLocal=""; S.fProc=""; S.fSub=""; S.fPag=""; S.fSit=""; S.fase=null; render(); return; }
-  if(t.dataset.act==="copiar-pend"){ const tx=textoPendencias(t.dataset.fam||"OA"); (navigator.clipboard?navigator.clipboard.writeText(tx):Promise.reject()).then(()=>toast(`Pendências copiadas. É só colar no WhatsApp ou e-mail da ${(CONF_FAM[t.dataset.fam]||CONF_FAM.OA).curto}.`)).catch(()=>{ prompt("Copie o texto:",tx); }); return; }
+  if(t.dataset.act==="copiar-pend"){ const tx=textoPendencias(t.dataset.fam||"OA",t.dataset.rid||null); (navigator.clipboard?navigator.clipboard.writeText(tx):Promise.reject()).then(()=>toast(`Pendências copiadas. É só colar no WhatsApp ou e-mail da ${(CONF_FAM[t.dataset.fam]||CONF_FAM.OA).curto}.`)).catch(()=>{ prompt("Copie o texto:",tx); }); return; }
   if(t.dataset.act==="rep-custom"){ S.repCustom=!S.repCustom; render(); return; }
   if(t.dataset.rper!==undefined){ S.repCustom=false; const [a,b]=t.dataset.rper.split("|"); S.repDe=a||""; S.repAte=b||""; render(); return; }
   if(t.dataset.rlist){ folhaRepLista(JSON.parse(t.dataset.rlist)); return; }
