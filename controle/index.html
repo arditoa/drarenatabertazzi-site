@@ -532,6 +532,31 @@ details.sy-d>summary small{font-weight:400;color:var(--soft);font-size:.8rem;dis
 .menu-p hr{margin:6px 0}
 .top .menu-p button span{display:inline;color:inherit;font-size:inherit;white-space:normal;overflow:visible}
 .menu-p button.sair{color:var(--late)}.menu-p button.sair svg{stroke:var(--late)}
+
+/* ===== v4.5: Dias oficiais ===== */
+.rb-of{grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
+.of-top{grid-column:1/-1;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px 16px;margin-bottom:2px}
+.of-acoes{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.of-acoes>span{font-size:.78rem;color:var(--soft);margin-right:2px}
+.of-acoes .rchip{padding:4px 10px;font-size:.8rem}
+.of-loc{display:grid;grid-template-columns:1fr auto;grid-template-areas:"h all" "d d";gap:8px 10px;align-items:center;padding:10px 12px;background:#fff;border-radius:10px}
+.of-h{grid-area:h;display:flex;flex-direction:column;min-width:0;line-height:1.25}
+.of-h b{font-size:.88rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.of-h small{font-size:.72rem;color:var(--soft);font-weight:500}
+.of-loc.vazio .of-h small{color:#a86a12}
+.of-all{grid-area:all;background:none;border:0;color:var(--accent);font:inherit;font-size:.76rem;font-weight:600;padding:2px 0;cursor:pointer;white-space:nowrap}
+.of-all:hover{text-decoration:underline}
+.of-dias{grid-area:d;display:grid;grid-template-columns:repeat(6,1fr);gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.of-d{min-width:0;width:auto;height:30px;border:0;border-right:1px solid var(--line);border-radius:0;background:#fff;color:var(--soft);font-size:.74rem;font-weight:500;padding:0}
+.of-d:last-child{border-right:0}
+.of-d:hover{background:#f4f6f9;color:var(--ink)}
+.of-d[aria-pressed="true"]{background:#e6eef9;color:var(--accent);font-weight:600;border-color:var(--line)}
+.of-sw{display:inline-flex;align-items:center;gap:8px;font-size:.82rem;font-weight:500;color:var(--ink);cursor:pointer;margin:0}
+.of-sw input{position:absolute;opacity:0;width:1px;height:1px}
+.of-sw i{position:relative;width:32px;height:18px;border-radius:999px;background:#cfd6e0;transition:background .15s;flex:none}
+.of-sw i::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:left .15s}
+.of-sw input:checked+i{background:var(--accent)} .of-sw input:checked+i::after{left:16px}
+.of-sw input:focus-visible+i{outline:2px solid var(--accent);outline-offset:2px}
 </style>
 </head>
 <body>
@@ -2256,8 +2281,14 @@ function telaRepasse(){
     ${custom?`<div class="rb-row"><div class="rb-lab"></div><div class="rb-datas"><label>de <input type="date" id="repDe" value="${S.repDe||""}"></label><label>até <input type="date" id="repAte" value="${S.repAte||""}"></label></div></div>`:""}
     <div class="rb-row">
       <div class="rb-lab">Dias oficiais</div>
-      <div class="rb-of">${locsVis.map(l=>`<div class="of-loc${(DOf[l]||[]).length?"":" vazio"}"><span>${esc(l)}${(DOf[l]||[]).length?"":`<small>nenhum dia marcado · conta todos</small>`}</span><div class="of-dias">${[1,2,3,4,5,6].map(w=>`<button class="of-d" data-ofloc="${esc(l)}" data-ofw="${w}" aria-pressed="${(DOf[l]||[]).includes(w)}" title="${["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][w]}">${SEM[w]}</button>`).join("")}</div></div>`).join("")}
-        <label class="of-chk"><input type="checkbox" id="repSoOf" ${S.repSoOf!==false?"checked":""}> Médias por dia só com os dias oficiais</label></div>
+      <div class="rb-of">
+        <div class="of-top"><div class="of-acoes"><span>Todas as clínicas:</span><button class="rchip" data-ofall="*|todos">Todos os dias</button><button class="rchip" data-ofall="*|padrao">Dias padrão</button><button class="rchip" data-ofall="*|nenhum">Limpar</button></div>
+          <label class="of-sw"><input type="checkbox" id="repSoOf" ${S.repSoOf!==false?"checked":""}><i></i><span>Médias por dia só com os dias oficiais</span></label></div>
+        ${locsVis.map(l=>{ const ds=DOf[l]||[], tudo=[1,2,3,4,5,6].every(w=>ds.includes(w));
+          const resumo=!ds.length?"Nenhum dia · conta todos":tudo?"Todos os dias":ds.map(w=>SEM[w]).join(", ");
+          return `<div class="of-loc${ds.length?"":" vazio"}"><div class="of-h"><b>${esc(l)}</b><small>${resumo}</small></div>
+          <div class="of-dias" role="group" aria-label="Dias de ${esc(l)}">${[1,2,3,4,5,6].map(w=>`<button class="of-d" data-ofloc="${esc(l)}" data-ofw="${w}" aria-pressed="${ds.includes(w)}" title="${["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][w]}">${SEM[w]}</button>`).join("")}</div>
+          <button class="of-all" data-ofall="${esc(l)}|${tudo?"nenhum":"todos"}">${tudo?"Limpar":"Selecionar todos"}</button></div>`; }).join("")}</div>
     </div>
     <div class="rb-cobre"><b>Extratos importados</b>${S.reps.map(r=>`<span><i>${esc(r.local)}</i>${r.periodo_ini?dm(r.periodo_ini):""}–${r.periodo_fim?dm(r.periodo_fim):""}</span>`).join("")}${!S.repDe&&!S.repAte&&pc?` <em>· cobrem períodos diferentes; use "Período em comum" para comparar.</em>`:""}</div>
   </div>`;
@@ -2879,7 +2910,7 @@ async function ciclarInteresse(id){
 }
 
 document.addEventListener("click", e=>{
-  const t=e.target.closest("[data-pset],[data-eds],[data-diaoff],[data-agsem],[data-agloc],[data-rloc],[data-rgrp],[data-ofw],[data-rper],[data-rlist],[data-rfil],[data-acaotg],[data-fpag],[data-finj],[data-fpos],[data-dia],[data-floc],[data-fase],[data-tab],[data-goto],[data-act],[data-pac],[data-ft],[data-fi],[data-int]"); if(!t) return;
+  const t=e.target.closest("[data-pset],[data-ofall],[data-eds],[data-diaoff],[data-agsem],[data-agloc],[data-rloc],[data-rgrp],[data-ofw],[data-rper],[data-rlist],[data-rfil],[data-acaotg],[data-fpag],[data-finj],[data-fpos],[data-dia],[data-floc],[data-fase],[data-tab],[data-goto],[data-act],[data-pac],[data-ft],[data-fi],[data-int]"); if(!t) return;
   if(t.dataset.pset!==undefined){ const i=t.dataset.pset.indexOf("="); const k=t.dataset.pset.slice(0,i), v=t.dataset.pset.slice(i+1); S[k]=v; if(t.dataset.pst!==undefined) S.procSt=t.dataset.pst; else if(t.dataset.tab) S.procSt=undefined; if(!t.dataset.tab){ render(); return; } }
   if(t.dataset.int){ ciclarInteresse(t.dataset.int); return; }
   if(t.dataset.dia!==undefined){ S.dia=+t.dataset.dia; render(); return; }
@@ -2891,6 +2922,8 @@ document.addEventListener("click", e=>{
   if(t.dataset.agloc!==undefined){ S.agLoc=t.dataset.agloc; render(); return; }
   if(t.dataset.rloc!==undefined){ const l=t.dataset.rloc; setRepLocs(!l?[]:(S.repLocs.includes(l)?S.repLocs.filter(x=>x!==l):[...S.repLocs,l])); render(); return; }
   if(t.dataset.rgrp){ const ls=t.dataset.rgrp.split("|"); const igual=ls.length===S.repLocs.length&&ls.every(l=>S.repLocs.includes(l)); setRepLocs(igual?[]:ls); render(); return; }
+  if(t.dataset.ofall){ const [l,m]=t.dataset.ofall.split("|"); const o=JSON.parse(JSON.stringify(diasOficiais())); const alvo=l==="*"?[...new Set([...CLINICAS_TODAS,...Object.keys(o)])]:[l];
+    alvo.forEach(x=>{ o[x]= m==="todos"?[1,2,3,4,5,6] : m==="nenhum"?[] : (DIAS_OF_PADRAO[x]||[]).slice(); }); salvaDiasOf(o); render(); return; }
   if(t.dataset.ofw){ const o=JSON.parse(JSON.stringify(diasOficiais())); const l=t.dataset.ofloc, w=+t.dataset.ofw; const a=o[l]||[]; o[l]=a.includes(w)?a.filter(x=>x!==w):[...a,w].sort(); salvaDiasOf(o); render(); return; }
   if(t.dataset.act==="sync"){ folhaSync(); return; }
   if(t.dataset.act==="limpa-fi"){ S.fLocal=""; S.fProc=""; S.fSub=""; S.fPag=""; S.fSit=""; S.fase=null; render(); return; }
