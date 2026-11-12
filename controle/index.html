@@ -299,9 +299,9 @@ a.btn.bm{display:inline-block;cursor:grab;text-decoration:none}
 .footnote{font-size:.78rem;color:var(--soft);text-align:center;margin-top:24px}
 
 /* ===== v3: indicações, interesse, aplicações ===== */
-.tabs{grid-template-columns:repeat(5,1fr)}
+.tabs{grid-template-columns:repeat(6,1fr)}
 .tabs button{font-size:.7rem}
-@media(min-width:900px){.tabs{grid-template-columns:repeat(5,max-content)}.tabs button{font-size:.9rem}}
+@media(min-width:900px){.tabs{grid-template-columns:repeat(6,max-content)}.tabs button{font-size:.9rem}}
 .pr-ico{margin-right:4px}
 .pr-row.pr-ok{opacity:.72}
 .pr-row.pr-late{background:var(--late-soft);border-radius:10px;padding-left:8px;padding-right:8px}
@@ -557,6 +557,14 @@ details.sy-d>summary small{font-weight:400;color:var(--soft);font-size:.8rem;dis
 .of-sw i::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:left .15s}
 .of-sw input:checked+i{background:var(--accent)} .of-sw input:checked+i::after{left:16px}
 .of-sw input:focus-visible+i{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ===== v4.6: simulação de exames e aba Exames ===== */
+.sim-ex{margin:0 0 14px}
+.sim-t td,.sim-t th{white-space:nowrap}.sim-t td.sim-det{white-space:normal;font-size:.8rem;color:var(--soft)}
+.sim-t tr.meta td{background:#f3f7fc}
+.sim-mes{color:var(--ok)}
+.ex-nome{font-weight:600;font-size:.93rem}
+.fl.ex-tag{background:#f1f3f6;color:#4a5568}
 </style>
 </head>
 <body>
@@ -622,6 +630,7 @@ details.sy-d>summary small{font-weight:400;color:var(--soft);font-size:.8rem;dis
     <button data-tab="semana"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Semana</button>
     <button data-tab="proc"><svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M8.5 12.5l2.2 2.2 4.8-4.8"/></svg>Procedimentos<b class="tab-badge" id="nProc"></b></button>
     <button data-tab="pac"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c.8-3.4 3.2-5.2 6-5.2s5.2 1.8 6 5.2"/><circle cx="17" cy="9" r="2.4"/><path d="M16 14.8c2.4.2 4.2 1.8 5 4.6"/></svg>Pacientes</button>
+    <button data-tab="exames"><svg viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/><path d="M19 3v4M17 5h4"/></svg>Exames<b class="tab-badge" id="nEx"></b></button>
     <button data-tab="cont"><svg viewBox="0 0 24 24"><path d="M4 20h16M5 20v-7h14v7M8 13V10M12 13V9M16 13V10"/><path d="M8 7.5c-.8-1-.2-2 0-2.5.2.5.8 1.5 0 2.5zM12 6.5c-.8-1-.2-2 0-2.5.2.5.8 1.5 0 2.5zM16 7.5c-.8-1-.2-2 0-2.5.2.5.8 1.5 0 2.5z"/></svg>Contatos<b class="tab-badge" id="nAniv"></b></button>
   </nav>
   <main id="main"></main>
@@ -752,6 +761,7 @@ async function carregar(){
     if(r.error&&!S.semTelCol&&/telefone/.test(r.error.message||"")){ S.semTelCol=true; k--; continue; } if(r.error||!r.data) break; at=at.concat(r.data); if(r.data.length<1000) break; } S.atend=at;
   const aq=await sb.from("aquecimentos").select("*").order("em"); S.aquec=aq.error?[]:(aq.data||[]);
   const cp=await sb.from("contatos_prefs").select("*"); S.cprefs={}; (cp.data||[]).forEach(x=>{ S.cprefs[x.paciente_id]=x; });
+  await carregaExLemb();
   const rc=await sb.from("recados_site").select("*").order("criado_em",{ascending:false}).limit(500); S.recados=rc.error?null:(rc.data||[]);
   const sc=await sb.from("sincronizacoes").select("*").order("em",{ascending:false}).limit(30); S.syncs=sc.data||[]; S.ultSync=S.syncs.find(x=>(x.origem||"eyecare")==="eyecare")||null;
   const nrr=await sb.from("proc_nao_realizados").select("*").order("criado_em",{ascending:false}).limit(1000); S.nr=nrr.error?null:(nrr.data||[]);
@@ -1017,13 +1027,14 @@ document.addEventListener("input",e=>{ if(e.target.id==="ctBusca"){ S.ctBusca=e.
 function render(){
   if(S.tab==="ind") S.tab=tabDoFiltro();
   if({cir:1,trat:1,laser:1}[S.tab]){ S.procTipo={cir:"cirurgia",trat:"injecao",laser:"laser"}[S.tab]; S.procVista="quadro"; S.tab="proc"; }
-  if(!["agenda","repasse","lentes","painel","semana","proc","cir","trat","laser","pac","recados","cont"].includes(S.tab)) S.tab=tabDoFiltro();
+  if(!["agenda","repasse","lentes","painel","semana","proc","exames","cir","trat","laser","pac","recados","cont"].includes(S.tab)) S.tab=tabDoFiltro();
   document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-current", b.dataset.tab===S.tab?"page":"false"));
   const m=$("#main");
-  try{ m.innerHTML = ({agenda:telaAgenda, repasse:telaRepasse, lentes:telaLentes, recados:telaRecados, painel:telaPainel, semana:telaSemana, proc:telaProcs, cir:()=>telaPipe("cirurgia"), trat:()=>telaPipe("injecao"), laser:()=>telaPipe("laser"), pac:telaPac, cont:telaContatos}[S.tab])(); }catch(err){ console.error(err); m.innerHTML=`<div class="empty">Não consegui montar esta tela (${esc(err.message)}). Tente outra aba ou atualize a página.</div>`; }
+  try{ m.innerHTML = ({agenda:telaAgenda, repasse:telaRepasse, lentes:telaLentes, recados:telaRecados, painel:telaPainel, semana:telaSemana, proc:telaProcs, exames:telaExames, cir:()=>telaPipe("cirurgia"), trat:()=>telaPipe("injecao"), laser:()=>telaPipe("laser"), pac:telaPac, cont:telaContatos}[S.tab])(); }catch(err){ console.error(err); m.innerHTML=`<div class="empty">Não consegui montar esta tela (${esc(err.message)}). Tente outra aba ou atualize a página.</div>`; }
   if(S.tab==="repasse"&&$("#fRep")) $("#fRep").addEventListener("submit",async e=>{ e.preventDefault(); const v=$("#rVl").value.trim(); await salvar(sb.from("repasses").update({status:$("#rSt").value,recebido_em:$("#rDt").value||null,valor_recebido:v?parseFloat(v.replace(/\./g,"").replace(",",".")):null}).eq("id",S.repSel),"Repasse atualizado ✔"); });
   if(S.tab==="lentes"){ const f=$("#frLentes"); const envia=()=>{ try{ f.contentWindow.postMessage({tipo:"precos",rows:S.precos,tabela:(S.fLocal||"").startsWith("ICOG")||!S.fLocal?"ICOG":"padrao"},"*"); }catch(e){} }; f.addEventListener("load",envia); envia(); }
   { const ano=anoAtual(), na=aniversariantes(0).filter(x=>!prefDe(x.c.k).nao_enviar&&prefDe(x.c.k).aniv_ano!==ano&&telIntl(x.c.tel)).length; const ba=$("#nAniv"); if(ba) ba.textContent=na||""; }
+  { try{ const ne=pacientesExames().filter(P=>P.sit==="enviar").length; const be=$("#nEx"); if(be) be.textContent=ne||""; }catch(e){} }
   { const np=procsRealizados(POS_DIAS).filter(x=>prontoContato(x)&&!x.pos?.contato_em).length+procsAgendados().filter(x=>x.data<hojeISO()).length; const bp=$("#nProc"); if(bp) bp.textContent=np||""; }
   const nr=(S.recados||[]).filter(r=>r.status==="novo").length; const nb=$("#nRec"); if(nb) nb.textContent=nr?`${nr} novo${nr>1?"s":""}`:"";
   m.insertAdjacentHTML("beforeend", `<p class="footnote">Dados protegidos · acesso restrito à equipe · ${S.pacientes.length} pacientes cadastrados</p>`);
@@ -2252,6 +2263,97 @@ function alertaExames(porLoc){
     <p>Meta: ${meta} exames por paciente de plano. ${baixas.map(([l,m])=>`<b>${esc(l)}</b>: ${f1(m.exPlano)} (${m.plAbaixo} de ${m.nPlano} pacientes abaixo)`).join(" · ")}.</p>
     <div class="ex-al-acoes">${baixas.map(([l,m])=>`<button class="rchip" ${rl({local:l,poucosEx:true,titulo:`Pacientes de plano com menos de ${meta} exames · ${l}`})}>Ver pacientes · ${esc(l)}</button>`).join("")}</div></div></div>`;
 }
+/* ===== Simulação: faturamento a mais com mais exames por paciente de plano ===== */
+function simExames(itens){
+  const porLoc={};
+  itens.forEach(i=>{ const l=locItem(i)||"—", k=normNome(i.paciente); if(!k) return;
+    const L=porLoc[l]||(porLoc[l]={pac:{},exV:0,exN:0}); const c=L.pac[k]||(L.pac[k]={pl:false,ex:0});
+    if(ehPlano(i.convenio)) c.pl=true;
+    if(i.categoria==="exame"){ const q=i.qtd||1; c.ex+=q; if(ehPlano(i.convenio)&&Number(i.valor||0)>0){ L.exV+=Number(i.valor); L.exN+=q; } } });
+  const ds=itens.map(i=>i.data).filter(Boolean).sort(); const de=S.repDe||ds[0], ate=S.repAte||ds.at(-1);
+  const dias=de&&ate?Math.max(1,diff(parse(ate),parse(de))+1):30;
+  const totV=Object.values(porLoc).reduce((s,L)=>s+L.exV,0), totN=Object.values(porLoc).reduce((s,L)=>s+L.exN,0), medGeral=totN?totV/totN:0;
+  const metas=[3,4,5,6];
+  const linhas=metas.map(m=>{ let ex=0,v=0; const det=[];
+    Object.entries(porLoc).forEach(([l,L])=>{ const med=L.exN?L.exV/L.exN:medGeral; const falta=Object.values(L.pac).filter(c=>c.pl).reduce((s,c)=>s+Math.max(0,m-c.ex),0); ex+=falta; v+=falta*med; if(falta) det.push([l,falta,falta*med]); });
+    return {m,ex,v,mes:v*30/dias,det}; });
+  return {linhas,dias,medGeral,nPl:Object.values(porLoc).reduce((s,L)=>s+Object.values(L.pac).filter(c=>c.pl).length,0)};
+}
+function blocoSimExames(itens){
+  const S2=simExames(itens); if(!S2.nPl||!S2.medGeral) return "";
+  const meta=metaExPlano();
+  return `<div class="panel sim-ex"><div class="panel-h"><h3>Quanto a mais com mais exames por paciente de plano</h3><span class="sub">${S2.nPl} pacientes de plano · período de ${S2.dias} dias · valor médio pago por exame ${moeda(S2.medGeral)}</span></div>
+  <div class="tbl-wrap"><table class="tbl sim-t"><thead><tr><th>Se cada paciente de plano fizesse pelo menos</th><th>Exames a mais</th><th>No período</th><th>Por mês (estimativa)</th><th>Por clínica</th></tr></thead><tbody>
+  ${S2.linhas.map(x=>`<tr class="${x.m===meta?"meta":""}"><td><b>${x.m} exames</b>${x.m===meta?` <span class="fl blue">meta atual</span>`:""}</td><td>${x.ex}</td><td><b>+ ${moeda0(x.v)}</b></td><td><b class="sim-mes">+ ${moeda0(x.mes)}</b></td><td class="sim-det">${x.det.map(([l,n,v])=>`${esc(l)} ${moeda0(v)}`).join(" · ")||"—"}</td></tr>`).join("")}
+  </tbody></table></div>
+  <div class="sub" style="font-size:.76rem">Conta só os exames que faltam para cada paciente de plano chegar ao número (quem já fez mais não entra). Usa o valor médio que cada clínica pagou por exame de plano no período. Estimativa por mês = valor do período ajustado para 30 dias.</div></div>`;
+}
+
+/* ===== Aba Exames: lembrete para paciente de convênio voltar após 3 meses ===== */
+const EX_DIAS=90, EX_AVISO=60;
+const EX_MSG_PADRAO="Olá, {nome}! Aqui é da equipe da Dra. Renata Bertazzi. Já faz cerca de 3 meses dos seus últimos exames ({data}). Para acompanhar a saúde dos seus olhos, a Dra. recomenda uma nova avaliação. Podemos agendar o seu retorno? É só responder esta mensagem. 😊";
+function exMsg(){ try{ return localStorage.getItem("exMsg")||EX_MSG_PADRAO; }catch(e){ return EX_MSG_PADRAO; } }
+const EX_NOMES=[[/MAPEAMENTO/,"Mapeamento de retina"],[/RETINOGRAF/,"Retinografia"],[/TOMOGRAFIA DE COER|\bOCT\b/,"OCT"],[/CAMPIMETR|\bCAM\b/,"Campimetria"],[/MICROSCOPIA ESPEC|\bMICRO\b/,"Microscopia especular"],[/CERATOSCOP|\bCERA\b/,"Ceratoscopia"],[/PAQUIMETR|\bPAQUI\b/,"Paquimetria"],[/BIOMETRIA/,"Biometria"],[/TOPOGRAF/,"Topografia"],[/GONIOSCOP/,"Gonioscopia"],[/TONOMETR/,"Tonometria"],[/FUNDOSCOP/,"Fundoscopia"],[/MOTILIDADE/,"Motilidade ocular"],[/ULTRASSON/,"Ultrassom"]];
+function nomesExames(a){ const t=(String(a.itens||"")+" "+String(a.descricao||"").replace(/#.*$/,"")).toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g,""); return EX_NOMES.filter(([re])=>re.test(t)).map(([,n])=>n); }
+function exLemb(){ if(S.exLemb) return S.exLemb; try{ return JSON.parse(localStorage.getItem("exLemb")||"[]"); }catch(e){ return []; } }
+function pacientesExames(){
+  const at=(S.atend||[]); if(S._exC&&S._exC.n===at.length&&S._exC.l===exLemb().length) return S._exC.v;
+  const h=hojeISO(), M={};
+  at.forEach(a=>{ const k=chaveNome(a.paciente); if(!k) return; const P=M[k]||(M[k]={k,nome:a.paciente,vis:[],fut:[],plano:null,local:null,tel:null});
+    if(a.telefone&&!P.tel) P.tel=a.telefone; if(String(a.paciente||"").length>P.nome.length) P.nome=a.paciente;
+    if(a.data>h||(a.data===h&&a.status!=="FINISHED")){ if(!["CANCELED","MISSED"].includes(a.status)) P.fut.push(a); return; }
+    if(a.status!=="FINISHED") return; P.vis.push(a); });
+  const L=exLemb(), out=[];
+  Object.values(M).forEach(P=>{ if(!P.vis.length) return; P.vis.sort((x,y)=>x.data.localeCompare(y.data)); const ult=P.vis.at(-1);
+    const ultPl=[...P.vis].reverse().find(a=>ehPlano(a.plano)); if(!ultPl||!ehPlano(ult.plano)) return; // só convênio (último atendimento por plano)
+    P.plano=ult.plano; P.local=ult.local; P.base=ult.data;
+    const comEx=[...P.vis].reverse().find(a=>classeItem(a.itens)==="exame"||nomesExames(a).length); P.exData=comEx?comEx.data:null; P.exames=comEx?[...new Set(P.vis.filter(a=>a.data===comEx.data).flatMap(nomesExames))]:[];
+    P.dias=desde(P.base); P.fut.sort((x,y)=>x.data.localeCompare(y.data));
+    const ls=L.filter(x=>x.paciente===P.k&&x.base_data>=P.base).sort((a,b)=>(b.em||"").localeCompare(a.em||"")); P.lemb=ls[0]||null;
+    if(!P.tel){ const pp=pacPorNome(P.nome); if(pp) P.tel=pp.telefone; }
+    P.sit = P.fut.length?"marcado" : P.lemb?.status==="nao_enviar"?"nao" : P.lemb?.status==="adiado"&&P.lemb.adiar_ate>h?"adiado" : P.lemb?.status==="enviado"?"enviado" : P.dias>=EX_DIAS?"enviar" : P.dias>=EX_AVISO?"breve" : "emdia";
+    out.push(P); });
+  S._exC={n:at.length,l:L.length,v:out}; return out;
+}
+function telaExames(){
+  const T=pacientesExames().filter(P=>!S.fLocal||P.local===S.fLocal).filter(P=>!S.exPlano||P.plano.toUpperCase()===S.exPlano);
+  const st=S.exSt||"enviar";
+  const n=k=>T.filter(P=>P.sit===k).length;
+  const L=T.filter(P=>st==="todos"?P.sit!=="emdia":P.sit===st).sort((a,b)=> st==="enviar"?a.base.localeCompare(b.base) : st==="breve"?a.base.localeCompare(b.base) : (b.lemb?.em||b.base).localeCompare(a.lemb?.em||a.base));
+  const ch=(k,cls,t)=>`<button class="stat ${cls} ${st===k?"on":""}" data-pset="exSt=${k}" aria-pressed="${st===k}"><b>${n(k)}</b><span>${t}</span></button>`;
+  const planos=[...new Set(pacientesExames().map(P=>P.plano.toUpperCase()))].sort();
+  const sitTag={enviar:`<span class="fl late">Enviar lembrete</span>`,breve:`<span class="fl warn">Completa 3 meses em breve</span>`,enviado:"",marcado:"",adiado:"",nao:`<span class="fl">Não enviar</span>`};
+  const linha=P=>{ const f=telIntl(P.tel);
+    const st2= P.sit==="enviado"?`<span class="fl ok">Lembrete enviado ${dm(P.lemb.em)}</span>` : P.sit==="marcado"?`<span class="fl ok">Retorno marcado ${dm(P.fut[0].data)}${P.fut[0].local?" · "+esc(P.fut[0].local):""}</span>` : P.sit==="adiado"?`<span class="fl">Adiado até ${dm(P.lemb.adiar_ate)}</span>` : sitTag[P.sit]||"";
+    const acts = P.sit==="marcado" ? "" : `${f?`<button class="btn small okb" data-act="ex-whats" data-k="${esc(P.k)}">${P.sit==="enviado"?"Reenviar":"Enviar WhatsApp"}</button>`:`<span class="fl">sem telefone</span>`}${P.sit==="enviado"?"":`<button class="btn small ghost" data-act="ex-marca" data-k="${esc(P.k)}" data-st="enviado">Marcar enviado</button>`}${["enviar","breve"].includes(P.sit)?`<button class="btn small ghost" data-act="ex-marca" data-k="${esc(P.k)}" data-st="adiado">Adiar 30 dias</button><button class="btn small ghost" data-act="ex-marca" data-k="${esc(P.k)}" data-st="nao_enviar">Não enviar</button>`:""}`;
+    return `<div class="tk-row pr-row"><div class="inj-nome"><b class="ex-nome">${esc(nomeCurto(P.nome))}</b><small><span class="ttag t-injecao">${esc(P.plano)}</span> ${esc(P.local||"")} · último atendimento ${br(P.base)} (há ${P.dias} dias)${P.exData&&P.exData!==P.base?` · últimos exames ${br(P.exData)}`:""}</small>
+      <div class="pos-st">${st2}${P.exames.length?P.exames.map(e=>`<span class="fl ex-tag">${esc(e)}</span>`).join(""):`<span class="fl">sem exames registrados</span>`}</div></div><div class="inj-acts">${acts}</div></div>`; };
+  return `<div class="sec-head"><div><h2>Exames</h2><div class="sub">Pacientes de convênio · lembrete para voltar 3 meses após o último atendimento</div></div><button class="btn ghost" data-act="ex-msg">Editar mensagem</button></div>
+  <div class="filtros">${selLocal().replace('<label class="loc-sel"><span>Clínica</span>','<label class="fcampo"><span>Clínica</span>')}<label class="fcampo"><span>Convênio</span><select id="selExPlano"><option value="">Todos os convênios</option>${planos.map(p=>`<option ${S.exPlano===p?"selected":""}>${esc(p)}</option>`).join("")}</select></label></div>
+  <div class="stats">${ch("enviar","late","Enviar lembrete (3 meses ou mais)")}${ch("breve","warn","Completam 3 meses em até 30 dias")}${ch("enviado","ok","Lembrete enviado")}${ch("marcado","ok","Já têm retorno marcado")}${ch("adiado","","Adiados")}${ch("nao","","Não enviar")}</div>
+  <div class="ptool-nota"><span>Base: agenda do prontuário (EyecareBI + Amigo), atendimentos finalizados. Só entra quem foi atendido por convênio no último atendimento. Quem já tem retorno marcado sai da lista sozinho.</span></div>
+  ${S.exSemTabela?`<div class="empty" style="margin-bottom:10px">Os envios estão sendo guardados só neste aparelho. Para valer para toda a equipe, rode uma vez o arquivo <b>controle/sql/2026-11-12-exames-lembretes.sql</b> no SQL Editor do Supabase.</div>`:""}
+  <div class="inj-box"><div class="inj-list">${L.map(linha).join("")||'<div class="empty">Ninguém nesta lista. 👏</div>'}</div></div>`;
+}
+async function marcaExame(P,status,extra){
+  const row={paciente:P.k,nome:P.nome,base_data:P.base,status,em:hojeISO(),por:S.user?.email||null,...(extra||{})};
+  if(!S.exSemTabela){ const r=await sb.from("exames_lembretes").insert(row); if(!r.error){ await carregaExLemb(); render(); toast(status==="enviado"?"Lembrete registrado ✔":status==="adiado"?"Adiado por 30 dias":"Não enviar ✔"); return; } S.exSemTabela=true; }
+  const L=exLemb(); L.push(row); try{ localStorage.setItem("exLemb",JSON.stringify(L)); }catch(e){} S.exLemb=L; render(); toast("Registrado neste aparelho ✔");
+}
+async function carregaExLemb(){ const r=await sb.from("exames_lembretes").select("*").order("criado_em",{ascending:false}).limit(5000); if(r.error){ S.exSemTabela=true; S.exLemb=null; } else { S.exSemTabela=false; S.exLemb=r.data||[]; } S._exC=null; }
+function folhaExWhats(P){
+  const f=telIntl(P.tel); const txt=exMsg().replace(/\{nome\}/g,primeiroNome(P.nome)).replace(/\{data\}/g,br(P.exData||P.base)).replace(/\{exames\}/g,P.exames.join(", ")||"exames");
+  abrir(`<header><div><h2>Lembrete de exames · ${esc(nomeCurto(P.nome))}</h2><div class="sub">${esc(P.plano)} · último atendimento ${br(P.base)} · ${esc(P.tel||"sem telefone")}</div></div><button class="close" data-close aria-label="Fechar">×</button></header>
+  <form id="fex" class="form"><label>Mensagem<textarea id="exTxt" rows="7">${esc(txt)}</textarea></label><button class="btn okb" type="submit">Abrir WhatsApp e marcar como enviado</button></form>`);
+  $("#fex").addEventListener("submit",e=>{ e.preventDefault(); window.open(`https://api.whatsapp.com/send?phone=${f}&text=${encodeURIComponent($("#exTxt").value)}`,"_blank","noopener"); fechar(); marcaExame(P,"enviado"); });
+}
+function folhaExMsg(){
+  abrir(`<header><div><h2>Mensagem do lembrete de exames</h2><div class="sub">Use {nome}, {data} (últimos exames) e {exames}</div></div><button class="close" data-close aria-label="Fechar">×</button></header>
+  <form id="fexm" class="form"><label>Texto<textarea id="exMsgTx" rows="8">${esc(exMsg())}</textarea></label><button class="btn" type="submit">Salvar</button><button class="btn ghost" type="button" id="exMsgPad">Voltar ao padrão</button></form>`);
+  $("#fexm").addEventListener("submit",e=>{ e.preventDefault(); try{ localStorage.setItem("exMsg",$("#exMsgTx").value); }catch(err){} fechar(); toast("Mensagem salva ✔"); });
+  $("#exMsgPad").addEventListener("click",()=>{ $("#exMsgTx").value=EX_MSG_PADRAO; });
+}
+
 function telaRepasse(){
   if(S.repSel) return telaConferencia(S.repSel);
   const {reps,itens}=repFiltrados();
@@ -2328,7 +2430,7 @@ function telaRepasse(){
     <div class="row meta"><b style="color:var(--ink);font-size:1.05rem">${moeda(c.soma)}</b>${r.total_informado!=null?(c.ok?`<span class="chip ok">✔ total confere com o extrato</span>`:`<span class="chip late">Total do extrato ${moeda(r.total_informado)} · diferença ${moeda(c.dif)}</span>`):""}${c.zeros.length?`<span class="chip late">${c.zeros.length} procedimento(s) com R$ 0</span>`:""}${c.falt.length?`<span class="chip warn">${c.falt.length} do portal não aparecem</span>`:""}${cp?(cp.pend?`<span class="chip late">Prontuário: ${[cp.c.sem.length?cp.c.sem.length+" atendido(s) sem repasse":"",cp.c.zero.length?cp.c.zero.length+" com R$ 0":"",cp.c.procFalta.length?cp.c.procFalta.length+" procedimento(s) sem repasse":""].filter(Boolean).join(" · ")}</span>`:`<span class="chip ok">✔ prontuário confere (${cp.c.total} atend.)</span>`):""}<span class="chip">${c.conf}/${c.it.length} conferidos</span></div>
     ${r.recebido_em?`<div class="meta">Recebido em ${br(r.recebido_em)}${r.valor_recebido!=null?` · ${moeda(r.valor_recebido)}`:""}</div>`:""}
     <div class="row" style="justify-content:flex-end"><button class="btn small" data-act="rep-abrir" data-rid="${r.id}">Conferir</button></div></div>`; };
-  return head+filtros+alertaExames(porLoc)+kpis+quadroGrupos(itens,true)+
+  return head+filtros+alertaExames(porLoc)+kpis+blocoSimExames(itens)+quadroGrupos(itens,true)+
   (ins.length?`<div class="panel insight"><div class="panel-h"><h3>💡 O que os números mostram</h3></div><ul>${ins.map(x=>`<li>${x}</li>`).join("")}</ul></div>`:"")+
   `<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>Comparativo por clínica</h3><span class="sub">ordenado por R$ por dia de atendimento</span></div>${tabLoc}
    <div class="sub" style="font-size:.78rem">Dias = dias com consulta no extrato. Compare clínicas no mesmo período: os extratos podem cobrir semanas diferentes.</div></div>
@@ -2891,6 +2993,9 @@ async function acao(act, el){
     const st=statusTrat(c);
     return folhaData("Iniciar novo ciclo (3 aplicações)","Data prevista da 1ª aplicação", proxDiaAtende(iso(addDias(st.ultima?parse(st.ultima):hoje(), c.intervalo_dias||VENCE_DIAS)),c.local), v=>salvar(sb.from("sessoes").insert({caso_id:c.id,ciclo:st.ciclo+1,numero:1,data_prevista:v}),"Novo ciclo criado ✔"), c.local);
   }
+  if(act==="ex-whats"){ const P=pacientesExames().find(x=>x.k===el.dataset.k); if(P) folhaExWhats(P); return; }
+  if(act==="ex-marca"){ const P=pacientesExames().find(x=>x.k===el.dataset.k); if(!P) return; const stt=el.dataset.st; return marcaExame(P,stt,stt==="adiado"?{adiar_ate:iso(addDias(hoje(),30))}:null); }
+  if(act==="ex-msg") return folhaExMsg();
   if(act==="pos-confirmar"){ const x=achaProc(el.dataset.key); const row={confirmado_em:iso(hoje()),atualizado_por:S.user?.email||null};
     return x.pos ? salvar(sb.from("pos_contatos").update(row).eq("id",x.pos.id),"Confirmado ✔ · liberado para contato") : salvar(sb.from("pos_contatos").insert({caso_id:x.c.id,sessao_id:x.ses?x.ses.id:null,data_procedimento:x.data,...row}),"Confirmado ✔ · liberado para contato"); }
   if(act==="ag-nao") return folhaNaoRealizado(c, el.dataset.sid||null, el.dataset.data);
@@ -2944,6 +3049,7 @@ document.addEventListener("click", e=>{
 });
 document.addEventListener("click",e=>{ const m=document.getElementById("menuTop"); if(m&&m.open&&(!m.contains(e.target)||e.target.closest(".menu-p button"))) setTimeout(()=>m.open=false,0); },true);
 document.addEventListener("change", e=>{ if(e.target.id==="selLocal"){ S.fLocal=e.target.value; S.fase=null; render(); }
+  if(e.target.id==="selExPlano"){ S.exPlano=e.target.value; render(); }
   if(e.target.id==="selPDias"){ S.procDias=+e.target.value; render(); }
   if(e.target.id==="selProc"){ S.fProc=e.target.value; render(); } if(e.target.id==="selSub"){ S.fSub=e.target.value; render(); } if(e.target.id==="selAgLoc"){ S.agLoc=e.target.value; render(); } if(e.target.id==="selPag"){ S.fPag=e.target.value; render(); } if(e.target.id==="selSit"){ S.fSit=e.target.value; render(); }
   if(e.target.id==="repSoOf"){ S.repSoOf=e.target.checked; render(); }
