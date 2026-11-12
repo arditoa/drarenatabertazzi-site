@@ -15,3 +15,15 @@ create index if not exists exames_lembretes_pac on public.exames_lembretes (paci
 alter table public.exames_lembretes enable row level security;
 drop policy if exists p_ex_lemb on public.exames_lembretes;
 create policy p_ex_lemb on public.exames_lembretes for all to authenticated using (autorizado()) with check (autorizado());
+
+-- Condições conhecidas do paciente (diabetes, glaucoma, DMRI...) marcadas pela equipe
+create table if not exists public.paciente_condicoes (
+  paciente      text primary key,
+  nome          text,
+  condicoes     text[] not null default '{}',
+  atualizado_em timestamptz not null default now(),
+  por           text
+);
+alter table public.paciente_condicoes enable row level security;
+drop policy if exists p_pac_cond on public.paciente_condicoes;
+create policy p_pac_cond on public.paciente_condicoes for all to authenticated using (autorizado()) with check (autorizado());
