@@ -464,6 +464,57 @@ button.kpi:hover{box-shadow:none;border-color:#c9d2de}
 .kpi span{line-height:1.35;margin-top:2px}
 @media(max-width:700px){.rb-row{grid-template-columns:1fr;gap:6px}.rb-sep{border-left:0;padding-left:0;margin-left:0;flex-basis:100%}}
 
+
+/* ===== v4.4: Repasse · filtros e exames por tipo de paciente ===== */
+.rep-bar{padding:0;gap:0;overflow:hidden}
+.rep-bar .rb-row{padding:14px 18px;border-bottom:1px solid var(--line);align-items:start}
+.rb-lab{padding-top:8px}
+.rchip.sem{display:inline-flex;flex-direction:column;align-items:flex-start;line-height:1.15;padding:5px 12px}
+.rchip.sem small{font-size:.66rem;font-weight:500;color:#b3bac5;letter-spacing:.02em}
+.rb-of{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px}
+.of-loc{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:#fbfcfd}
+.of-loc>span{display:flex;flex-direction:column;min-width:0;font-weight:600;font-size:.84rem;line-height:1.2}
+.of-loc>span small{font-weight:500;font-size:.66rem;color:#a86a12}
+.of-loc.vazio{border-style:dashed;background:#fffaf1}
+.of-dias{gap:2px}
+.of-d{width:auto;min-width:34px;height:26px;padding:0 6px;font-size:.7rem;border-radius:6px}
+.of-chk{grid-column:1/-1;margin-top:2px}
+.rb-cobre{padding:12px 18px;background:#fafaf8;display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.rb-cobre>b{font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#7a8597;margin-right:6px}
+.rb-cobre span{margin:0;background:#fff;border:1px solid var(--line);font-variant-numeric:tabular-nums}
+.rb-cobre span i{font-style:normal;font-weight:600;margin-right:6px}
+.rb-cobre em{flex-basis:100%;margin-top:2px}
+.ex-meta-th label{display:inline-flex;align-items:center;gap:4px;font-weight:500;text-transform:none;letter-spacing:0;margin-left:4px}
+.ex-meta-th input{width:42px;padding:2px 4px;border:1px solid var(--line);border-radius:6px;font:inherit;font-size:.78rem;text-align:center}
+.ex-chip{display:inline-block;border-radius:999px;padding:2px 9px;font-weight:600;font-size:.82rem;white-space:nowrap}
+.ex-chip.ok{background:#e1f1e8;color:#2f7a55}
+.ex-chip.baixo{background:#fbe6e1;color:#b4412f;cursor:pointer}
+.ex-chip.baixo:hover{background:#f7d3ca}
+.ex-n{display:block;font-size:.68rem;color:var(--soft)}
+.ex-alerta{display:flex;gap:12px;align-items:flex-start;border:1px solid #f0c9bf;background:#fdf3f0;border-radius:12px;padding:12px 14px;margin:0 0 14px}
+.ex-alerta p{margin:2px 0 8px;font-size:.88rem;color:var(--ink)}
+.ex-al-ic{flex:none;width:26px;height:26px;border-radius:50%;background:#b4412f;color:#fff;font-weight:700;display:grid;place-items:center}
+.ex-al-acoes{display:flex;flex-wrap:wrap;gap:6px}
+@media(max-width:700px){.rep-bar .rb-row{padding:12px 14px}.rb-lab{padding-top:0}}
+/* ===== v4.4: Sincronizar ===== */
+.sy-sub{color:var(--soft);font-size:.9rem;margin:2px 0 14px}
+.sy-fontes{display:grid;gap:8px;margin-bottom:16px}
+.sy-f{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:#fff}
+.sy-dot{flex:none;width:10px;height:10px;border-radius:50%;background:#c3cad5}
+.sy-dot.ok{background:#2f9e63}.sy-dot.atras{background:#e0a030}
+.sy-f>div{flex:1;min-width:0}.sy-f b{display:block;font-size:.95rem}.sy-f small{color:var(--soft);font-size:.8rem}
+.sy-f .sy-q{flex:none;font-size:.78rem;color:var(--soft);text-align:right;white-space:nowrap}
+.sy-f .sy-q strong{display:block;color:var(--ink);font-size:.86rem}
+.sy-h{font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#7a8597;margin:18px 0 8px}
+details.sy-d{border:1px solid var(--line);border-radius:12px;background:#fff;margin-bottom:8px}
+details.sy-d>summary{cursor:pointer;list-style:none;padding:12px 14px;font-weight:600;display:flex;justify-content:space-between;align-items:center;gap:8px}
+details.sy-d>summary::-webkit-details-marker{display:none}
+details.sy-d>summary::after{content:"›";color:var(--soft);font-size:1.2rem;transition:transform .15s}
+details.sy-d[open]>summary::after{transform:rotate(90deg)}
+details.sy-d>summary small{font-weight:400;color:var(--soft);font-size:.8rem;display:block}
+.sy-body{padding:0 14px 14px;font-size:.88rem}
+.sy-body ol{margin:4px 0 10px 18px;padding:0}.sy-body li{margin:4px 0}
+.sy-body ul{margin:4px 0 0 18px;padding:0;color:var(--soft);font-size:.82rem}
 /* ===== v4.3: menu ===== */
 .top .out:focus{outline:none}.top .out:focus-visible{outline:2px solid #fff;outline-offset:2px}
 .menu[open] .out{background:rgba(255,255,255,.12)}
@@ -1018,7 +1069,11 @@ const CLINICAS_TODAS=["OA Palmas","OA Paraíso","ICOG Palmas","ICOG Porto","OPUS
 function repLocOk(l){ return !S.repLocs.length||S.repLocs.includes(l); }
 function setRepLocs(a){ S.repLocs=a; try{ localStorage.setItem("repLocs",JSON.stringify(a)); }catch(e){} }
 function locItem(i){ return S.reps.find(r=>r.id===i.repasse_id)?.local; }
-function ehOficial(local,data){ if(!data) return true; const d=diasOficiais()[local]; if(!d) return true; return d.includes(parse(data).getDay()); }
+function ehOficial(local,data){ if(!data) return true; const d=diasOficiais()[local]; if(!d||!d.length) return true; return d.includes(parse(data).getDay()); }
+// Meta de exames por paciente de plano (convênio). Editável na tela; guardada no aparelho.
+function metaExPlano(){ const v=Number(localStorage.getItem("metaExPlano")); return v>0?v:4; }
+const ehPart=c=>/PARTIC/i.test(c||"");
+const ehPlano=c=>!!(c&&String(c).trim()&&String(c).trim()!=="—"&&!ehPart(c));
 function itOficial(i){ return ehOficial(locItem(i),i.data); }
 const GRUPOS = [
   ["atrasada","🔴 Atrasadas","passaram de 30 dias sem aplicar"],
@@ -1868,19 +1923,36 @@ window.addEventListener("message",async e=>{
   catch(err){ e.source.postMessage({tipo:"erro",msg:err.message},EYE_ORIGIN); }
 });
 function avisaProntoSync(){ if(/sync=eyecare/.test(location.search)&&window.opener){ try{ window.opener.postMessage({tipo:"pronto"},EYE_ORIGIN); }catch(e){} } }
-function ultimaSync(origem){ const s=(S.syncs||[]).find(x=>(x.origem||"eyecare")===origem); return s?new Date(s.em).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"nunca"; }
+function ultimaSyncObj(origens){ return (S.syncs||[]).find(x=>origens.includes(x.origem||"eyecare"))||null; }
+const fmtSync=s=>s?new Date(s.em).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"nunca";
+function ultimaSync(origem){ return fmtSync(ultimaSyncObj([origem])); }
+// Sincronizar: primeiro a situação de cada fonte (em dia / atrasado); "atualizar agora" fica recolhido.
 function folhaSync(){
-  abrir(`<header><div><h2>🔄 Sincronizar</h2><div class="sub">Todas as noites (seg a sáb, 20h47) o Claude sincroniza tudo sozinho. Use os botões abaixo para atualizar na hora.</div></div><button class="close" data-close aria-label="Fechar">×</button></header>
-  <div class="sync-c"><h3>1 · Agenda do EyecareBI <small>(OA Palmas, OA Paraíso e OPUS)</small></h3><p class="sub">Última: <b>${ultimaSync("eyecare")}</b></p>
-   <p><b>Primeira vez:</b> arraste este botão para a barra de favoritos do navegador:</p>
-   <p><a class="btn bm" href="${esc(BOOKMARKLET)}" onclick="event.preventDefault();alert('Arraste este botão para a barra de favoritos. Depois, com o EyecareBI aberto e logado, clique nele.')">🔄 Sincronizar EyecareBI</a></p>
-   <p><b>No dia a dia:</b> abra o EyecareBI (logado) e clique no favorito <b>Sincronizar EyecareBI</b>. O portal abre numa nova aba e recebe os últimos 45 dias da agenda. Nenhuma senha passa pelo portal.</p></div>
-  <div class="sync-c"><h3>2 · Planilhas do Drive <small>(OFT. AV., ICOG, OPUS)</small></h3><p class="sub">Última: <b>${ultimaSync("planilhas")}</b></p>
-   <p><b>Automático:</b> toda noite (20h47) o Claude lê as planilhas direto do Google, junto com a agenda, e o portal processa. Indicações com mais de 60 dias ficam só guardadas, sem entrar no pipeline.</p>
-   ${(S.plDrive||[]).length?`<ul class="sub" style="margin:0 0 10px 18px">${S.plDrive.map(x=>`<li><b>${esc(x.nome)}</b>: recebida ${new Date(x.recebido_em).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}${x.resultado?` · ${esc(x.resultado)}`:" · aguardando processar"}</li>`).join("")}</ul>`:`<p class="sub">Ainda não chegou nenhuma planilha pelo Drive.</p>`}
-   <p class="sub">Manual (se precisar): no Google Sheets, <i>Arquivo → Fazer download → Microsoft Excel (.xlsx)</i> e escolha os arquivos aqui. Só acrescenta o que é novo; nada é apagado.</p>
-   <input type="file" id="syncXlsx" accept=".xlsx" multiple><div id="syncRes" class="sub" style="margin-top:8px"></div></div>
-  <div class="sync-c"><h3>3 · Agenda do ICOG <small>(Amigo · Palmas e Porto)</small></h3><p class="sub">Última: <b>${ultimaSync("eyecare")}</b> · entra na sincronização da noite (precisa do Mac ligado com o app Claude aberto e o Amigo logado).</p></div>`);
+  // em dia = sincronizou nas últimas 30 h (a rotina roda seg a sáb às 20h47)
+  const sit=s=>{ if(!s) return ["","ainda não chegou"]; const h=(Date.now()-new Date(s.em))/36e5; return h<=30?["ok","em dia"]:["atras","atrasado"]; };
+  const eye=ultimaSyncObj(["eyecare"]), ami=ultimaSyncObj(["amigo"]), pla=ultimaSyncObj(["drive","planilhas"]);
+  const fonte=(nome,onde,s,semReg)=>{ const [c,t]=sit(s); return `<div class="sy-f"><span class="sy-dot ${s?c:(semReg?"ok":"")}" aria-hidden="true"></span><div><b>${nome}</b><small>${onde}</small></div><div class="sy-q"><strong>${s?fmtSync(s):(semReg||"nunca")}</strong>${s?t:""}</div></div>`; };
+  abrir(`<header><div><h2>Sincronizar</h2></div><button class="close" data-close aria-label="Fechar">×</button></header>
+  <p class="sy-sub">O portal se atualiza sozinho <b>toda noite, de segunda a sábado, às 20h47</b>. Só use "Atualizar agora" se precisar dos dados novos antes disso.</p>
+  <div class="sy-h">Última atualização</div>
+  <div class="sy-fontes">
+    ${fonte("Agenda · EyecareBI","OA Palmas, OA Paraíso e OPUS",eye)}
+    ${fonte("Agenda · Amigo","ICOG Palmas e ICOG Porto",ami,(S.atend||[]).some(a=>/^ICOG/.test(a.local||""))?"junto com a rotina da noite":"")}
+    ${fonte("Planilhas do Drive","OFT. AV., ICOG e OPUS",pla)}
+  </div>
+  <div class="sy-h">Atualizar agora</div>
+  <details class="sy-d"><summary><span>Agenda do EyecareBI<small>pelo favorito do navegador · 1 clique</small></span></summary><div class="sy-body">
+    <ol><li>Abra o <b>EyecareBI</b> já logado.</li><li>Clique no favorito <b>Sincronizar EyecareBI</b> na barra de favoritos.</li><li>O portal abre numa aba nova e recebe os últimos 45 dias. Nenhuma senha passa pelo portal.</li></ol>
+    <p class="sub" style="margin:8px 0 6px">Ainda não tem o favorito? Arraste este botão para a barra de favoritos (só na primeira vez):</p>
+    <p style="margin:0"><a class="btn bm" href="${esc(BOOKMARKLET)}" onclick="event.preventDefault();alert('Arraste este botão para a barra de favoritos. Depois, com o EyecareBI aberto e logado, clique nele.')">Sincronizar EyecareBI</a></p>
+  </div></details>
+  <details class="sy-d"><summary><span>Planilhas do Drive<small>enviando os arquivos .xlsx</small></span></summary><div class="sy-body">
+    <ol><li>No Google Sheets: <i>Arquivo → Fazer download → Microsoft Excel (.xlsx)</i>.</li><li>Escolha os arquivos aqui embaixo. Só entra o que é novo; nada é apagado.</li></ol>
+    <input type="file" id="syncXlsx" accept=".xlsx" multiple><div id="syncRes" class="sub" style="margin-top:8px"></div>
+    ${(S.plDrive||[]).length?`<p class="sub" style="margin:12px 0 2px">Última leitura de cada planilha:</p><ul>${S.plDrive.map(x=>`<li><b>${esc(x.nome)}</b> · ${new Date(x.recebido_em).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}${x.resultado?` · ${esc(x.resultado)}`:" · aguardando processar"}</li>`).join("")}</ul>`:""}
+    <p class="sub" style="margin-top:8px;font-size:.78rem">Indicações com mais de 60 dias ficam só guardadas, sem entrar no pipeline.</p>
+  </div></details>
+  <p class="sub" style="font-size:.78rem;margin-top:10px">A agenda do Amigo (ICOG) só atualiza na rotina da noite: precisa do Mac ligado, com o app Claude aberto e o Amigo logado.</p>`);
   $("#syncXlsx").addEventListener("change",async ev=>{ const fs=[...ev.target.files]; const out=$("#syncRes"); if(!fs.length) return; out.textContent="Lendo planilhas…";
     try{ const arqs=await Promise.all(fs.map(async f=>({nome:/ICOG/i.test(f.name)?"ICOG":/OPUS/i.test(f.name)?"OPUS":"OFT. AV.",xlsx:await f.arrayBuffer()}))); const r=await importarPlanilhas(arqs,{corte:corte60()});
       out.innerHTML=`✔ ${r.novosPacientes} paciente(s) novo(s) · ${r.novosCasos} caso(s) novo(s) · ${r.novasSessoes} sessão(ões) nova(s) · ${r.atualizados} atualizado(s) · ${r.guardados||0} antigo(s) só guardado(s)`; }
@@ -2039,6 +2111,8 @@ function barrasR(lista,fmt){ fmt=fmt||moeda; const max=Math.max(1,...lista.map(x
 function folhaRepLista(f){
   const {reps,itens}=repFiltrados(); const locDe=id=>reps.find(r=>r.id===id)?.local;
   let its=itens.filter(i=>(!f.local||locDe(i.repasse_id)===f.local)&&(!f.conv||(i.convenio||"—").toUpperCase()===f.conv)&&(!f.cat||(Array.isArray(f.cat)?f.cat.includes(i.categoria):i.categoria===f.cat))&&(!f.pac||normNome(i.paciente)===f.pac)&&(!f.dia||i.data===f.dia)&&(!f.fora||!itOficial(i)));
+  if(f.poucosEx){ const meta=metaExPlano(), cnt={}; its.forEach(i=>{ const k=normNome(i.paciente); const c=cnt[k]||(cnt[k]={pl:false,ex:0}); if(ehPlano(i.convenio)) c.pl=true; if(i.categoria==="exame") c.ex+=(i.qtd||1); });
+    its=its.filter(i=>{ const c=cnt[normNome(i.paciente)]; return c&&c.pl&&c.ex<meta; }); }
   const g={}; its.forEach(i=>{ const k=normNome(i.paciente)+"|"+locDe(i.repasse_id); (g[k]=g[k]||{nome:i.paciente,loc:locDe(i.repasse_id),conv:new Set(),its:[],v:0}); g[k].its.push(i); g[k].v+=Number(i.valor||0); g[k].conv.add(i.convenio||""); if(String(i.paciente).length>g[k].nome.length) g[k].nome=i.paciente; });
   const lista=Object.values(g).sort((a,b)=>b.v-a.v), tot=its.reduce((s,i)=>s+Number(i.valor||0),0);
   const pacPortal=n=>S.pacientes.find(p=>mesmoPaciente(p.nome,n));
@@ -2086,7 +2160,11 @@ function metricasLocal(itens){
   const part=itens.filter(i=>/PARTIC/i.test(i.convenio||"")).reduce((s,i)=>s+Number(i.valor||0),0);
   const proc=itens.filter(i=>["cirurgia","injecao","laser"].includes(i.categoria)).reduce((s,i)=>s+Number(i.valor||0),0);
   const atend=new Set(base.filter(i=>i.paciente&&i.data).map(i=>normNome(i.paciente)+"|"+i.data)).size;
-  return {total, fora:fora.length, foraV, foraP, pacientes:pac.size, atend, pacDia:dias?atend/dias:0, dias, porDia:dias?total/dias:0, porPac:pac.size?total/pac.size:0, exames, exPac:pac.size?exames/pac.size:0, pPart:total?part/total:0, pProc:total?proc/total:0};
+  // exames por paciente, separando particular e plano (paciente com algum item de plano conta como plano)
+  const porPac={}; itens.forEach(i=>{ const k=normNome(i.paciente); if(!k) return; const c=porPac[k]||(porPac[k]={pl:false,pa:false,ex:0}); if(ehPlano(i.convenio)) c.pl=true; else if(ehPart(i.convenio)) c.pa=true; if(i.categoria==="exame") c.ex+=(i.qtd||1); });
+  const vs=Object.values(porPac), pl=vs.filter(c=>c.pl), pa=vs.filter(c=>c.pa&&!c.pl), meta=metaExPlano();
+  const med=a=>a.length?a.reduce((t,c)=>t+c.ex,0)/a.length:null;
+  return {exPart:med(pa), exPlano:med(pl), nPart:pa.length, nPlano:pl.length, plAbaixo:pl.filter(c=>c.ex<meta).length, total, fora:fora.length, foraV, foraP, pacientes:pac.size, atend, pacDia:dias?atend/dias:0, dias, porDia:dias?total/dias:0, porPac:pac.size?total/pac.size:0, exames, exPac:pac.size?exames/pac.size:0, pPart:total?part/total:0, pProc:total?proc/total:0};
 }
 function conferenciaRep(r){
   const it=S.repItens.filter(i=>i.repasse_id===r.id);
@@ -2110,6 +2188,22 @@ function conferenciaRep(r){
   return {it,soma,dif,zeros,falt,difData,conf,ok:dif!=null&&Math.abs(dif)<0.05};
 }
 
+const f1=v=>v==null?"—":v.toFixed(1).replace(".",",");
+// células de exames por paciente: geral · particular · plano (com meta)
+function exCels(m,local){
+  const meta=metaExPlano(), baixo=m.exPlano!=null&&m.exPlano<meta;
+  const f={poucosEx:true,titulo:`Pacientes de plano com menos de ${meta} exames${local?" · "+local:""}`}; if(local) f.local=local;
+  const plano=m.exPlano==null?"—":`<span class="ex-chip ${baixo?"baixo":"ok"}"${baixo?` ${rl(f)} title="Ver os ${m.plAbaixo} paciente(s) abaixo da meta"`:""}>${f1(m.exPlano)}${baixo?` · ${m.plAbaixo} abaixo`:" ✓"}</span>`;
+  return `<td>${f1(m.exPac)}</td><td>${f1(m.exPart)}<small class="ex-n">${m.nPart} pac.</small></td><td>${plano}<small class="ex-n">${m.nPlano} pac.</small></td>`;
+}
+// lembrete no topo quando a média de exames dos pacientes de plano fica abaixo da meta
+function alertaExames(porLoc){
+  const meta=metaExPlano(), baixas=porLoc.filter(([,m])=>m.exPlano!=null&&m.exPlano<meta);
+  if(!baixas.length) return "";
+  return `<div class="ex-alerta"><div class="ex-al-ic">!</div><div><b>Exames abaixo da meta nos pacientes de plano</b>
+    <p>Meta: ${meta} exames por paciente de plano. ${baixas.map(([l,m])=>`<b>${esc(l)}</b>: ${f1(m.exPlano)} (${m.plAbaixo} de ${m.nPlano} pacientes abaixo)`).join(" · ")}.</p>
+    <div class="ex-al-acoes">${baixas.map(([l,m])=>`<button class="rchip" ${rl({local:l,poucosEx:true,titulo:`Pacientes de plano com menos de ${meta} exames · ${l}`})}>Ver pacientes · ${esc(l)}</button>`).join("")}</div></div></div>`;
+}
 function telaRepasse(){
   if(S.repSel) return telaConferencia(S.repSel);
   const {reps,itens}=repFiltrados();
@@ -2121,7 +2215,7 @@ function telaRepasse(){
   const pc=periodoComum(); const chips=[["","","Tudo"]].concat(pc?[[pc[0],pc[1],`Período em comum · ${dm(pc[0])} a ${dm(pc[1])}`]]:[]).concat(meses.map(m=>{ const [a,mm]=m.split("-"); const fim=new Date(+a,+mm,0).getDate(); return [`${m}-01`,`${m}-${String(fim).padStart(2,"0")}`,nomeMes(m).replace(/ de \d{4}/,"").replace(/^./,c=>c.toUpperCase())]; }));
   const casa=chips.some(([de,ate])=>(S.repDe||"")===de&&(S.repAte||"")===ate);
   const custom=S.repCustom||!casa;
-  const DOf=diasOficiais(), SEM=["D","S","T","Q","Q","S","S"];
+  const DOf=diasOficiais(), SEM=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
   const locsVis=locais.filter(repLocOk);
   const filtros=`<div class="rep-bar">
     <div class="rb-row">
@@ -2129,7 +2223,7 @@ function telaRepasse(){
       <div class="rb-chips">${(()=>{ const todas=[...new Set([...CLINICAS_TODAS,...locais])]; const grupos=[["Rede OA",todas.filter(l=>/^OA\b/.test(l))],["ICOG",todas.filter(l=>/^ICOG/.test(l))]].filter(([,ls])=>ls.length>1);
         const igual=ls=>ls.length===S.repLocs.length&&ls.every(l=>S.repLocs.includes(l));
         return `<button class="rchip" data-rloc="" aria-pressed="${!S.repLocs.length}">Todas</button>`
-          +todas.map(l=>{ const tem=locais.includes(l); return `<button class="rchip loc${tem?"":" sem"}" data-rloc="${esc(l)}" aria-pressed="${S.repLocs.includes(l)}" ${tem?"":`title="Ainda sem extrato importado"`}>${esc(l)}${tem?"":" · sem extrato"}</button>`; }).join("")
+          +todas.map(l=>{ const tem=locais.includes(l); return `<button class="rchip loc${tem?"":" sem"}" data-rloc="${esc(l)}" aria-pressed="${S.repLocs.includes(l)}" ${tem?"":`title="Ainda sem extrato importado"`}>${esc(l)}${tem?"":`<small>sem extrato</small>`}</button>`; }).join("")
           +`<span class="rb-sep">Agrupar</span>`+grupos.map(([n,ls])=>`<button class="rchip grp" data-rgrp="${esc(ls.join("|"))}" aria-pressed="${igual(ls)}">${n}</button>`).join(""); })()}</div>
     </div>
     <div class="rb-row">
@@ -2139,10 +2233,10 @@ function telaRepasse(){
     ${custom?`<div class="rb-row"><div class="rb-lab"></div><div class="rb-datas"><label>de <input type="date" id="repDe" value="${S.repDe||""}"></label><label>até <input type="date" id="repAte" value="${S.repAte||""}"></label></div></div>`:""}
     <div class="rb-row">
       <div class="rb-lab">Dias oficiais</div>
-      <div class="rb-of">${locsVis.map(l=>`<div class="of-loc"><span>${esc(l)}</span><div class="of-dias">${[1,2,3,4,5,6].map(w=>`<button class="of-d" data-ofloc="${esc(l)}" data-ofw="${w}" aria-pressed="${(DOf[l]||[]).includes(w)}" title="${["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][w]}">${SEM[w]}</button>`).join("")}</div></div>`).join("")}
+      <div class="rb-of">${locsVis.map(l=>`<div class="of-loc${(DOf[l]||[]).length?"":" vazio"}"><span>${esc(l)}${(DOf[l]||[]).length?"":`<small>nenhum dia marcado · conta todos</small>`}</span><div class="of-dias">${[1,2,3,4,5,6].map(w=>`<button class="of-d" data-ofloc="${esc(l)}" data-ofw="${w}" aria-pressed="${(DOf[l]||[]).includes(w)}" title="${["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][w]}">${SEM[w]}</button>`).join("")}</div></div>`).join("")}
         <label class="of-chk"><input type="checkbox" id="repSoOf" ${S.repSoOf!==false?"checked":""}> Médias por dia só com os dias oficiais</label></div>
     </div>
-    <div class="rb-cobre">Extratos: ${S.reps.map(r=>`<span>${esc(r.local)} ${r.periodo_ini?dm(r.periodo_ini):""}–${r.periodo_fim?dm(r.periodo_fim):""}</span>`).join("")}${!S.repDe&&!S.repAte&&pc?` <em>· cobrem períodos diferentes; use "Período em comum" para comparar.</em>`:""}</div>
+    <div class="rb-cobre"><b>Extratos importados</b>${S.reps.map(r=>`<span><i>${esc(r.local)}</i>${r.periodo_ini?dm(r.periodo_ini):""}–${r.periodo_fim?dm(r.periodo_fim):""}</span>`).join("")}${!S.repDe&&!S.repAte&&pc?` <em>· cobrem períodos diferentes; use "Período em comum" para comparar.</em>`:""}</div>
   </div>`;
   const M=metricasLocal(itens);
   const kpis=`<div class="kpis rep">
@@ -2155,7 +2249,7 @@ function telaRepasse(){
     </div>`;
   // por clínica
   const porLoc=locais.filter(repLocOk).map(l=>{ const its=itens.filter(i=>reps.find(r=>r.id===i.repasse_id)?.local===l); return [l,metricasLocal(its)]; }).filter(([,m])=>m.total>0).sort((a,b)=>b[1].porDia-a[1].porDia);
-  const tabLoc=`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Clínica</th><th>Repasse</th><th>Dias</th><th>R$ por dia</th><th>Pacientes</th><th>Pac. por dia</th><th>R$ por paciente</th><th>Exames por paciente</th><th>% particular</th><th>% procedimentos</th></tr></thead><tbody>${porLoc.map(([l,m],i)=>`<tr class="clk${i===0&&porLoc.length>1?" best":""}" ${rl({local:l})}><td><b>${esc(l)}</b> ›</td><td>${moeda0(m.total)}</td><td>${m.dias}</td><td><b>${moeda0(m.porDia)}</b></td><td>${m.pacientes}</td><td><b>${m.pacDia.toFixed(1).replace(".",",")}</b></td><td>${moeda0(m.porPac)}</td><td>${m.exPac.toFixed(1)}</td><td>${Math.round(m.pPart*100)}%</td><td>${Math.round(m.pProc*100)}%</td></tr>`).join("")}${porLoc.length>1?(()=>{ const m=metricasLocal(itens); return `<tr class="soma clk" ${rl({titulo:"Clínicas selecionadas"})}><td><b>Juntas (${porLoc.length})</b></td><td><b>${moeda0(m.total)}</b></td><td>${m.dias}</td><td><b>${moeda0(m.porDia)}</b></td><td>${m.pacientes}</td><td><b>${m.pacDia.toFixed(1).replace(".",",")}</b></td><td>${moeda0(m.porPac)}</td><td>${m.exPac.toFixed(1)}</td><td>${Math.round(m.pPart*100)}%</td><td>${Math.round(m.pProc*100)}%</td></tr>`; })():""}</tbody></table></div>`;
+  const tabLoc=`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Clínica</th><th>Repasse</th><th>Dias</th><th>R$ por dia</th><th>Pacientes</th><th>Pac. por dia</th><th>R$ por paciente</th><th>Exames/pac.</th><th>Particular</th><th class="ex-meta-th">Plano <label title="Meta de exames por paciente de plano">meta <input type="number" id="repMetaEx" min="1" max="20" step="1" value="${metaExPlano()}"></label></th><th>% particular</th><th>% procedimentos</th></tr></thead><tbody>${porLoc.map(([l,m],i)=>`<tr class="clk${i===0&&porLoc.length>1?" best":""}" ${rl({local:l})}><td><b>${esc(l)}</b> ›</td><td>${moeda0(m.total)}</td><td>${m.dias}</td><td><b>${moeda0(m.porDia)}</b></td><td>${m.pacientes}</td><td><b>${m.pacDia.toFixed(1).replace(".",",")}</b></td><td>${moeda0(m.porPac)}</td>${exCels(m,l)}<td>${Math.round(m.pPart*100)}%</td><td>${Math.round(m.pProc*100)}%</td></tr>`).join("")}${porLoc.length>1?(()=>{ const m=metricasLocal(itens); return `<tr class="soma clk" ${rl({titulo:"Clínicas selecionadas"})}><td><b>Juntas (${porLoc.length})</b></td><td><b>${moeda0(m.total)}</b></td><td>${m.dias}</td><td><b>${moeda0(m.porDia)}</b></td><td>${m.pacientes}</td><td><b>${m.pacDia.toFixed(1).replace(".",",")}</b></td><td>${moeda0(m.porPac)}</td>${exCels(m,null)}<td>${Math.round(m.pPart*100)}%</td><td>${Math.round(m.pProc*100)}%</td></tr>`; })():""}</tbody></table></div>`;
   // por convênio
   const convs={}; itens.forEach(i=>{ const k=(i.convenio||"—").toUpperCase(); (convs[k]=convs[k]||{v:0,cons:[],pac:new Set()}); convs[k].v+=Number(i.valor||0); convs[k].pac.add(normNome(i.paciente)); if(i.categoria==="consulta"&&Number(i.valor)>0) convs[k].cons.push(Number(i.valor)); });
   const convList=Object.entries(convs).sort((a,b)=>b[1].v-a[1].v);
@@ -2180,7 +2274,7 @@ function telaRepasse(){
     <div class="row meta"><b style="color:var(--ink);font-size:1.05rem">${moeda(c.soma)}</b>${r.total_informado!=null?(c.ok?`<span class="chip ok">✔ total confere com o extrato</span>`:`<span class="chip late">Total do extrato ${moeda(r.total_informado)} · diferença ${moeda(c.dif)}</span>`):""}${c.zeros.length?`<span class="chip late">${c.zeros.length} procedimento(s) com R$ 0</span>`:""}${c.falt.length?`<span class="chip warn">${c.falt.length} do portal não aparecem</span>`:""}${cp?(cp.pend?`<span class="chip late">Prontuário: ${[cp.c.sem.length?cp.c.sem.length+" atendido(s) sem repasse":"",cp.c.zero.length?cp.c.zero.length+" com R$ 0":"",cp.c.procFalta.length?cp.c.procFalta.length+" procedimento(s) sem repasse":""].filter(Boolean).join(" · ")}</span>`:`<span class="chip ok">✔ prontuário confere (${cp.c.total} atend.)</span>`):""}<span class="chip">${c.conf}/${c.it.length} conferidos</span></div>
     ${r.recebido_em?`<div class="meta">Recebido em ${br(r.recebido_em)}${r.valor_recebido!=null?` · ${moeda(r.valor_recebido)}`:""}</div>`:""}
     <div class="row" style="justify-content:flex-end"><button class="btn small" data-act="rep-abrir" data-rid="${r.id}">Conferir</button></div></div>`; };
-  return head+filtros+kpis+quadroGrupos(itens,true)+
+  return head+filtros+alertaExames(porLoc)+kpis+quadroGrupos(itens,true)+
   (ins.length?`<div class="panel insight"><div class="panel-h"><h3>💡 O que os números mostram</h3></div><ul>${ins.map(x=>`<li>${x}</li>`).join("")}</ul></div>`:"")+
   `<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>Comparativo por clínica</h3><span class="sub">ordenado por R$ por dia de atendimento</span></div>${tabLoc}
    <div class="sub" style="font-size:.78rem">Dias = dias com consulta no extrato. Compare clínicas no mesmo período: os extratos podem cobrir semanas diferentes.</div></div>
@@ -2790,6 +2884,7 @@ document.addEventListener("change", e=>{ if(e.target.id==="selLocal"){ S.fLocal=
   if(e.target.id==="selPDias"){ S.procDias=+e.target.value; render(); }
   if(e.target.id==="selProc"){ S.fProc=e.target.value; render(); } if(e.target.id==="selSub"){ S.fSub=e.target.value; render(); } if(e.target.id==="selAgLoc"){ S.agLoc=e.target.value; render(); } if(e.target.id==="selPag"){ S.fPag=e.target.value; render(); } if(e.target.id==="selSit"){ S.fSit=e.target.value; render(); }
   if(e.target.id==="repSoOf"){ S.repSoOf=e.target.checked; render(); }
+  if(e.target.id==="repMetaEx"){ const v=Math.max(1,Math.min(20,Math.round(Number(e.target.value)||4))); try{ localStorage.setItem("metaExPlano",String(v)); }catch(err){} render(); }
   if(e.target.id==="repDe"){ S.repDe=e.target.value; render(); }
   if(e.target.id==="repAte"){ S.repAte=e.target.value; render(); }
   if(e.target.dataset&&e.target.dataset.rck){ marcaConferido([e.target.dataset.rck], e.target.checked); } });
