@@ -818,7 +818,7 @@ function render(){
   if(!["agenda","repasse","lentes","painel","semana","proc","cir","trat","laser","pac","recados","cont"].includes(S.tab)) S.tab=tabDoFiltro();
   document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-current", b.dataset.tab===S.tab?"page":"false"));
   const m=$("#main");
-  m.innerHTML = ({agenda:telaAgenda, repasse:telaRepasse, lentes:telaLentes, recados:telaRecados, painel:telaPainel, semana:telaSemana, proc:telaProcs, cir:()=>telaPipe("cirurgia"), trat:()=>telaPipe("injecao"), laser:()=>telaPipe("laser"), pac:telaPac, cont:telaContatos}[S.tab])();
+  try{ m.innerHTML = ({agenda:telaAgenda, repasse:telaRepasse, lentes:telaLentes, recados:telaRecados, painel:telaPainel, semana:telaSemana, proc:telaProcs, cir:()=>telaPipe("cirurgia"), trat:()=>telaPipe("injecao"), laser:()=>telaPipe("laser"), pac:telaPac, cont:telaContatos}[S.tab])(); }catch(err){ console.error(err); m.innerHTML=`<div class="empty">Não consegui montar esta tela (${esc(err.message)}). Tente outra aba ou atualize a página.</div>`; }
   if(S.tab==="repasse"&&$("#fRep")) $("#fRep").addEventListener("submit",async e=>{ e.preventDefault(); const v=$("#rVl").value.trim(); await salvar(sb.from("repasses").update({status:$("#rSt").value,recebido_em:$("#rDt").value||null,valor_recebido:v?parseFloat(v.replace(/\./g,"").replace(",",".")):null}).eq("id",S.repSel),"Repasse atualizado ✔"); });
   if(S.tab==="lentes"){ const f=$("#frLentes"); const envia=()=>{ try{ f.contentWindow.postMessage({tipo:"precos",rows:S.precos,tabela:(S.fLocal||"").startsWith("ICOG")||!S.fLocal?"ICOG":"padrao"},"*"); }catch(e){} }; f.addEventListener("load",envia); envia(); }
   { const ano=anoAtual(), na=aniversariantes(0).filter(x=>!prefDe(x.c.k).nao_enviar&&prefDe(x.c.k).aniv_ano!==ano&&telIntl(x.c.tel)).length; const ba=$("#nAniv"); if(ba) ba.textContent=na||""; }
@@ -1175,7 +1175,7 @@ function procsRealizados(dias){
     if(usados.has(a.id)||!noLocalNome(a.local)) return;
     const ch=d+"|"+a._k+"|"+chaveNome(a.paciente); if(vistos.has(ch)) return; vistos.add(ch);
     const p=pacPorNome(a.paciente); const c=p?S.casos.find(x=>x.paciente_id===p.id&&x.tipo===a._k&&x.etapa!=="desistiu"):null;
-    if(c&&out.some(x=>x.c.id===c.id&&x.data===d)) return;
+    if(c&&out.some(x=>x.k==="portal"&&x.c.id===c.id&&x.data===d)) return;
     out.push({k:"pront",a,p,c,tipo:a._k,data:d,mod:d});
   }));
   return out.sort((a,b)=>b.mod.localeCompare(a.mod)||b.data.localeCompare(a.data));
