@@ -10,7 +10,7 @@
 <meta name="theme-color" content="#163f78">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Marcellus&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <style>
 :root {
@@ -356,6 +356,73 @@ legend{font-size:.86rem;font-weight:700;color:var(--soft);padding:0;margin-botto
 .item .chip{white-space:normal;line-height:1.3}
 .item .actions{margin-left:auto}
 .fab{display:none}
+
+/* ===== v4: visual mais profissional (tipografia, cabeçalho, filtros) ===== */
+:root{--body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;--line:#e6e2da;--paper:#f7f6f3}
+body{font-size:15px;-webkit-font-smoothing:antialiased;letter-spacing:-.003em}
+.app h2,.sheet h2{font-family:var(--body);font-weight:700;letter-spacing:-.015em}
+.sec-head h2{font-size:1.5rem}
+.panel-h h3,.tk-gt{font-weight:600}
+/* Cabeçalho */
+.top{background:linear-gradient(90deg,#123566,#1a4a8a);padding:10px 20px;min-height:60px;gap:12px;box-shadow:0 1px 0 rgba(0,0,0,.08)}
+.top img{width:34px;height:34px}
+.top b{font-family:var(--body);font-weight:600;font-size:1rem;letter-spacing:0}
+.top .t-sub{font-size:.74rem;color:#b9cbe6;letter-spacing:.01em}
+.top .who{flex:none;font-size:.78rem;color:#c8d7ee;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:760px){.top .who{display:none}}
+.top .out{display:inline-flex;align-items:center;gap:6px;border-radius:8px;padding:7px 12px;font-weight:600;border-color:rgba(255,255,255,.28)}
+.top .out:hover{background:rgba(255,255,255,.08)}
+.menu-p{border-radius:12px}.menu-p button{border-radius:8px}
+/* Navegação */
+.tabs button{border-radius:10px;font-weight:600}
+.tabs button[aria-current="page"]{background:#e9f0fa}
+@media(min-width:900px){
+  .tabs{top:60px;background:#fff;border-bottom:1px solid var(--line);padding:0 20px;gap:4px;justify-content:flex-start;max-width:none}
+  .tabs button{border-radius:0;padding:14px 14px 12px;font-size:.9rem;color:var(--soft);border-bottom:2px solid transparent}
+  .tabs button:hover{color:var(--ink)}
+  .tabs button[aria-current="page"]{background:none;color:var(--accent);border-bottom-color:var(--accent)}
+  .tabs button svg{width:18px;height:18px}
+}
+/* Botões e campos */
+.btn{border-radius:10px;font-weight:600}
+.btn.small{border-radius:8px;font-weight:600}
+.contact a{border-radius:8px;font-weight:600;border-width:1px}
+.btn.ghost{border-width:1px}
+.fl{border-radius:6px;font-weight:600;font-size:.72rem;padding:2px 7px}
+.chip{border-radius:6px;font-weight:600}
+.filtros{border-radius:12px;padding:12px 14px;gap:10px 14px;margin:0 0 14px}
+.fcampo span{font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#7a8597}
+.fcampo select{border-radius:8px;font-weight:500;font-size:.92rem;padding:8px 10px}
+.inj-box{border-left-width:1px;border-radius:12px}
+.item{border-radius:12px}
+/* Barra de visão + tipo */
+.ptool{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;margin:2px 0 14px}
+.segc{display:inline-flex;background:#ebe8e2;border-radius:10px;padding:3px;gap:2px;max-width:100%;overflow-x:auto}
+.segc button{border:0;background:transparent;border-radius:8px;padding:7px 14px;font-weight:600;font-size:.86rem;color:var(--soft);white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+.segc button:hover{color:var(--ink)}
+.segc button[aria-pressed="true"]{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(24,41,74,.12),0 0 0 1px rgba(24,41,74,.04)}
+.segc button small{font-size:.7rem;font-weight:600;color:var(--soft);background:rgba(24,41,74,.07);border-radius:999px;padding:0 6px;line-height:1.5}
+.segc button small:empty{display:none}
+.segc.main button{padding:8px 18px;font-size:.9rem}
+.segc.main button small{background:var(--late);color:#fff}
+/* Indicadores clicáveis */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:6px}
+.stat{text-align:left;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:1px;position:relative;overflow:hidden}
+.stat::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:#c9d2de}
+.stat.warn::before{background:var(--warn)} .stat.late::before{background:var(--late)} .stat.ok::before{background:var(--ok)}
+.stat b{font-size:1.3rem;font-weight:700;line-height:1.15;color:var(--ink)}
+.stat span{font-size:.76rem;color:var(--soft);font-weight:500}
+.stat:hover{border-color:#cdd5e1}
+.stat.on{border-color:var(--accent);box-shadow:0 0 0 2px rgba(31,90,166,.18)}
+.ptool-nota{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;font-size:.76rem;color:var(--soft);margin:8px 0 10px}
+.ptool-nota>span:last-child{display:flex;gap:6px}
+/* Tipo do procedimento */
+.ttag{display:inline-block;font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:1px 6px;border-radius:5px;margin-right:4px;vertical-align:1px}
+.t-cirurgia{background:#efe9f8;color:#5b3a99} .t-injecao{background:#e5eefa;color:#1f5aa6} .t-laser{background:#e0f2ef;color:#24735f}
+.pr-row .inj-nome button{font-size:.93rem}
+@media(max-width:760px){.ptool .segc{display:flex;width:100%}.ptool .segc button{flex:1;justify-content:center;padding:7px 6px;font-size:.82rem}.top{padding:10px 14px}}
+.panel-h h3 .count{font-size:.72rem;font-weight:600;color:var(--soft);background:#eceae4;border-radius:999px;padding:1px 8px;margin-left:6px;vertical-align:1px}
+.panel-h h3{text-transform:none}
 </style>
 </head>
 <body>
@@ -401,8 +468,8 @@ legend{font-size:.86rem;font-weight:700;color:var(--soft);padding:0;margin-botto
 <div class="app hidden" id="vApp">
   <header class="top">
     <img src="../img/simbolo.png" alt="">
-    <div class="t"><b>Controle de Pacientes</b><span id="who"></span></div>
-    <details class="menu" id="menuTop"><summary class="out">☰ Menu</summary>
+    <div class="t"><b>Controle de Pacientes</b><span class="t-sub">Dra. Renata Bertazzi · Retina e Catarata</span></div><span class="who" id="who"></span>
+    <details class="menu" id="menuTop"><summary class="out"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg> Menu</summary>
       <div class="menu-p">
         <small>Prontuário e financeiro</small>
         <button data-tab="agenda">📅 Agenda do prontuário</button>
@@ -1140,6 +1207,7 @@ function telaPainel(){
 
 /* ===== Procedimentos: realizados (contato) + agenda (cirurgia, injeção e laser juntos) ===== */
 const TIPO_ICO={cirurgia:"🔪",injecao:"💉",laser:"✨"};
+const tipoTag=t=>`<span class="ttag t-${t}">${TIPO_LABEL[t]}</span>`;
 const MOTIVOS_NR=["Pressão alta","Glicemia alta","Paciente faltou","Paciente desmarcou","Olho irritado / infecção","Convênio não liberou","Falta de material / medicação","Remarcado pela clínica","Outro"];
 // Índice da agenda finalizada (evolução feita no prontuário) por data
 function atIdx(){ const a=S.atend||[]; if(S._atIdx&&S._atIdx.n===a.length) return S._atIdx.m; const m={}; a.forEach(x=>{ if(x.status!=="FINISHED") return; const k=classeItem(x.itens); if(!TIPO_LABEL[k]) return; (m[x.data]=m[x.data]||[]).push({...x,_k:k}); }); S._atIdx={n:a.length,m}; return m; }
@@ -1147,10 +1215,19 @@ function evolucaoPront(c,data){ if(!data) return null; const nm=pacOf(c).nome; r
 function ultSyncData(){ const ds=(S.syncs||[]).filter(s=>(s.origem||"eyecare")==="eyecare").map(s=>s.ate||String(s.em||"").slice(0,10)).filter(Boolean).sort(); return ds.at(-1)||null; }
 function tagPront(c,data){
   const a=evolucaoPront(c,data);
-  if(a) return `<span class="fl ok" title="${esc(a.itens||"")}">✔ Evolução no prontuário${a.local?" · "+esc(a.local):""}</span>`;
-  const u=ultSyncData(); if(!u||data>u) return `<span class="fl">⏳ Prontuário ainda não sincronizado</span>`;
-  return `<span class="fl warn" title="Não achei atendimento finalizado no EyecareBI/Amigo nesta data">⚠️ Sem evolução no prontuário</span>`;
+  if(a) return `<span class="fl ok" title="${esc(a.itens||"")}">Evolução no prontuário${a.local?" · "+esc(a.local):""}</span>`;
+  const u=ultSyncData(); if(!u||data>u) return `<span class="fl">Prontuário não sincronizado</span>`;
+  return `<span class="fl warn" title="Não achei atendimento finalizado no EyecareBI/Amigo nesta data">Sem evolução no prontuário</span>`;
 }
+// Confirmação do convênio/clínica: procedimento pago no relatório de repasse importado
+function repassePago(c,data){
+  const nm=pacOf(c).nome, d0=parse(data);
+  const its=(S.repItens||[]).filter(i=>i.data&&catItem(i)===c.tipo&&Math.abs(diff(parse(i.data),d0))<=7&&nomeBate(i.paciente,nm));
+  if(its.length){ const pg=its.find(i=>Number(i.valor||0)>0); return pg?{k:"pago",i:pg}:{k:"zero",i:its[0]}; }
+  const cobre=(S.reps||[]).some(r=>r.periodo_ini&&r.periodo_fim&&r.periodo_ini<=data&&r.periodo_fim>=data&&(!c.local||!r.local||r.local===c.local));
+  return {k:cobre?"falta":"aguarda"};
+}
+function tagRepasse(r){ return r.k==="pago"?`<span class="fl ok" title="${esc(r.i.procedimento||"")}">Pago no repasse${r.i.data?" · "+dm(r.i.data):""}</span>`:r.k==="zero"?`<span class="fl warn">Repasse com valor zerado</span>`:r.k==="falta"?`<span class="fl late">Não consta no repasse</span>`:`<span class="fl">Aguardando repasse</span>`; }
 const modDe=(...xs)=>xs.filter(Boolean).map(String).sort().at(-1)||"";
 function quandoMod(s){ if(!s||s.length<=10) return ""; const d=new Date(s); if(isNaN(d)) return ""; const h=d.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}); return iso(d)===hojeISO()?`mexido hoje ${h}`:`mexido ${d.toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"})} ${h}`; }
 const passaTipo=t=>!S.procTipo||S.procTipo===t;
@@ -1166,7 +1243,7 @@ function procsRealizados(dias){
     const c=S.casos.find(x=>x.id===s.caso_id); if(!c||!noLocal(c)) continue;
     out.push({k:"portal",c,ses:s,data:s.data_realizada,rot:`${TIPO_LABEL[c.tipo]}${c.olho?" "+c.olho:""} · ${s.numero}ª aplicação${s.ciclo>1?" · ciclo "+s.ciclo:""}`});
   }
-  for(const x of out){ x.pos=S.pos.find(p=>p.caso_id===x.c.id&&(p.sessao_id||null)===(x.ses?x.ses.id:null))||null; x.pront=evolucaoPront(x.c,x.data);
+  for(const x of out){ x.pos=S.pos.find(p=>p.caso_id===x.c.id&&(p.sessao_id||null)===(x.ses?x.ses.id:null))||null; x.pront=evolucaoPront(x.c,x.data); x.rep=repassePago(x.c,x.data);
     x.mod=modDe(x.data,x.pos?.atualizado_em,x.pos?.contato_em,x.pos?.whatsapp_em,x.ses?.atualizado_em,x.ses?null:x.c.atualizado_em); }
   // prontuário finalizado sem lançamento no portal
   const usados=new Set(out.filter(x=>x.pront).map(x=>x.pront.id)); const vistos=new Set();
@@ -1187,15 +1264,15 @@ function linhaRealizado(x){
   if(x.k==="pront"){ const a=x.a,p=x.p,c=x.c;
     const item=String(a.itens||"").replace(/PCT-HM - |PCT-HOSP - |PAR - |TAXA DE INSTRUMENTADOR CIRÚRGICO \+ /gi,"").slice(0,70);
     const act=!p?`<span class="fl">sem cadastro no portal</span>`:!c?`<button class="btn small ghost" data-pac="${p.id}">Abrir ficha</button>`:`<button class="btn small okb" data-act="reg-hist" data-id="${c.id}" data-data="${x.data}">+ Lançar no portal</button>`;
-    return `<div class="tk-row pr-row"><div class="inj-nome"><span class="pr-ico">${TIPO_ICO[x.tipo]}</span>${p?`<button class="linklike" data-pac="${p.id}">${esc(nomeCurto(p.nome))}</button>`:`<b>${esc(nomeCurto(a.paciente))}</b>`}<small>${esc(item)} · ${br(x.data)} · ${esc(a.local||"")}${a.plano?" · "+esc(a.plano):""}</small>
-      <div class="pos-st"><span class="fl ok">✔ Evolução no prontuário</span><span class="fl warn">Ainda não lançado no portal</span></div></div><div class="inj-acts">${p?contato(p.telefone):""}${act}</div></div>`; }
+    return `<div class="tk-row pr-row"><div class="inj-nome">${p?`<button class="linklike" data-pac="${p.id}">${esc(nomeCurto(p.nome))}</button>`:`<b>${esc(nomeCurto(a.paciente))}</b>`}<small>${tipoTag(x.tipo)} ${esc(item)} · ${br(x.data)} · ${esc(a.local||"")}${a.plano?" · "+esc(a.plano):""}</small>
+      <div class="pos-st"><span class="fl ok">Evolução no prontuário</span><span class="fl warn">Ainda não lançado no portal</span></div></div><div class="inj-acts">${p?contato(p.telefone):""}${act}</div></div>`; }
   const c=x.c,p=pacOf(c),key=`${c.id}|${x.ses?x.ses.id:""}`;
   const nomeMod=id=>{ const m=S.modelos.find(z=>z.id===id); return m?esc(m.nome):""; };
   const sc=x.pos?.contato_em?`<span class="fl ok">✔ Contato ${dm(x.pos.contato_em)}</span>`:`<span class="fl warn">Contato pendente</span>`;
   const sw=x.pos?.whatsapp_em?`<span class="fl ok">✔ WhatsApp ${dm(x.pos.whatsapp_em)}${x.pos.modelo_msg?" · "+nomeMod(x.pos.modelo_msg):""}</span>`:`<span class="fl warn">WhatsApp pendente</span>`;
   const qm=quandoMod(x.mod);
-  return `<div class="tk-row pr-row ${posOk(x)?"pr-ok":""}"><div class="inj-nome"><span class="pr-ico">${TIPO_ICO[c.tipo]}</span><button class="linklike" data-pac="${p.id}">${esc(nomeCurto(p.nome))}</button><small>${esc(x.rot)} · ${br(x.data)}${c.local?" · "+esc(c.local):""} · ${esc(pagLabel(c))}${qm?` · <i>${qm}</i>`:""}</small>
-    <div class="pos-st">${tagPront(c,x.data)}${sc}${sw}</div></div>
+  return `<div class="tk-row pr-row ${posOk(x)?"pr-ok":""}"><div class="inj-nome"><button class="linklike" data-pac="${p.id}">${esc(nomeCurto(p.nome))}</button><small>${tipoTag(c.tipo)} ${esc(x.rot.replace(/^(Cirurgia|Injeção|Laser) ?/,""))} · ${br(x.data)}${c.local?" · "+esc(c.local):""} · ${esc(pagLabel(c))}${qm?` · <i>${qm}</i>`:""}</small>
+    <div class="pos-st">${tagPront(c,x.data)}${tagRepasse(x.rep)}${sc}${sw}</div></div>
     <div class="inj-acts">${contato(p.telefone)}${x.pos?.contato_em?"":`<button class="btn small ghost" data-act="pos-contato" data-key="${key}">Contato feito</button>`}<button class="btn small ${x.pos?.whatsapp_em?"ghost":"okb"}" data-act="pos-whats" data-key="${key}">${x.pos?.whatsapp_em?"Reenviar":"WhatsApp pós"}</button></div></div>`;
 }
 
@@ -1219,9 +1296,9 @@ function linhaAgendado(x){
   const c=x.c,p=pacOf(c),passou=x.data<hojeISO(),ev=passou||x.data===hojeISO()?evolucaoPront(c,x.data):null;
   const kid=x.ses?`data-sid="${x.ses.id}"`:"";
   const nr=(S.nr||[]).filter(r=>r.caso_id===c.id).length;
-  const tags=[passou?(ev?`<span class="fl ok">✔ Evolução no prontuário · confirme</span>`:`<span class="fl late">Passou da data · registrar o que houve</span>`):ev?`<span class="fl ok">✔ Evolução no prontuário · confirme</span>`:"", nr?`<span class="fl">${nr}× não realizado antes</span>`:""].join("");
-  return `<div class="tk-row pr-row ${passou?"pr-late":""}"><div class="inj-nome"><span class="pr-ico">${TIPO_ICO[c.tipo]}</span><button class="linklike" data-pac="${p.id}">${esc(nomeCurto(p.nome))}</button><small>${esc(x.rot)}${c.local?" · "+esc(c.local):""} · ${esc(pagLabel(c))}</small>${tags?`<div class="pos-st">${tags}</div>`:""}</div>
-    <div class="inj-acts">${contato(p.telefone)}<button class="btn small okb" data-act="ag-feito" data-id="${c.id}" ${kid} data-data="${x.data}">✔ Realizado</button><button class="btn small ghost" data-act="ag-nao" data-id="${c.id}" ${kid} data-data="${x.data}">✖ Não realizado</button><button class="btn small ghost" data-act="ag-remarcar" data-id="${c.id}" ${kid} data-data="${x.data}">Remarcar</button></div></div>`;
+  const tags=[passou?(ev?`<span class="fl ok">Evolução no prontuário · confirme</span>`:`<span class="fl late">Passou da data · registrar</span>`):ev?`<span class="fl ok">Evolução no prontuário · confirme</span>`:"", nr?`<span class="fl">${nr}× não realizado antes</span>`:""].join("");
+  return `<div class="tk-row pr-row ${passou?"pr-late":""}"><div class="inj-nome"><button class="linklike" data-pac="${p.id}">${esc(nomeCurto(p.nome))}</button><small>${tipoTag(c.tipo)} ${esc(x.rot.replace(/^(Cirurgia|Injeção|Laser) ?/,""))}${c.local?" · "+esc(c.local):""} · ${esc(pagLabel(c))}</small>${tags?`<div class="pos-st">${tags}</div>`:""}</div>
+    <div class="inj-acts">${contato(p.telefone)}<button class="btn small okb" data-act="ag-feito" data-id="${c.id}" ${kid} data-data="${x.data}">Realizado</button><button class="btn small ghost" data-act="ag-nao" data-id="${c.id}" ${kid} data-data="${x.data}">Não realizado</button><button class="btn small ghost" data-act="ag-remarcar" data-id="${c.id}" ${kid} data-data="${x.data}">Remarcar</button></div></div>`;
 }
 
 function telaProcs(){
@@ -1229,22 +1306,25 @@ function telaProcs(){
   const R=procsRealizados(dias), A=procsAgendados();
   const base=vista==="feitos"?R:A;
   const nT=t=>base.filter(x=>tipoDe(x)===t).length;
-  const pset=(k,v,tx,n,on)=>`<button class="lchip ${on?"on":""}" data-pset="${k}=${v}">${tx}${n!==undefined?` <small>${n}</small>`:""}</button>`;
-  const tipos=`<div class="loc-chips">${pset("procTipo","","Todos",base.length,!S.procTipo)}${["cirurgia","injecao","laser"].map(t=>pset("procTipo",t,TIPO_ICO[t]+" "+({cirurgia:"Cirurgias",injecao:"Injeções",laser:"Laser"})[t],nT(t),S.procTipo===t)).join("")}</div>`;
-  const seg=`<div class="seg"><button data-pset="procVista=quadro" aria-pressed="${vista==="quadro"}">📋 Quadro (indicação → alta)</button><button data-pset="procVista=feitos" aria-pressed="${vista==="feitos"}">✅ Realizados · contato</button><button data-pset="procVista=agenda" aria-pressed="${vista==="agenda"}">📅 Agendados</button></div>`;
+  const pset=(k,v,tx,n,on)=>`<button class="${on?"on":""}" data-pset="${k}=${v}" aria-pressed="${!!on}">${tx}${n!==undefined?`<small>${n}</small>`:""}</button>`;
+  const tq=S.procTipo||(vista==="quadro"?"cirurgia":"");
+  const totQ=t=>S.casos.filter(c=>c.tipo===t&&!["desistiu","finalizado"].includes(c.etapa)&&noLocal(c)).length;
+  const nTipo=t=>vista==="quadro"?totQ(t):nT(t);
+  const tipos=`<div class="segc" role="group" aria-label="Tipo de procedimento">${vista==="quadro"?"":pset("procTipo","","Todos",base.length,!tq)}${["cirurgia","injecao","laser"].map(t=>pset("procTipo",t,({cirurgia:"Cirurgias",injecao:"Injeções",laser:"Laser"})[t],nTipo(t),tq===t)).join("")}</div>`;
+  const seg=`<div class="segc main" role="tablist" aria-label="Visão"><button data-pset="procVista=quadro" aria-pressed="${vista==="quadro"}">Etapas</button><button data-pset="procVista=feitos" aria-pressed="${vista==="feitos"}">Realizados</button><button data-pset="procVista=agenda" aria-pressed="${vista==="agenda"}">Agendados<small>${A.filter(x=>x.data<hojeISO()).length||""}</small></button></div>`;
+  const barra=`<div class="ptool">${seg}${tipos}</div>`;
   let corpo="";
   if(vista==="quadro"){
-    const tq=S.procTipo||"cirurgia"; const tot=t=>S.casos.filter(c=>c.tipo===t&&!["desistiu","finalizado"].includes(c.etapa)&&noLocal(c)).length;
-    corpo=`<div class="loc-chips">${["cirurgia","injecao","laser"].map(t=>pset("procTipo",t,TIPO_ICO[t]+" "+({cirurgia:"Cirurgias",injecao:"Injeções",laser:"Laser"})[t],tot(t),tq===t)).join("")}</div>${telaPipe(tq,true)}`;
+    corpo=telaPipe(tq,true);
   } else if(vista==="feitos"){
     const T=R.filter(x=>passaTipo(tipoDe(x)));
     const pend=T.filter(x=>x.k==="portal"&&!posOk(x)), ok=T.filter(posOk), nl=T.filter(x=>x.k==="pront"), sev=T.filter(x=>x.k==="portal"&&!x.pront&&ultSyncData()&&x.data<=ultSyncData());
-    const L= st==="pend"?pend : st==="ok"?ok : st==="nl"?nl : st==="sev"?sev : T;
-    const ch=(k,cls,n,t)=>`<button class="fl ${cls} fchip ${st===k?"on":""}" data-pset="procSt=${st===k?"":k}">${n} ${t}</button>`;
-    corpo=`<div class="filtros">${selLocal().replace('<label class="loc-sel">📍 Local de atendimento','<label class="fcampo"><span>📍 Clínica</span>')}<label class="fcampo"><span>📆 Período</span><select id="selPDias">${[[1,"Hoje"],[3,"Últimos 3 dias"],[7,"Últimos 7 dias"],[15,"Últimos 15 dias"],[30,"Últimos 30 dias"]].map(([v,t])=>`<option value="${v}" ${dias===v?"selected":""}>${t}</option>`).join("")}</select></label></div>
-    ${tipos}
-    <div class="resumo-hoje">${ch("pend","warn",pend.length,"contato/WhatsApp pendente")}${ch("nl","warn",nl.length,"no prontuário sem lançar")}${ch("sev","late",sev.length,"sem evolução no prontuário")}${ch("ok","ok",ok.length,"concluídos")}</div>
-    <div class="sub" style="font-size:.78rem;margin:4px 0 8px">Mais recentes primeiro (o que foi mexido por último aparece no topo). <b>✔ Evolução no prontuário</b> = o EyecareBI/Amigo tem o atendimento finalizado nesse dia.${st?` <button class="linkbtn" data-pset="procSt=">Ver todos ✕</button>`:""} <button class="linkbtn" data-act="modelos">Modelos de mensagem →</button></div>
+    const rp=T.filter(x=>x.k==="portal"&&x.rep&&x.rep.k==="pago"), rf=T.filter(x=>x.k==="portal"&&x.rep&&["falta","zero"].includes(x.rep.k));
+    const L= st==="pend"?pend : st==="ok"?ok : st==="nl"?nl : st==="sev"?sev : st==="rp"?rp : st==="rf"?rf : T;
+    const ch=(k,cls,n,t)=>`<button class="stat ${cls} ${st===k?"on":""}" data-pset="procSt=${st===k?"":k}" aria-pressed="${st===k}"><b>${n}</b><span>${t}</span></button>`;
+    corpo=`<div class="filtros">${selLocal().replace('<label class="loc-sel">📍 Local de atendimento','<label class="fcampo"><span>Clínica</span>')}<label class="fcampo"><span>Período</span><select id="selPDias">${[[1,"Hoje"],[3,"Últimos 3 dias"],[7,"Últimos 7 dias"],[15,"Últimos 15 dias"],[30,"Últimos 30 dias"]].map(([v,t])=>`<option value="${v}" ${dias===v?"selected":""}>${t}</option>`).join("")}</select></label></div>
+    <div class="stats">${ch("pend","warn",pend.length,"Contato pendente")}${ch("ok","ok",ok.length,"Contato concluído")}${ch("nl","warn",nl.length,"No prontuário, sem lançar")}${ch("sev","late",sev.length,"Sem evolução no prontuário")}${ch("rp","ok",rp.length,"Pago no repasse")}${ch("rf","late",rf.length,"Não consta no repasse")}</div>
+    <div class="ptool-nota"><span>Ordenado pela última alteração. <b>Evolução no prontuário</b>: atendimento finalizado no EyecareBI/Amigo. <b>Pago no repasse</b>: consta no relatório de repasse importado.</span><span>${st?`<button class="linkbtn" data-pset="procSt=">Limpar filtro</button>`:""}<button class="linkbtn" data-act="modelos">Modelos de mensagem</button></span></div>
     <div class="inj-box"><div class="inj-list">${L.map(linhaRealizado).join("")||'<div class="empty">Nada por aqui. 👏</div>'}</div></div>`;
   } else {
     const T=A.filter(x=>passaTipo(x.c.tipo)), h=hojeISO();
@@ -1252,16 +1332,15 @@ function telaProcs(){
     const porDia={}; fut.forEach(x=>(porDia[x.data]=porDia[x.data]||[]).push(x));
     const rot=d=>{ const n=diff(parse(d),hoje()); const w=parse(d).toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"2-digit"}); return n===0?`Hoje · ${w}`:n===1?`Amanhã · ${w}`:w; };
     const nrs=(S.nr||[]).filter(r=>{ const c=S.casos.find(x=>x.id===r.caso_id); return c&&passaTipo(c.tipo)&&noLocal(c)&&desde(r.data_prevista)<=60; });
-    corpo=`<div class="filtros">${selLocal().replace('<label class="loc-sel">📍 Local de atendimento','<label class="fcampo"><span>📍 Clínica</span>')}</div>
-    ${tipos}
-    <div class="sub" style="font-size:.78rem;margin:4px 0 8px">Tudo que tem data marcada. Se não foi feito (pressão alta, glicemia, faltou…), toque em <b>✖ Não realizado</b>: o motivo fica guardado e o paciente volta para "a agendar" (ou já remarque).</div>
-    ${atras.length?`<div class="inj-box acao-box"><div class="panel-h"><h3>⚠️ Passaram da data sem registro <span class="count">${atras.length}</span></h3></div><div class="sub" style="font-size:.78rem">Confirme se foi realizado ou marque o motivo de não ter sido.</div><div class="inj-list">${atras.sort((a,b)=>b.data.localeCompare(a.data)).map(x=>linhaAgendado(x).replace('<small>',`<small>marcado ${br(x.data)} · `)).join("")}</div></div>`:""}
-    ${Object.keys(porDia).sort().map(d=>`<div class="inj-box"><div class="panel-h"><h3>${rot(d)} <span class="count">${porDia[d].length}</span></h3></div><div class="inj-list">${porDia[d].map(linhaAgendado).join("")}</div></div>`).join("")||'<div class="empty">Nenhum procedimento agendado daqui para frente.</div>'}
+    corpo=`<div class="filtros">${selLocal().replace('<label class="loc-sel">📍 Local de atendimento','<label class="fcampo"><span>Clínica</span>')}</div>
+    <div class="sub" style="font-size:.78rem;margin:4px 0 8px">Tudo que tem data marcada. Se não foi feito (pressão alta, glicemia, faltou…), toque em <b>Não realizado</b>: o motivo fica guardado e o paciente volta para "a agendar" (ou já remarque).</div>
+    ${atras.length?`<div class="inj-box acao-box"><div class="panel-h"><h3>Passaram da data sem registro <span class="count">${atras.length}</span></h3></div><div class="sub" style="font-size:.78rem">Confirme se foi realizado ou marque o motivo de não ter sido.</div><div class="inj-list">${atras.sort((a,b)=>b.data.localeCompare(a.data)).map(x=>linhaAgendado(x).replace('<small>',`<small>marcado ${br(x.data)} · `)).join("")}</div></div>`:""}
+    ${Object.keys(porDia).sort().map(d=>`<div class="inj-box"><div class="panel-h"><h3 style="text-transform:capitalize">${rot(d)} <span class="count">${porDia[d].length}</span></h3></div><div class="inj-list">${porDia[d].map(linhaAgendado).join("")}</div></div>`).join("")||'<div class="empty">Nenhum procedimento agendado daqui para frente.</div>'}
     ${S.nr===null?`<div class="empty">Para guardar os motivos de "não realizado", rode uma vez o arquivo <b>controle/sql/2026-11-12-procedimentos.sql</b> no SQL Editor do Supabase. Enquanto isso o motivo vai para a observação da indicação.</div>`:
-      nrs.length?`<details class="panel resumo"><summary><b>✖ Não realizados</b> · ${nrs.length} nos últimos 60 dias</summary>${nrs.map(r=>{ const c=S.casos.find(x=>x.id===r.caso_id),p=pacOf(c); return `<div class="tk-row"><div class="inj-nome"><button class="linklike" data-pac="${p.id}">${esc(nomeCurto(p.nome))}</button><small>${TIPO_ICO[c.tipo]} ${TIPO_LABEL[c.tipo]}${c.olho?" "+esc(c.olho):""} · marcado ${br(r.data_prevista)}${c.local?" · "+esc(c.local):""}</small><div class="pos-st"><span class="fl warn">${esc(r.motivo)}</span>${r.remarcado_para?`<span class="fl ok">Remarcado ${br(r.remarcado_para)}</span>`:`<span class="fl">Voltou para agendar</span>`}</div>${r.obs?`<small>📝 ${esc(r.obs)}</small>`:""}</div></div>`; }).join("")}</details>`:""}`;
+      nrs.length?`<details class="panel resumo"><summary><b>Não realizados</b> · ${nrs.length} nos últimos 60 dias</summary>${nrs.map(r=>{ const c=S.casos.find(x=>x.id===r.caso_id),p=pacOf(c); return `<div class="tk-row"><div class="inj-nome"><button class="linklike" data-pac="${p.id}">${esc(nomeCurto(p.nome))}</button><small>${tipoTag(c.tipo)}${c.olho?" "+esc(c.olho):""} · marcado ${br(r.data_prevista)}${c.local?" · "+esc(c.local):""}</small><div class="pos-st"><span class="fl warn">${esc(r.motivo)}</span>${r.remarcado_para?`<span class="fl ok">Remarcado ${br(r.remarcado_para)}</span>`:`<span class="fl">Voltou para agendar</span>`}</div>${r.obs?`<small>📝 ${esc(r.obs)}</small>`:""}</div></div>`; }).join("")}</details>`:""}`;
   }
-  return `<div class="sec-head"><div><h2>Procedimentos</h2><div class="sub">Cirurgias, injeções e laser num lugar só · escolha a visão e filtre pelo tipo</div></div><button class="btn" data-act="novo">+ Nova indicação</button></div>
-  ${seg}${corpo}`;
+  return `<div class="sec-head"><div><h2>Procedimentos</h2><div class="sub">Cirurgias, injeções e laser</div></div><button class="btn" data-act="novo">+ Nova indicação</button></div>
+  ${barra}${corpo}`;
 }
 function blocoProcResumo(){
   const R=procsRealizados(POS_DIAS), A=procsAgendados(), h=hojeISO();
@@ -1803,7 +1882,7 @@ function telaAgenda(){
   return `<div class="page-h"><div><h2>Agenda do prontuário</h2><p class="sub">EyecareBI (OA e OPUS) + Amigo (ICOG) · ${sinc} · cada paciente com horário e situação do repasse</p></div></div>
   <div class="filtros">
     <div class="fcampo"><span>🗓️ Semana</span><div class="agsem-nav"><button class="rchip" data-agsem="${iso(new Date(seg.getTime()-7*864e5))}" aria-label="Semana anterior">◀</button><b>${br(de).slice(0,5)} a ${br(ate).slice(0,5)}</b><button class="rchip" data-agsem="${iso(new Date(seg.getTime()+7*864e5))}" aria-label="Próxima semana">▶</button><button class="linkbtn" data-agsem="">Hoje</button></div></div>
-    <label class="fcampo"><span>📍 Clínica</span><select id="selAgLoc"><option value="">Todas as clínicas (${at.filter(a=>a.data>=de&&a.data<=ate).length})</option>${locs.map(l=>`<option value="${esc(l)}" ${loc===l?"selected":""}>${esc(l)} (${at.filter(a=>a.data>=de&&a.data<=ate&&a.local===l).length})</option>`).join("")}</select></label>
+    <label class="fcampo"><span>Clínica</span><select id="selAgLoc"><option value="">Todas as clínicas (${at.filter(a=>a.data>=de&&a.data<=ate).length})</option>${locs.map(l=>`<option value="${esc(l)}" ${loc===l?"selected":""}>${esc(l)} (${at.filter(a=>a.data>=de&&a.data<=ate&&a.local===l).length})</option>`).join("")}</select></label>
   </div>
   <div class="conf-kpis"><div class="kpi"><b>${tot.at}</b><span>atendidos na semana</span></div><div class="kpi"><b>${moeda0(tot.v)}</b><span>repasse identificado</span></div><div class="kpi ${tot.pend?"alerta":""}"><b>${tot.pend}</b><span>sem repasse ou R$ 0</span></div></div>
   <div class="ag-leg"><span class="ag-st ok">pago no dia</span><span class="ag-st outra">pago em outra data</span><span class="ag-st zero">R$ 0</span><span class="ag-st sem">sem repasse</span><span class="ag-st neutro">aguardando extrato / retorno</span></div>
@@ -2166,12 +2245,12 @@ function barraFiltrosInd(todos){
   const b2=loc.filter(c=>passaProc(c,S.fProc)&&passaSit(c,S.fSit));
   const pag=`<select id="selPag">${op("","Convênio e particular",b2.length,S.fPag||"")}${op("convenio","Convênio",b2.filter(ehConv).length,S.fPag||"")}${op("particular","Particular",b2.filter(c=>!ehConv(c)).length,S.fPag||"")}</select>`;
   const b3=loc.filter(c=>passaProc(c,S.fProc)&&passaPag(c,S.fPag));
-  const sit=`<select id="selSit">${op("","Todas as situações",b3.length,S.fSit||"")}${op("atencao","⚠️ Pedindo ação",b3.filter(c=>passaSit(c,"atencao")).length,S.fSit||"")}${op("travados","⏳ Convênio parado",b3.filter(c=>passaSit(c,"travados")).length,S.fSit||"")}${op("alto","🔥 Interesse alto",b3.filter(c=>passaSit(c,"alto")).length,S.fSit||"")}</select>`;
+  const sit=`<select id="selSit">${op("","Todas as situações",b3.length,S.fSit||"")}${op("atencao","Pedindo ação",b3.filter(c=>passaSit(c,"atencao")).length,S.fSit||"")}${op("travados","Convênio parado",b3.filter(c=>passaSit(c,"travados")).length,S.fSit||"")}${op("alto","Interesse alto",b3.filter(c=>passaSit(c,"alto")).length,S.fSit||"")}</select>`;
   const ativo=S.fLocal||S.fProc||S.fPag||S.fSit;
-  return `<div class="filtros">${selLocal(todos).replace('<label class="loc-sel">📍 Local de atendimento','<label class="fcampo"><span>📍 Clínica</span>')}
-    <label class="fcampo"><span>🩺 Procedimento</span>${proc}</label>
-    <label class="fcampo"><span>💳 Pagamento</span>${pag}</label>
-    <label class="fcampo"><span>⚡ Situação</span>${sit}</label>
+  return `<div class="filtros">${selLocal(todos).replace('<label class="loc-sel">📍 Local de atendimento','<label class="fcampo"><span>Clínica</span>')}
+    <label class="fcampo"><span>Procedimento</span>${proc}</label>
+    <label class="fcampo"><span>Pagamento</span>${pag}</label>
+    <label class="fcampo"><span>Situação</span>${sit}</label>
     ${ativo?`<button class="linkbtn flimpa" data-act="limpa-fi">Limpar filtros ✕</button>`:""}</div>`;
 }
 function selLocal(base){
@@ -2235,13 +2314,13 @@ function barraFiltrosPipe(todos,tipo){
   const loc=todos.filter(noLocal); const op=(v,tx,n,sel)=>`<option value="${v}" ${sel===v?"selected":""}>${tx}${n!==undefined?` (${n})`:""}</option>`;
   const subs=SUBS[tipo];
   const b1=loc.filter(c=>passaPag(c,S.fPag)&&passaSitP(c,S.fSit));
-  const sub=subs.length?`<label class="fcampo"><span>🩺 Procedimento</span><select id="selSub">${op("","Todos",b1.length,S.fSub||"")}${subs.map(([k,t])=>op(k,t,b1.filter(c=>(tipo==="cirurgia"?grupoCir(c):grupoInj(c))===k).length,S.fSub||"")).join("")}</select></label>`:"";
+  const sub=subs.length?`<label class="fcampo"><span>Procedimento</span><select id="selSub">${op("","Todos",b1.length,S.fSub||"")}${subs.map(([k,t])=>op(k,t,b1.filter(c=>(tipo==="cirurgia"?grupoCir(c):grupoInj(c))===k).length,S.fSub||"")).join("")}</select></label>`:"";
   const b2=loc.filter(c=>passaSub(c)&&passaSitP(c,S.fSit));
-  const pag=`<label class="fcampo"><span>💳 Pagamento</span><select id="selPag">${op("","Convênio e particular",b2.length,S.fPag||"")}${op("convenio","Convênio",b2.filter(ehConv).length,S.fPag||"")}${op("particular","Particular",b2.filter(c=>!ehConv(c)).length,S.fPag||"")}</select></label>`;
+  const pag=`<label class="fcampo"><span>Pagamento</span><select id="selPag">${op("","Convênio e particular",b2.length,S.fPag||"")}${op("convenio","Convênio",b2.filter(ehConv).length,S.fPag||"")}${op("particular","Particular",b2.filter(c=>!ehConv(c)).length,S.fPag||"")}</select></label>`;
   const b3=loc.filter(c=>passaSub(c)&&passaPag(c,S.fPag));
-  const sit=`<label class="fcampo"><span>⚡ Situação</span><select id="selSit">${op("","Todas",b3.length,S.fSit||"")}${op("atencao","⚠️ Pedindo ação",b3.filter(c=>passaSitP(c,"atencao")).length,S.fSit||"")}${op("travados","⏳ Convênio parado",b3.filter(c=>passaSitP(c,"travados")).length,S.fSit||"")}${op("alto","🔥 Interesse alto",b3.filter(c=>passaSitP(c,"alto")).length,S.fSit||"")}</select></label>`;
+  const sit=`<label class="fcampo"><span>Situação</span><select id="selSit">${op("","Todas",b3.length,S.fSit||"")}${op("atencao","Pedindo ação",b3.filter(c=>passaSitP(c,"atencao")).length,S.fSit||"")}${op("travados","Convênio parado",b3.filter(c=>passaSitP(c,"travados")).length,S.fSit||"")}${op("alto","Interesse alto",b3.filter(c=>passaSitP(c,"alto")).length,S.fSit||"")}</select></label>`;
   const ativo=S.fLocal||S.fSub||S.fPag||S.fSit;
-  return `<div class="filtros">${selLocal(todos).replace('<label class="loc-sel">📍 Local de atendimento','<label class="fcampo"><span>📍 Clínica</span>')}${sub}${pag}${sit}${ativo?`<button class="linkbtn flimpa" data-act="limpa-fi">Limpar filtros ✕</button>`:""}</div>`;
+  return `<div class="filtros">${selLocal(todos).replace('<label class="loc-sel">📍 Local de atendimento','<label class="fcampo"><span>Clínica</span>')}${sub}${pag}${sit}${ativo?`<button class="linkbtn flimpa" data-act="limpa-fi">Limpar filtros ✕</button>`:""}</div>`;
 }
 function cardArq(c){
   const p=pacOf(c), u=ultAtiv(c);
