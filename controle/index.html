@@ -1786,14 +1786,20 @@ function conferenciaRep(r){
   const dif=r.total_informado!=null?soma-Number(r.total_informado):null;
   const zeros=it.filter(i=>Number(i.valor||0)===0&&["cirurgia","injecao","laser"].includes(i.categoria));
   // procedimentos do portal no mesmo local e período que não aparecem no repasse
-  const ini=r.periodo_ini, fim=r.periodo_fim, falt=[];
+  const ini=r.periodo_ini, fim=r.periodo_fim, falt=[], difData=[];
   if(ini&&fim){
-    const tem=(nome,data)=>it.some(i=>i.data===data&&mesmoPaciente(i.paciente,nome));
-    S.casos.filter(c=>c.local===r.local&&c.tipo==="cirurgia"&&c.data_realizado&&c.data_realizado>=ini&&c.data_realizado<=fim).forEach(c=>{ const p=pacOf(c); if(!tem(p.nome,c.data_realizado)) falt.push({c,data:c.data_realizado,txt:`Cirurgia ${c.procedimento||""} ${c.olho||""}`}); });
-    S.sessoes.filter(s=>s.data_realizada&&s.data_realizada>=ini&&s.data_realizada<=fim).forEach(s=>{ const c=S.casos.find(x=>x.id===s.caso_id); if(!c||c.local!==r.local) return; const p=pacOf(c); if(!tem(p.nome,s.data_realizada)) falt.push({c,data:s.data_realizada,txt:`${TIPO_LABEL[c.tipo]} ${c.olho||""} · ${s.numero}ª aplicação`}); });
+    // mesmo paciente com procedimento pago no mesmo dia = ok; até 7 dias de diferença = pago, mas a data do portal difere
+    const PROCS=["cirurgia","injecao","laser"];
+    const acha=(nome,data)=>{ const its=it.filter(i=>mesmoPaciente(i.paciente,nome)&&Number(i.valor||0)>0&&PROCS.includes(catItem(i)));
+      if(its.some(i=>i.data===data)) return {ok:true};
+      const perto=its.filter(i=>Math.abs(parse(i.data)-parse(data))/864e5<=7).sort((a,b)=>Math.abs(parse(a.data)-parse(data))-Math.abs(parse(b.data)-parse(data)));
+      return perto.length?{ok:true,pago:perto[0].data}:{ok:false}; };
+    const reg=(c,data,txt,tab,id)=>{ const a=acha(pacOf(c).nome,data); if(!a.ok) falt.push({c,data,txt}); else if(a.pago) difData.push({c,data,txt,pago:a.pago,tab,id}); };
+    S.casos.filter(c=>c.local===r.local&&c.tipo==="cirurgia"&&c.data_realizado&&c.data_realizado>=ini&&c.data_realizado<=fim).forEach(c=>reg(c,c.data_realizado,`Cirurgia ${c.procedimento||""} ${c.olho||""}`,"casos",c.id));
+    S.sessoes.filter(s=>s.data_realizada&&s.data_realizada>=ini&&s.data_realizada<=fim).forEach(s=>{ const c=S.casos.find(x=>x.id===s.caso_id); if(!c||c.local!==r.local) return; reg(c,s.data_realizada,`${TIPO_LABEL[c.tipo]} ${c.olho||""} · ${s.numero}ª aplicação`,"sessoes",s.id); });
   }
   const conf=it.filter(i=>i.conferido).length;
-  return {it,soma,dif,zeros,falt,conf,ok:dif!=null&&Math.abs(dif)<0.05};
+  return {it,soma,dif,zeros,falt,difData,conf,ok:dif!=null&&Math.abs(dif)<0.05};
 }
 
 function telaRepasse(){
@@ -1919,6 +1925,7 @@ function telaConferencia(id){
   ${linhasSub?`<div class="panel" style="margin-top:12px"><div class="panel-h"><h3>Subtotais por convênio</h3><span class="sub">extrato × soma dos itens</span></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Convênio</th><th>Extrato</th><th>Itens</th><th></th></tr></thead><tbody>${linhasSub}</tbody></table></div></div>`:""}
   ${c.zeros.length?`<div class="panel alerta" style="margin-top:12px"><div class="panel-h"><h3>⚠️ Procedimentos com repasse R$ 0</h3><span class="sub">pode ser glosa, pacote ou lançamento pendente · cobre a clínica</span></div>${c.zeros.map(i=>`<div class="tk-row"><div class="inj-nome"><b>${esc(i.paciente)}</b><small>${br(i.data)} · ${esc(i.procedimento)} · ${esc(i.convenio||"")}</small></div><div class="inj-acts"><button class="btn small ghost" data-act="rep-check" data-iid="${i.id}">${i.conferido?"✔ Conferido":"Marcar conferido"}</button></div></div>`).join("")}</div>`:""}
   ${c.falt.length?`<div class="panel alerta" style="margin-top:12px"><div class="panel-h"><h3>🔎 Registrados no portal, mas não aparecem neste extrato</h3><span class="sub">${esc(r.local)} · mesmo período</span></div>${c.falt.map(x=>`<div class="tk-row"><div class="inj-nome"><button class="linklike" data-pac="${x.c.paciente_id}">${esc(nomeCurto(pacOf(x.c).nome))}</button><small>${br(x.data)} · ${esc(x.txt)} · ${esc(pagLabel(x.c))}</small></div></div>`).join("")}<div class="sub" style="font-size:.78rem">Pode estar no próximo extrato ou com outro nome. Confira antes de cobrar.</div></div>`:""}
+  ${c.difData.length?`<div class="panel" style="margin-top:12px"><div class="panel-h"><h3>📅 Pagos, mas com data diferente no portal</h3><span class="sub">o extrato pagou o procedimento em outra data (até 7 dias)</span></div>${c.difData.map(x=>`<div class="tk-row"><div class="inj-nome"><button class="linklike" data-pac="${x.c.paciente_id}">${esc(nomeCurto(pacOf(x.c).nome))}</button><small>${esc(x.txt)} · no portal: ${br(x.data)} · no extrato: <b>${br(x.pago)}</b></small></div><div class="inj-acts"><button class="btn small ghost" data-act="rep-fixdata" data-tab="${x.tab}" data-id="${x.id}" data-dt="${x.pago}">Corrigir para ${br(x.pago).slice(0,5)}</button></div></div>`).join("")}</div>`:""}
   <div class="group-title">Itens do extrato <span class="count">${its.length}</span></div>
   <div class="row" style="gap:10px;flex-wrap:wrap"><div class="seg">${fb("todos","Todos")}${fb("pend","Não conferidos")}${fb("proc","Cirurgias, injeções e laser")}${fb("alerta","R$ 0 em procedimento")}</div>
     <input type="search" id="repBusca" placeholder="Buscar paciente ou procedimento" value="${esc(q)}" style="flex:1;min-width:200px">
@@ -2386,6 +2393,7 @@ async function acao(act, el){
   if(act==="rep-import") return folhaImportRepasse();
   if(act==="rep-abrir"){ S.repSel=el.dataset.rid; S.repFiltro="todos"; S.repBusca=""; render(); window.scrollTo(0,0); return; }
   if(act==="rep-voltar"){ S.repSel=null; render(); return; }
+  if(act==="rep-fixdata"){ const campo=el.dataset.tab==="sessoes"?"data_realizada":"data_realizado"; await salvar(sb.from(el.dataset.tab==="sessoes"?"sessoes":"casos").update({[campo]:el.dataset.dt}).eq("id",el.dataset.id),"Data corrigida ✔"); return; }
   if(act==="rep-excluir"){ if(confirmar("Excluir este relatório de repasse e todos os itens?")){ S.repSel=null; await salvar(sb.from("repasses").delete().eq("id",el.dataset.rid),"Relatório excluído"); } return; }
   if(act==="rep-check"){ const i=S.repItens.find(x=>x.id===el.dataset.iid); return marcaConferido([el.dataset.iid], !(i&&i.conferido)); }
   if(act==="rep-check-todos"){ const ids=[...document.querySelectorAll("[data-rck]")].map(x=>x.dataset.rck); return marcaConferido(ids,true); }
