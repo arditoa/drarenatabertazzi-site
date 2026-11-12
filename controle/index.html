@@ -606,6 +606,15 @@ details.sy-d>summary small{font-weight:400;color:var(--soft);font-size:.8rem;dis
 .sim-eq td,.sim-eq th{text-align:right}.sim-eq td:first-child,.sim-eq th:first-child{text-align:left}
 .sim-como{display:grid;gap:4px;font-size:.78rem;color:var(--soft)}
 .sim-alerta{color:var(--warn);font-weight:500}
+
+.ex-clin{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin:0 0 12px}
+.ex-clin .rchip small{font-size:.7rem;color:var(--soft);margin-left:4px}.ex-clin .rchip[aria-pressed="true"] small{color:#dbe7f7}
+.ex-subs{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;margin:0 0 12px;padding:10px 14px;background:#fff;border:1px solid var(--line);border-radius:12px}
+.ex-sub{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ex-sel{flex-basis:100%;display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;font-size:.84rem;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.ex-sel span{color:var(--soft)}
+.ex-plano{width:auto;min-width:180px;padding:6px 10px;border-radius:8px;font-size:.86rem}
+.exg .exg-r{color:#8a93a3}
 </style>
 </head>
 <body>
@@ -2462,8 +2471,25 @@ function pacientesExames(){
     out.push(P); });
   S._exC={sig,v:out}; return out;
 }
+function exFiltroClin(base){
+  const env=f=>base.filter(P=>P.sit==="enviar"&&f(P)).length;
+  const btn=(v,t,f,grp)=>`<button class="rchip ${grp?"grp":""}" data-pset="exLoc=${v}" aria-pressed="${(S.exLoc||"")===v}">${t} <small>${env(f)}</small></button>`;
+  const locs=["OA Palmas","OA Paraíso","ICOG Palmas","ICOG Porto","OPUS"].filter(l=>base.some(P=>P.local===l));
+  return `<div class="ex-clin"><span class="rb-lab">Clínica</span><div class="rb-chips">${btn("","Todas",()=>true)}${locs.map(l=>btn(l,esc(l),P=>P.local===l)).join("")}<span class="rb-sep">Juntar</span>${btn("rede_oa","OA Palmas + Paraíso",P=>["OA Palmas","OA Paraíso"].includes(P.local),true)}${base.some(P=>/ICOG/.test(P.local||""))?btn("rede_icog","ICOG Palmas + Porto",P=>/ICOG/.test(P.local||""),true):""}</div></div>`;
+}
+function exSubgrupos(base,gr){
+  const G=gr?EX_G[gr]:null, its=base.filter(P=>(!gr||P.g===gr)), env=f=>its.filter(P=>P.sit==="enviar"&&f(P)).length;
+  const seg=(k,opts)=>`<div class="segc">${opts.map(([v,t,f])=>`<button data-pset="${k}=${v}" aria-pressed="${(S[k]||"")===v}">${t}${f?`<small>${env(f)}</small>`:""}</button>`).join("")}</div>`;
+  const pag=(!G||EX_PART.includes(gr))?`<div class="ex-sub"><span class="rb-lab">Pagamento</span>${seg("exPag",[["","Todos",()=>true],["conv","Convênio",P=>P.conv],["part","Particular",P=>!P.conv]])}</div>`:"";
+  const ab=(!G||EX_LEVE.includes(gr))?`<div class="ex-sub"><span class="rb-lab">${G?"Subgrupos":"Checkup anual"}</span>${seg("exAb",[["","Todos",P=>!!P.abord],["nunca","Nunca fez exames",P=>P.abord==="nunca"],["fechar","Exames há 6+ meses · complementares",P=>P.abord==="fechar"],["retorno10","10+ meses sem retorno",P=>P.abord==="retorno10"]])}</div>`:"";
+  const planos=[...new Set(base.map(P=>P.plano.toUpperCase()))].sort();
+  return `<div class="ex-subs">${G?`<div class="ex-sel"><b>${G.nome}</b><span>${G.por}</span><button class="linkbtn" data-pset="exGr=">ver todos os grupos ✕</button></div>`:""}${pag}${ab}<div class="ex-sub"><span class="rb-lab">Convênio</span><select id="selExPlano" class="ex-plano"><option value="">Todos</option>${planos.map(p=>`<option ${S.exPlano===p?"selected":""}>${esc(p)}</option>`).join("")}</select></div></div>`;
+}
 function telaExames(){
-  const todos=pacientesExames().filter(P=>(!S.fLocal||P.local===S.fLocal)&&(!S.exPlano||P.plano.toUpperCase()===S.exPlano)&&(!S.exPag||(S.exPag==='conv'?P.conv:!P.conv))&&(!S.exAb||P.abord===S.exAb));
+  const EXLOC={rede_oa:["OA Palmas","OA Paraíso"],rede_icog:["ICOG Palmas","ICOG Porto"]}; const exLocOk=P=>!S.exLoc||(EXLOC[S.exLoc]?EXLOC[S.exLoc].includes(P.local):P.local===S.exLoc);
+  const base0=pacientesExames().filter(P=>(!S.exPlano||P.plano.toUpperCase()===S.exPlano));
+  const base1=base0.filter(exLocOk);
+  const todos=base1.filter(P=>(!S.exPag||(S.exPag==='conv'?P.conv:!P.conv))&&(!S.exAb||P.abord===S.exAb));
   const st=S.exSt||"enviar", gr=S.exGr||"";
   const T=todos.filter(P=>!gr||P.g===gr);
   const n=k=>T.filter(P=>P.sit===k).length;
@@ -2471,7 +2497,7 @@ function telaExames(){
   const ch=(k,cls,t)=>`<button class="stat ${cls} ${st===k?"on":""}" data-pset="exSt=${k}" aria-pressed="${st===k}"><b>${n(k)}</b><span>${t}</span></button>`;
   const planos=[...new Set(pacientesExames().map(P=>P.plano.toUpperCase()))].sort();
   const gcard=G=>{ const its=todos.filter(P=>P.g===G.k), env=its.filter(P=>P.sit==="enviar"); const ec=env.filter(P=>P.conv).length, ep=env.length-ec;
-    return `<button class="exg ${gr===G.k?"on":""} ${G.cor}" data-pset="exGr=${gr===G.k?"":G.k}" aria-pressed="${gr===G.k}"><span class="exg-n">${G.nome}</span><b>${env.length}</b><small>para enviar${EX_PART.includes(G.k)?` · ${ec} convênio · ${ep} particular`:""}</small><small>${its.length} no grupo · a cada ${Math.round(G.dias/30)} meses${EX_PART.includes(G.k)?"":" · só convênio"}</small></button>`; };
+    return `<button class="exg ${gr===G.k?"on":""} ${G.cor}" data-pset="exGr=${gr===G.k?"":G.k}" aria-pressed="${gr===G.k}"><span class="exg-n">${G.nome}</span><b>${env.length}</b><small>para enviar · ${its.length} no grupo</small><small class="exg-r">a cada ${Math.round(G.dias/30)} meses · ${EX_PART.includes(G.k)?"convênio e particular":"convênio"}</small></button>`; };
   const linha=P=>{ const f=telIntl(P.tel), G=EX_G[P.g];
     const st2= P.sit==="enviado"?`<span class="fl ok">Lembrete enviado ${dm(P.lemb.em)}</span>` : P.sit==="marcado"?`<span class="fl ok">Retorno marcado ${dm(P.fut[0].data)}</span>` : P.sit==="adiado"?`<span class="fl">Adiado até ${dm(P.lemb.adiar_ate)}</span>` : P.sit==="nao"?`<span class="fl">Não enviar</span>` : P.sit==="ciclo"?`<span class="fl blue">Em ciclo de injeção</span>` : P.falta<=0?`<span class="fl late">Venceu há ${-P.falta} dias</span>`:`<span class="fl warn">Vence em ${P.falta} dias</span>`;
     const acts=["marcado","ciclo"].includes(P.sit)?"":`${f?`<button class="btn small okb" data-act="ex-whats" data-k="${esc(P.k)}">${P.sit==="enviado"?"Reenviar":"Enviar WhatsApp"}</button>`:`<span class="fl">sem telefone</span>`}${P.sit==="enviado"?"":`<button class="btn small ghost" data-act="ex-marca" data-k="${esc(P.k)}" data-st="enviado">Marcar enviado</button>`}${["enviar","breve"].includes(P.sit)?`<button class="btn small ghost" data-act="ex-marca" data-k="${esc(P.k)}" data-st="adiado">Adiar 30 dias</button><button class="btn small ghost" data-act="ex-marca" data-k="${esc(P.k)}" data-st="nao_enviar">Não enviar</button>`:""}`;
@@ -2492,10 +2518,11 @@ function telaExames(){
     <li><b>Sai da lista sozinho</b> quando marca retorno na agenda. Lembrete enviado, adiado (30 dias) ou "não enviar" ficam registrados.</li></ol>
     <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Grupo</th><th>Prazo</th><th>Exames do grupo</th><th>Por quê</th></tr></thead><tbody>${EX_GRUPOS.map(G=>`<tr><td><b>${G.nome}</b></td><td>${G.dias<180?"3 meses":"6 meses"}</td><td>${G.ex.join(", ")}</td><td style="white-space:normal;font-size:.8rem;color:var(--soft)">${G.por}</td></tr>`).join("")}</tbody></table></div>
     <div class="sub" style="font-size:.76rem">Referências: AAO Preferred Practice Pattern (Comprehensive Adult Medical Eye Evaluation, 2026; Diabetic Retinopathy). Os exames são sugestão do sistema; a indicação final é da Dra. na consulta.</div></details>
+  ${exFiltroClin(base0)}
   <div class="exgs">${EX_GRUPOS.map(gcard).join("")}</div>
-  <div class="filtros">${selLocal().replace('<label class="loc-sel"><span>Clínica</span>','<label class="fcampo"><span>Clínica</span>')}<label class="fcampo"><span>Pagamento</span><select id="selExPag"><option value="">Convênio e particular</option><option value="conv" ${S.exPag==="conv"?"selected":""}>Só convênio</option><option value="part" ${S.exPag==="part"?"selected":""}>Só particular</option></select></label><label class="fcampo"><span>Abordagem do checkup</span><select id="selExAb"><option value="">Todas</option><option value="nunca" ${S.exAb==="nunca"?"selected":""}>Nunca fez exames · checkup anual</option><option value="retorno10" ${S.exAb==="retorno10"?"selected":""}>10+ meses sem retorno · checkup anual</option><option value="fechar" ${S.exAb==="fechar"?"selected":""}>Exames há 6+ meses · exames complementares</option></select></label><label class="fcampo"><span>Convênio</span><select id="selExPlano"><option value="">Todos os convênios</option>${planos.map(p=>`<option ${S.exPlano===p?"selected":""}>${esc(p)}</option>`).join("")}</select></label></div>
+  ${exSubgrupos(base1,gr)}
   <div class="stats">${ch("enviar","late","Enviar agora (prazo vencido)")}${ch("breve","warn","Vence em até 30 dias")}${ch("enviado","ok","Lembrete enviado")}${ch("marcado","ok","Retorno já marcado")}${ch("adiado","","Adiados")}${ch("nao","","Não enviar")}</div>
-  <div class="ptool-nota"><span>${gr?`<b>${EX_G[gr].nome}:</b> ${EX_G[gr].por}. `:""}O grupo vem do histórico (procedimentos, exames feitos e idade); diabetes e outras condições a equipe marca no paciente. Os exames sugeridos são uma sugestão do sistema: a indicação final é da Dra. na consulta. Pacientes em ciclo de injeção ficam de fora (já são acompanhados lá).</span>${gr?`<span><button class="linkbtn" data-pset="exGr=">Ver todos os grupos</button></span>`:""}</div>
+  <div class="ptool-nota"><span>O grupo vem do histórico (procedimentos, exames feitos e idade); diabetes e outras condições a equipe marca no paciente. Os exames sugeridos são uma sugestão do sistema: a indicação final é da Dra. na consulta. Pacientes em ciclo de injeção ficam de fora (já são acompanhados lá).</span>${gr?`<span><button class="linkbtn" data-pset="exGr=">Ver todos os grupos</button></span>`:""}</div>
   ${S.exSemTabela?`<div class="empty" style="margin-bottom:10px">Envios e condições estão sendo guardados só neste aparelho. Para valer para toda a equipe, rode uma vez o arquivo <b>controle/sql/2026-11-12-exames-lembretes.sql</b> no SQL Editor do Supabase.</div>`:""}
   <div class="inj-box"><div class="inj-list">${L.map(linha).join("")||'<div class="empty">Ninguém nesta lista. 👏</div>'}</div></div>`;
 }
