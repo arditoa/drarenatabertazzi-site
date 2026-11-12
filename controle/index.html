@@ -905,7 +905,7 @@ function render(){
   if(S.tab==="repasse"&&$("#fRep")) $("#fRep").addEventListener("submit",async e=>{ e.preventDefault(); const v=$("#rVl").value.trim(); await salvar(sb.from("repasses").update({status:$("#rSt").value,recebido_em:$("#rDt").value||null,valor_recebido:v?parseFloat(v.replace(/\./g,"").replace(",",".")):null}).eq("id",S.repSel),"Repasse atualizado ✔"); });
   if(S.tab==="lentes"){ const f=$("#frLentes"); const envia=()=>{ try{ f.contentWindow.postMessage({tipo:"precos",rows:S.precos,tabela:(S.fLocal||"").startsWith("ICOG")||!S.fLocal?"ICOG":"padrao"},"*"); }catch(e){} }; f.addEventListener("load",envia); envia(); }
   { const ano=anoAtual(), na=aniversariantes(0).filter(x=>!prefDe(x.c.k).nao_enviar&&prefDe(x.c.k).aniv_ano!==ano&&telIntl(x.c.tel)).length; const ba=$("#nAniv"); if(ba) ba.textContent=na||""; }
-  { const np=procsRealizados(POS_DIAS).filter(x=>x.k==="portal"&&!x.pos?.contato_em).length+procsAgendados().filter(x=>x.data<hojeISO()).length; const bp=$("#nProc"); if(bp) bp.textContent=np||""; }
+  { const np=procsRealizados(POS_DIAS).filter(x=>prontoContato(x)&&!x.pos?.contato_em).length+procsAgendados().filter(x=>x.data<hojeISO()).length; const bp=$("#nProc"); if(bp) bp.textContent=np||""; }
   const nr=(S.recados||[]).filter(r=>r.status==="novo").length; const nb=$("#nRec"); if(nb) nb.textContent=nr?`(${nr} novo${nr>1?"s":""})`:"";
   m.insertAdjacentHTML("beforeend", `<p class="footnote">Dados protegidos · acesso restrito à equipe · ${S.pacientes.length} pacientes cadastrados</p>`);
 }
@@ -1252,14 +1252,14 @@ const passaTipo=t=>!S.procTipo||S.procTipo===t;
 function procsRealizados(dias){
   const ini=iso(addDias(hoje(),-(dias-1))), out=[];
   for(const c of S.casos){
-    if(c.tipo==="cirurgia"&&c.data_realizado&&c.data_realizado>=ini&&c.etapa!=="desistiu"&&noLocal(c)) out.push({k:"portal",c,ses:null,data:c.data_realizado,rot:`Cirurgia ${c.procedimento||""}${c.olho?" · "+c.olho:""}`.trim()});
+    if(c.tipo==="cirurgia"&&c.data_realizado&&c.data_realizado>=ini&&c.data_realizado<=hojeISO()&&c.etapa!=="desistiu"&&noLocal(c)) out.push({k:"portal",c,ses:null,data:c.data_realizado,rot:`Cirurgia ${c.procedimento||""}${c.olho?" · "+c.olho:""}`.trim()});
   }
   for(const s of S.sessoes){
-    if(!s.data_realizada||s.data_realizada<ini) continue;
+    if(!s.data_realizada||s.data_realizada<ini||s.data_realizada>hojeISO()) continue;
     const c=S.casos.find(x=>x.id===s.caso_id); if(!c||!noLocal(c)) continue;
     out.push({k:"portal",c,ses:s,data:s.data_realizada,rot:`${TIPO_LABEL[c.tipo]}${c.olho?" "+c.olho:""} · ${s.numero}ª aplicação${s.ciclo>1?" · ciclo "+s.ciclo:""}`});
   }
-  for(const x of out){ x.pos=S.pos.find(p=>p.caso_id===x.c.id&&(p.sessao_id||null)===(x.ses?x.ses.id:null))||null; x.pront=evolucaoPront(x.c,x.data); x.rep=repassePago(x.c,x.data);
+  for(const x of out){ x.pos=S.pos.find(p=>p.caso_id===x.c.id&&(p.sessao_id||null)===(x.ses?x.ses.id:null))||null; x.pront=evolucaoPront(x.c,x.data); x.rep=repassePago(x.c,x.data); x.conf=!!(x.pront||x.pos?.confirmado_em);
     x.mod=modDe(x.data,x.pos?.atualizado_em,x.pos?.contato_em,x.pos?.whatsapp_em,x.ses?.atualizado_em,x.ses?null:x.c.atualizado_em); }
   // prontuário finalizado sem lançamento no portal
   const usados=new Set(out.filter(x=>x.pront).map(x=>x.pront.id)); const vistos=new Set();
@@ -1275,6 +1275,8 @@ function procsRealizados(dias){
 }
 const tipoDe=x=>x.k==="pront"?x.tipo:x.c.tipo;
 const posOk=x=>x.k==="portal"&&x.pos?.contato_em&&x.pos?.whatsapp_em;
+const prontoContato=x=>x.k==="portal"&&x.conf&&!posOk(x);
+const aConfirmar=x=>x.k==="portal"&&!x.conf&&!x.pos?.contato_em;
 
 function linhaRealizado(x){
   if(x.k==="pront"){ const a=x.a,p=x.p,c=x.c;
@@ -1288,8 +1290,8 @@ function linhaRealizado(x){
   const sw=x.pos?.whatsapp_em?`<span class="fl ok">✔ WhatsApp ${dm(x.pos.whatsapp_em)}${x.pos.modelo_msg?" · "+nomeMod(x.pos.modelo_msg):""}</span>`:`<span class="fl warn">WhatsApp pendente</span>`;
   const qm=quandoMod(x.mod);
   return `<div class="tk-row pr-row ${posOk(x)?"pr-ok":""}"><div class="inj-nome"><button class="linklike" data-pac="${p.id}">${esc(nomeCurto(p.nome))}</button><small>${tipoTag(c.tipo)} ${esc(x.rot.replace(/^(Cirurgia|Injeção|Laser) ?/,""))} · ${br(x.data)}${c.local?" · "+esc(c.local):""} · ${esc(pagLabel(c))}${qm?` · <i>${qm}</i>`:""}</small>
-    <div class="pos-st">${tagPront(c,x.data)}${tagRepasse(x.rep)}${sc}${sw}</div></div>
-    <div class="inj-acts">${contato(p.telefone)}${x.pos?.contato_em?"":`<button class="btn small ghost" data-act="pos-contato" data-key="${key}">Contato feito</button>`}<button class="btn small ${x.pos?.whatsapp_em?"ghost":"okb"}" data-act="pos-whats" data-key="${key}">${x.pos?.whatsapp_em?"Reenviar":"WhatsApp pós"}</button></div></div>`;
+    <div class="pos-st">${x.pos?.confirmado_em&&!x.pront?`<span class="fl ok">Confirmado pela equipe ${dm(x.pos.confirmado_em)}</span>`:tagPront(c,x.data)}${aConfirmar(x)?`<span class="fl">Contato liberado após confirmar</span>`:sc+sw}${tagRepasse(x.rep)}</div></div>
+    <div class="inj-acts">${aConfirmar(x)?`<button class="btn small okb" data-act="pos-confirmar" data-key="${key}">Confirmar realizado</button><button class="btn small ghost" data-act="ag-nao" data-id="${c.id}" ${x.ses?`data-sid="${x.ses.id}"`:""} data-data="${x.data}">Não realizado</button>`:`${contato(p.telefone)}${x.pos?.contato_em?"":`<button class="btn small ghost" data-act="pos-contato" data-key="${key}">Contato feito</button>`}<button class="btn small ${x.pos?.whatsapp_em?"ghost":"okb"}" data-act="pos-whats" data-key="${key}">${x.pos?.whatsapp_em?"Reenviar":"WhatsApp pós"}</button>`}</div></div>`;
 }
 
 // Agenda: cirurgias com data + aplicações (injeção/laser) previstas e ainda não realizadas
@@ -1306,19 +1308,23 @@ function procsAgendados(){
     const c=S.casos.find(x=>x.id===s.caso_id); if(!c||["finalizado","desistiu"].includes(c.etapa)||!noLocal(c)) continue;
     out.push({c,ses:s,data:s.data_prevista,rot:`${TIPO_LABEL[c.tipo]}${c.olho?" "+c.olho:""} · ${s.numero}ª de ${c.total_sessoes||3}${s.ciclo>1?" · ciclo "+s.ciclo:""}`,mod:modDe(s.atualizado_em)});
   }
+  const h=hojeISO();
+  for(const c of S.casos){ if(c.tipo==="cirurgia"&&c.data_realizado&&c.data_realizado>h&&c.etapa!=="desistiu"&&noLocal(c)&&!out.some(o=>!o.ses&&o.c.id===c.id)) out.push({c,ses:null,data:c.data_realizado,fut:true,rot:`Cirurgia ${c.procedimento||""}${c.olho?" · "+c.olho:""}`.trim(),mod:modDe(c.atualizado_em)}); }
+  for(const s of S.sessoes){ if(!s.data_realizada||s.data_realizada<=h) continue; const c=S.casos.find(x=>x.id===s.caso_id); if(!c||["finalizado","desistiu"].includes(c.etapa)||!noLocal(c)) continue;
+    out.push({c,ses:s,data:s.data_realizada,fut:true,rot:`${TIPO_LABEL[c.tipo]}${c.olho?" "+c.olho:""} · ${s.numero}ª de ${c.total_sessoes||3}${s.ciclo>1?" · ciclo "+s.ciclo:""}`,mod:modDe(s.atualizado_em)}); }
   return out.sort((a,b)=>a.data.localeCompare(b.data));
 }
 function linhaAgendado(x){
   const c=x.c,p=pacOf(c),passou=x.data<hojeISO(),ev=passou||x.data===hojeISO()?evolucaoPront(c,x.data):null;
   const kid=x.ses?`data-sid="${x.ses.id}"`:"";
   const nr=(S.nr||[]).filter(r=>r.caso_id===c.id).length;
-  const tags=[passou?(ev?`<span class="fl ok">Evolução no prontuário · confirme</span>`:`<span class="fl late">Passou da data · registrar</span>`):ev?`<span class="fl ok">Evolução no prontuário · confirme</span>`:"", nr?`<span class="fl">${nr}× não realizado antes</span>`:""].join("");
+  const tags=[passou?(ev?`<span class="fl ok">Evolução no prontuário · confirme</span>`:`<span class="fl late">Passou da data · registrar</span>`):ev?`<span class="fl ok">Evolução no prontuário · confirme</span>`:"", nr?`<span class="fl">${nr}× não realizado antes</span>`:"", x.fut?`<span class="fl warn" title="Foi lançado como realizado, mas a data ainda não chegou">Lançado como feito com data futura</span>`:""].join("");
   return `<div class="tk-row pr-row ${passou?"pr-late":""}"><div class="inj-nome"><button class="linklike" data-pac="${p.id}">${esc(nomeCurto(p.nome))}</button><small>${tipoTag(c.tipo)} ${esc(x.rot.replace(/^(Cirurgia|Injeção|Laser) ?/,""))}${c.local?" · "+esc(c.local):""} · ${esc(pagLabel(c))}</small>${tags?`<div class="pos-st">${tags}</div>`:""}</div>
     <div class="inj-acts">${contato(p.telefone)}<button class="btn small okb" data-act="ag-feito" data-id="${c.id}" ${kid} data-data="${x.data}">Realizado</button><button class="btn small ghost" data-act="ag-nao" data-id="${c.id}" ${kid} data-data="${x.data}">Não realizado</button><button class="btn small ghost" data-act="ag-remarcar" data-id="${c.id}" ${kid} data-data="${x.data}">Remarcar</button></div></div>`;
 }
 
 function telaProcs(){
-  const vista=S.procVista||"quadro", dias=S.procDias||15, st=S.procSt||"";
+  const vista=S.procVista||"quadro", dias=S.procDias||15, st=S.procSt===undefined?"pend":S.procSt;
   const R=procsRealizados(dias), A=procsAgendados();
   const base=vista==="feitos"?R:A;
   const nT=t=>base.filter(x=>tipoDe(x)===t).length;
@@ -1334,13 +1340,13 @@ function telaProcs(){
     corpo=telaPipe(tq,true);
   } else if(vista==="feitos"){
     const T=R.filter(x=>passaTipo(tipoDe(x)));
-    const pend=T.filter(x=>x.k==="portal"&&!posOk(x)), ok=T.filter(posOk), nl=T.filter(x=>x.k==="pront"), sev=T.filter(x=>x.k==="portal"&&!x.pront&&ultSyncData()&&x.data<=ultSyncData());
+    const pend=T.filter(prontoContato), ok=T.filter(posOk), nl=T.filter(x=>x.k==="pront"), sev=T.filter(aConfirmar);
     const rp=T.filter(x=>x.k==="portal"&&x.rep&&x.rep.k==="pago"), rf=T.filter(x=>x.k==="portal"&&x.rep&&["falta","zero"].includes(x.rep.k));
     const L= st==="pend"?pend : st==="ok"?ok : st==="nl"?nl : st==="sev"?sev : st==="rp"?rp : st==="rf"?rf : T;
     const ch=(k,cls,n,t)=>`<button class="stat ${cls} ${st===k?"on":""}" data-pset="procSt=${st===k?"":k}" aria-pressed="${st===k}"><b>${n}</b><span>${t}</span></button>`;
     corpo=`<div class="filtros">${selLocal().replace('<label class="loc-sel"><span>Clínica</span>','<label class="fcampo"><span>Clínica</span>')}<label class="fcampo"><span>Período</span><select id="selPDias">${[[1,"Hoje"],[3,"Últimos 3 dias"],[7,"Últimos 7 dias"],[15,"Últimos 15 dias"],[30,"Últimos 30 dias"]].map(([v,t])=>`<option value="${v}" ${dias===v?"selected":""}>${t}</option>`).join("")}</select></label></div>
-    <div class="stats">${ch("pend","warn",pend.length,"Contato pendente")}${ch("ok","ok",ok.length,"Contato concluído")}${ch("nl","warn",nl.length,"No prontuário, sem lançar")}${ch("sev","late",sev.length,"Sem evolução no prontuário")}${ch("rp","ok",rp.length,"Pago no repasse")}${ch("rf","late",rf.length,"Não consta no repasse")}</div>
-    <div class="ptool-nota"><span>Ordenado pela última alteração. <b>Evolução no prontuário</b>: atendimento finalizado no EyecareBI/Amigo. <b>Pago no repasse</b>: consta no relatório de repasse importado.</span><span>${st?`<button class="linkbtn" data-pset="procSt=">Limpar filtro</button>`:""}<button class="linkbtn" data-act="modelos">Modelos de mensagem</button></span></div>
+    <div class="stats">${ch("pend","warn",pend.length,"Pronto para contato")}${ch("sev","late",sev.length,"A confirmar (sem evolução)")}${ch("nl","warn",nl.length,"No prontuário, sem lançar")}${ch("ok","ok",ok.length,"Contato concluído")}${ch("rp","ok",rp.length,"Pago no repasse")}${ch("rf","late",rf.length,"Não consta no repasse")}</div>
+    <div class="ptool-nota"><span>${st==="pend"?"Só aparece aqui quem tem o procedimento <b>confirmado</b> (evolução finalizada no prontuário ou confirmado pela equipe). ":st==="sev"?"Lançados como feitos, mas sem evolução no prontuário: confirme ou marque como não realizado antes de qualquer contato. ":""}Ordenado pela última alteração.</span><span>${st?`<button class="linkbtn" data-pset="procSt=">Ver todos</button>`:""}<button class="linkbtn" data-act="modelos">Modelos de mensagem</button></span></div>
     <div class="inj-box"><div class="inj-list">${L.map(linhaRealizado).join("")||'<div class="empty">Nada por aqui. 👏</div>'}</div></div>`;
   } else {
     const T=A.filter(x=>passaTipo(x.c.tipo)), h=hojeISO();
@@ -1360,11 +1366,11 @@ function telaProcs(){
 }
 function blocoProcResumo(){
   const R=procsRealizados(POS_DIAS), A=procsAgendados(), h=hojeISO();
-  const hojeF=R.filter(x=>x.data===h).length, pend=R.filter(x=>x.k==="portal"&&!posOk(x)).length, nl=R.filter(x=>x.k==="pront").length;
+  const hojeF=R.filter(x=>x.data===h).length, pend=R.filter(prontoContato).length, conf=R.filter(aConfirmar).length, nl=R.filter(x=>x.k==="pront").length;
   const agHoje=A.filter(x=>x.data===h).length, atras=A.filter(x=>x.data<h).length;
   const b=(v,st,cls,n,t)=>`<button class="fl ${cls} fchip" data-tab="proc" data-pset="procVista=${v}${st!==null?"":""}" ${st!==null?`data-pst="${st}"`:""}>${n} ${t}</button>`;
   return `<div class="inj-box dia-box"><div class="panel-h"><h3>📞 Procedimentos · contato e agenda</h3><button class="linkbtn" data-tab="proc" data-pset="procVista=feitos">Abrir →</button></div>
-    <div class="resumo-hoje">${b("feitos","pend",pend?"warn":"ok",pend,"aguardando contato/WhatsApp")}${nl?b("feitos","nl","warn",nl,"no prontuário sem lançar"):""}${b("feitos","",hojeF?"blue":"",hojeF,"realizados hoje")}${b("agenda",null,agHoje?"blue":"",agHoje,"agendados para hoje")}${atras?b("agenda",null,"late",atras,"passaram da data sem registro"):""}</div></div>`;
+    <div class="resumo-hoje">${b("feitos","pend",pend?"warn":"ok",pend,"prontos para contato")}${conf?b("feitos","sev","late",conf,"a confirmar (sem evolução)"):""}${nl?b("feitos","nl","warn",nl,"no prontuário sem lançar"):""}${b("feitos","",hojeF?"blue":"",hojeF,"realizados hoje")}${b("agenda",null,agHoje?"blue":"",agHoje,"agendados para hoje")}${atras?b("agenda",null,"late",atras,"passaram da data sem registro"):""}</div></div>`;
 }
 function folhaNaoRealizado(c,sid,data){
   const p=pacOf(c), ses=sid?S.sessoes.find(x=>x.id===sid):null;
@@ -1382,8 +1388,8 @@ function folhaNaoRealizado(c,sid,data){
     let extra={};
     if(r.error){ const nota=`[${br(hojeISO())}] Não realizado em ${br(data)}: ${motivo}${obs?" ("+obs+")":""}`; extra={obs:[c.obs,nota].filter(Boolean).join("\n")}; }
     const txt=nova?`Registrado: ${motivo} · remarcado para ${br(nova)} ✔`:`Registrado: ${motivo} · volta para "a agendar" ✔`;
-    if(ses){ if(Object.keys(extra).length) await sb.from("casos").update(extra).eq("id",c.id); await salvar(sb.from("sessoes").update({data_prevista:nova}).eq("id",ses.id),txt); }
-    else await salvar(sb.from("casos").update(nova?{etapa:"agendado",data_agendada:nova,...extra}:{etapa:"fechado",data_agendada:null,...extra}).eq("id",c.id),txt);
+    if(ses){ if(Object.keys(extra).length) await sb.from("casos").update(extra).eq("id",c.id); await salvar(sb.from("sessoes").update({data_prevista:nova,data_realizada:null}).eq("id",ses.id),txt); }
+    else await salvar(sb.from("casos").update(nova?{etapa:"agendado",data_agendada:nova,data_realizado:null,...extra}:{etapa:"fechado",data_agendada:null,data_realizado:null,...extra}).eq("id",c.id),txt);
   });
 }
 
@@ -2688,8 +2694,10 @@ async function acao(act, el){
     const st=statusTrat(c);
     return folhaData("Iniciar novo ciclo (3 aplicações)","Data prevista da 1ª aplicação", iso(addDias(st.ultima?parse(st.ultima):hoje(), c.intervalo_dias||VENCE_DIAS)), v=>salvar(sb.from("sessoes").insert({caso_id:c.id,ciclo:st.ciclo+1,numero:1,data_prevista:v}),"Novo ciclo criado ✔"));
   }
+  if(act==="pos-confirmar"){ const x=achaProc(el.dataset.key); const row={confirmado_em:iso(hoje()),atualizado_por:S.user?.email||null};
+    return x.pos ? salvar(sb.from("pos_contatos").update(row).eq("id",x.pos.id),"Confirmado ✔ · liberado para contato") : salvar(sb.from("pos_contatos").insert({caso_id:x.c.id,sessao_id:x.ses?x.ses.id:null,data_procedimento:x.data,...row}),"Confirmado ✔ · liberado para contato"); }
   if(act==="ag-nao") return folhaNaoRealizado(c, el.dataset.sid||null, el.dataset.data);
-  if(act==="ag-remarcar"){ const sid=el.dataset.sid; return folhaData("Remarcar","Nova data", el.dataset.data, v=>sid?salvar(sb.from("sessoes").update({data_prevista:v}).eq("id",sid),"Remarcado ✔"):salvar(sb.from("casos").update({etapa:"agendado",data_agendada:v}).eq("id",c.id),"Cirurgia remarcada ✔")); }
+  if(act==="ag-remarcar"){ const sid=el.dataset.sid; return folhaData("Remarcar","Nova data", el.dataset.data, v=>sid?salvar(sb.from("sessoes").update({data_prevista:v,data_realizada:null}).eq("id",sid),"Remarcado ✔"):salvar(sb.from("casos").update({etapa:"agendado",data_agendada:v,data_realizado:null}).eq("id",c.id),"Cirurgia remarcada ✔")); }
   if(act==="ag-feito"){ const sid=el.dataset.sid;
     if(!sid) return folhaData("Cirurgia realizada","Data da cirurgia", el.dataset.data, v=>salvar(sb.from("casos").update({etapa:"realizado",data_realizado:v,etapa_desde:v,interesse:"fechado"}).eq("id",c.id),"Cirurgia realizada ✔ · aparece em Realizados para o contato"));
     return folhaData("Aplicação realizada","Data", el.dataset.data, async v=>{ if(await salvar(sb.from("sessoes").update({data_realizada:v}).eq("id",sid))) await salvar(sb.from("casos").update({etapa:"em_tratamento",ultimo_contato:null}).eq("id",c.id),`${TIPO_LABEL[c.tipo]} de ${br(v)} registrada ✔`); }); }
@@ -2706,7 +2714,7 @@ async function ciclarInteresse(id){
 
 document.addEventListener("click", e=>{
   const t=e.target.closest("[data-pset],[data-eds],[data-diaoff],[data-agsem],[data-agloc],[data-rloc],[data-rgrp],[data-ofw],[data-rper],[data-rlist],[data-rfil],[data-acaotg],[data-fpag],[data-finj],[data-fpos],[data-dia],[data-floc],[data-fase],[data-tab],[data-goto],[data-act],[data-pac],[data-ft],[data-fi],[data-int]"); if(!t) return;
-  if(t.dataset.pset!==undefined){ const i=t.dataset.pset.indexOf("="); const k=t.dataset.pset.slice(0,i), v=t.dataset.pset.slice(i+1); S[k]=v; if(t.dataset.pst!==undefined) S.procSt=t.dataset.pst; else if(t.dataset.tab) S.procSt=""; if(!t.dataset.tab){ render(); return; } }
+  if(t.dataset.pset!==undefined){ const i=t.dataset.pset.indexOf("="); const k=t.dataset.pset.slice(0,i), v=t.dataset.pset.slice(i+1); S[k]=v; if(t.dataset.pst!==undefined) S.procSt=t.dataset.pst; else if(t.dataset.tab) S.procSt=undefined; if(!t.dataset.tab){ render(); return; } }
   if(t.dataset.int){ ciclarInteresse(t.dataset.int); return; }
   if(t.dataset.dia!==undefined){ S.dia=+t.dataset.dia; render(); return; }
   if(t.dataset.floc!==undefined){ S.fLocal=t.dataset.floc; S.fase=null; render(); return; }

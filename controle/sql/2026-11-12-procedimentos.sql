@@ -32,3 +32,6 @@ drop trigger if exists t_atualizado on public.sessoes;
 create trigger t_atualizado before update on public.sessoes for each row execute function public._carimba_atualizado();
 drop trigger if exists t_atualizado on public.pos_contatos;
 create trigger t_atualizado before update on public.pos_contatos for each row execute function public._carimba_atualizado();
+
+-- 3) Confirmação manual de que o procedimento foi realizado (quando o prontuário ainda não tem a evolução)
+alter table public.pos_contatos add column if not exists confirmado_em date;
