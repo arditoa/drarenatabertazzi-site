@@ -2291,7 +2291,7 @@ function blocoSimExames(itens){
 
 /* ===== Aba Exames: lembrete para paciente de convênio voltar após 3 meses ===== */
 const EX_DIAS=90, EX_AVISO=60;
-const EX_MSG_PADRAO="Olá, {nome}! Aqui é da equipe da Dra. Renata Bertazzi. Já faz cerca de 3 meses dos seus últimos exames ({data}). Para acompanhar a saúde dos seus olhos, a Dra. recomenda uma nova avaliação. Podemos agendar o seu retorno? É só responder esta mensagem. 😊";
+const EX_MSG_PADRAO="Olá, {nome}! Tudo bem? Aqui é da equipe da Dra. Renata Bertazzi. 👁️\n\nJá faz cerca de 3 meses dos seus últimos exames ({data}). A Dra. Renata acha que seria interessante fazermos novos exames para continuarmos cuidando bem da sua visão.\n\nPodemos agendar o seu retorno? É só responder esta mensagem com o melhor dia para você. 😊";
 function exMsg(){ try{ return localStorage.getItem("exMsg")||EX_MSG_PADRAO; }catch(e){ return EX_MSG_PADRAO; } }
 const EX_NOMES=[[/MAPEAMENTO/,"Mapeamento de retina"],[/RETINOGRAF/,"Retinografia"],[/TOMOGRAFIA DE COER|\bOCT\b/,"OCT"],[/CAMPIMETR|\bCAM\b/,"Campimetria"],[/MICROSCOPIA ESPEC|\bMICRO\b/,"Microscopia especular"],[/CERATOSCOP|\bCERA\b/,"Ceratoscopia"],[/PAQUIMETR|\bPAQUI\b/,"Paquimetria"],[/BIOMETRIA/,"Biometria"],[/TOPOGRAF/,"Topografia"],[/GONIOSCOP/,"Gonioscopia"],[/TONOMETR/,"Tonometria"],[/FUNDOSCOP/,"Fundoscopia"],[/MOTILIDADE/,"Motilidade ocular"],[/ULTRASSON/,"Ultrassom"]];
 function nomesExames(a){ const t=(String(a.itens||"")+" "+String(a.descricao||"").replace(/#.*$/,"")).toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g,""); return EX_NOMES.filter(([re])=>re.test(t)).map(([,n])=>n); }
