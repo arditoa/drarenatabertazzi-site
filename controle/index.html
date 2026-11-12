@@ -463,6 +463,23 @@ main{padding:24px 20px 32px}
 button.kpi:hover{box-shadow:none;border-color:#c9d2de}
 .kpi span{line-height:1.35;margin-top:2px}
 @media(max-width:700px){.rb-row{grid-template-columns:1fr;gap:6px}.rb-sep{border-left:0;padding-left:0;margin-left:0;flex-basis:100%}}
+
+/* ===== v4.3: menu ===== */
+.top .out:focus{outline:none}.top .out:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.menu[open] .out{background:rgba(255,255,255,.12)}
+.menu-p{min-width:264px;padding:6px;border-radius:12px;gap:0;box-shadow:0 12px 32px -8px rgba(24,41,74,.28),0 0 0 1px rgba(24,41,74,.04)}
+.menu-who{padding:10px 12px 10px;margin-bottom:4px;border-bottom:1px solid var(--line);font-size:.8rem;color:var(--soft);line-height:1.35}
+.menu-who b{display:block;color:var(--ink);font-size:.86rem;font-weight:600}
+.menu-who:empty{display:none}
+.menu-p small{font-size:.66rem;font-weight:600;letter-spacing:.06em;color:#8a93a3;padding:10px 12px 4px}
+.menu-p button{display:flex;align-items:center;gap:10px;padding:8px 12px;font-size:.88rem;font-weight:500;border-radius:8px}
+.menu-p button svg{width:17px;height:17px;flex:none;fill:none;stroke:#6b7686;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.menu-p button:hover{background:#f1f4f9}.menu-p button:hover svg{stroke:var(--accent)}
+.menu-p button b#nRec{margin-left:auto;font-size:.7rem;font-weight:600;color:#fff;background:var(--late);border-radius:999px;padding:1px 7px}
+.menu-p button b#nRec:empty{display:none}
+.menu-p hr{margin:6px 0}
+.top .menu-p button span{display:inline;color:inherit;font-size:inherit;white-space:normal;overflow:visible}
+.menu-p button.sair{color:var(--late)}.menu-p button.sair svg{stroke:var(--late)}
 </style>
 </head>
 <body>
@@ -511,15 +528,16 @@ button.kpi:hover{box-shadow:none;border-color:#c9d2de}
     <div class="t"><b>Controle de Pacientes</b><span class="t-sub">Dra. Renata Bertazzi · Retina e Catarata</span></div><span class="who" id="who"></span>
     <details class="menu" id="menuTop"><summary class="out"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg> Menu</summary>
       <div class="menu-p">
+        <div class="menu-who" id="menuWho"></div>
         <small>Prontuário e financeiro</small>
-        <button data-tab="agenda">📅 Agenda do prontuário</button>
-        <button data-tab="repasse">💰 Repasse das clínicas</button>
-        <button data-act="sync">🔄 Sincronizar</button>
+        <button data-tab="agenda"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg><span>Agenda do prontuário</span></button>
+        <button data-tab="repasse"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6.5 9.5v5M17.5 9.5v5"/></svg><span>Repasse das clínicas</span></button>
+        <button data-act="sync"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8M4 4v4h4M4 13a8 8 0 0 0 14.3 4.9L20 16M20 20v-4h-4"/></svg><span>Sincronizar</span></button>
         <small>Consulta</small>
-        <button data-tab="lentes">👁 Simulador de lentes</button>
+        <button data-tab="lentes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg><span>Simulador de lentes</span></button>
         <small>Site</small>
-        <button data-tab="recados">💬 Recados e dúvidas do site <b id="nRec"></b></button>
-        <hr><button id="bOut">Sair</button>
+        <button data-tab="recados"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg><span>Recados e dúvidas</span><b id="nRec"></b></button>
+        <hr><button id="bOut" class="sair"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 16l-4-4 4-4M6 12h10"/></svg><span>Sair</span></button>
       </div></details>
   </header>
   <nav class="tabs" aria-label="Seções">
@@ -930,7 +948,7 @@ function render(){
   if(S.tab==="lentes"){ const f=$("#frLentes"); const envia=()=>{ try{ f.contentWindow.postMessage({tipo:"precos",rows:S.precos,tabela:(S.fLocal||"").startsWith("ICOG")||!S.fLocal?"ICOG":"padrao"},"*"); }catch(e){} }; f.addEventListener("load",envia); envia(); }
   { const ano=anoAtual(), na=aniversariantes(0).filter(x=>!prefDe(x.c.k).nao_enviar&&prefDe(x.c.k).aniv_ano!==ano&&telIntl(x.c.tel)).length; const ba=$("#nAniv"); if(ba) ba.textContent=na||""; }
   { const np=procsRealizados(POS_DIAS).filter(x=>prontoContato(x)&&!x.pos?.contato_em).length+procsAgendados().filter(x=>x.data<hojeISO()).length; const bp=$("#nProc"); if(bp) bp.textContent=np||""; }
-  const nr=(S.recados||[]).filter(r=>r.status==="novo").length; const nb=$("#nRec"); if(nb) nb.textContent=nr?`(${nr} novo${nr>1?"s":""})`:"";
+  const nr=(S.recados||[]).filter(r=>r.status==="novo").length; const nb=$("#nRec"); if(nb) nb.textContent=nr?`${nr} novo${nr>1?"s":""}`:"";
   m.insertAdjacentHTML("beforeend", `<p class="footnote">Dados protegidos · acesso restrito à equipe · ${S.pacientes.length} pacientes cadastrados</p>`);
 }
 
@@ -2827,7 +2845,7 @@ async function entrar(session){
   S.user=session.user;
   const {data,error}=await sb.from("usuarios_autorizados").select("email,nome").eq("email",session.user.email.toLowerCase()).maybeSingle();
   if(error||!data){ $("#deniedTxt").textContent=`O e-mail ${session.user.email} ainda não tem permissão para ver os pacientes. Peça à Dra. Renata para liberar o seu acesso.`; mostrar("vDenied"); return; }
-  $("#who").textContent = (data.nome?data.nome+" · ":"")+session.user.email;
+  $("#who").textContent = (data.nome?data.nome+" · ":"")+session.user.email; { const mw=$("#menuWho"); if(mw) mw.innerHTML=`<b>${esc(data.nome||"Equipe")}</b>${esc(session.user.email)}`; }
   mostrar("vApp"); $("#main").innerHTML='<div class="empty">Carregando…</div>';
   await carregar(); render(); avisaProntoSync(); processarPlanilhasDrive().then(()=>render()).catch(()=>{});
 }
